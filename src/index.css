@@ -1,0 +1,31 @@
+/* Default body font */
+body {
+  font-family: 'Poppins', sans-serif;
+  color: #111827; /* keeps text clean */
+  background-color: #fff; /* optional */
+  margin: 0;
+  padding: 0;
+}
+
+/* Headings default */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Playfair Display', serif;
+}
+
+/* Fancy italic headings (optional) */
+h1.fancy, h2.fancy {
+  font-family: 'Cinzel', serif;
+  letter-spacing: 1px;
+}
+
+/* Subheadings / quotes */
+blockquote, em, i {
+  font-family: 'Cormorant Garamond', serif;
+}
+
+/* Special decorative text (like Rakhi, offers, tagline) */
+.decorative {
+  font-family: 'Great Vibes', cursive;
+  font-size: 1.5rem;
+  color: #b45309; /* golden shade */
+}
