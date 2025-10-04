@@ -1,8 +1,18 @@
+/* ✅ Import fonts FIRST */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Cinzel:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Great+Vibes&display=swap');
+
+/* ✅ Then Tailwind directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ✅ Now custom styles */
+
 /* Default body font */
 body {
   font-family: 'Poppins', sans-serif;
   color: #111827; /* keeps text clean */
-  background-color: #fff; /* optional */
+  background-color: #fff;
   margin: 0;
   padding: 0;
 }

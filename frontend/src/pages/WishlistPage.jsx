@@ -1,28 +1,32 @@
-import { Heart } from 'lucide-react'
-import { useApp } from '../context/AppContext'
-import { useNavigate } from 'react-router-dom'
-import ProductCard from '../components/ProductCard'
+import { Heart } from "lucide-react";
+import { useApp } from  "../context/AppContext";
+import { useNavigate } from "react-router-dom";
+import ProductCard from "../components/products/ProductCard.jsx";
 
 export default function WishlistPage() {
-  const { wishlist } = useApp()
-  const navigate = useNavigate()
+  const { wishlist } = useApp();
+  const navigate = useNavigate();
 
   if (wishlist.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <Heart className="w-24 h-24 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Your wishlist is empty</h2>
-          <p className="text-gray-600 mb-6">Save your favorite items to view them later!</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Your wishlist is empty
+          </h2>
+          <p className="text-gray-600 mb-6">
+            Save your favorite items to view them later!
+          </p>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate("/")}
             className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors"
           >
             Continue Shopping
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -35,10 +39,10 @@ export default function WishlistPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {wishlist.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard key={product._id} product={product} />
           ))}
         </div>
       </div>
     </div>
-  )
+  );
 }
