@@ -1,69 +1,107 @@
 // src/admin/pages/Users.jsx
-import { useState } from "react";
-import { User, Shield, Ban, Search, Eye, X, MoreVertical, Download } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import {
+  User,
+  Shield,
+  Ban,
+  Search,
+  Eye,
+  X,
+  MoreVertical,
+  Download,
+} from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import axios from "axios";
+
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
 export default function Users() {
-  const initialUsers = [
-    { id: 1, name: "John Doe", email: "john@example.com", phone: "9876543210", role: "Customer", status: "Active" },
-    { id: 2, name: "Alice Smith", email: "alice@example.com", phone: "9876501234", role: "Admin", status: "Active" },
-    { id: 3, name: "Rahul Kumar", email: "rahul@example.com", phone: "9876598765", role: "Customer", status: "Blocked" },
-  ];
-
-  // Dummy orders mapped by userId
-  const userOrders = {
-    1: [
-      { id: "ORD001", status: "Completed" },
-      { id: "ORD002", status: "Pending" },
-      { id: "ORD003", status: "Cancelled" },
-    ],
-    2: [{ id: "ORD004", status: "Completed" }],
-    3: [
-      { id: "ORD005", status: "Pending" },
-      { id: "ORD006", status: "Pending" },
-    ],
-  };
-
-  const [users, setUsers] = useState(initialUsers);
+  const [users, setUsers] = useState([]);
+  const [userOrders, setUserOrders] = useState({});
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
   const [viewUser, setViewUser] = useState(null);
   const [actionUser, setActionUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const dropdownRef = useRef(null);
 
-  // Toggle Admin role
-  const handleToggleAdmin = (id) => {
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === id ? { ...u, role: u.role === "Admin" ? "Customer" : "Admin", status: "Active" } : u
-      )
-    );
-    setActionUser(null);
+  // 🔹 Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setActionUser(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // 🔹 Fetch users on mount
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/api/users`);
+        setUsers(res.data);
+      } catch (err) {
+        console.error("Error fetching users:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  // 🔹 Fetch orders for a specific user (on demand)
+  const fetchUserOrders = async (userId) => {
+    if (userOrders[userId]) return; // avoid duplicate calls
+    try {
+      const res = await axios.get(`${API_BASE}/api/orders/user/${userId}`);
+      setUserOrders((prev) => ({ ...prev, [userId]: res.data }));
+    } catch (err) {
+      console.error(`Error fetching orders for user ${userId}:`, err);
+    }
   };
 
-  // Toggle Block / Unblock
-  const handleToggleBlock = (id) => {
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === id ? { ...u, status: u.status === "Active" ? "Blocked" : "Active" } : u
-      )
-    );
-    setActionUser(null);
+  // 🔹 Toggle Admin role
+  const handleToggleAdmin = async (id) => {
+    try {
+      const res = await axios.put(`${API_BASE}/api/users/${id}/role`);
+      setUsers((prev) =>
+        prev.map((u) => (u._id === id ? res.data.updatedUser : u))
+      );
+      setActionUser(null);
+    } catch (err) {
+      console.error("Failed to update role:", err);
+    }
   };
 
-  // Filter users
+  // 🔹 Toggle Block / Unblock
+  const handleToggleBlock = async (id) => {
+    try {
+      const res = await axios.put(`${API_BASE}/api/users/${id}/status`);
+      setUsers((prev) =>
+        prev.map((u) => (u._id === id ? res.data.updatedUser : u))
+      );
+      setActionUser(null);
+    } catch (err) {
+      console.error("Failed to update status:", err);
+    }
+  };
+
+  // 🔹 Filter users
   const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.name.toLowerCase().includes(search.toLowerCase()) ||
-      user.email.toLowerCase().includes(search.toLowerCase()) ||
-      user.phone.includes(search);
-    const matchesRole = roleFilter === "All" ? true : user.role === roleFilter;
-    const matchesStatus = statusFilter === "All" ? true : user.status === statusFilter;
-    return matchesSearch && matchesRole && matchesStatus;
+    const matchSearch =
+      user.name?.toLowerCase().includes(search.toLowerCase()) ||
+      user.email?.toLowerCase().includes(search.toLowerCase()) ||
+      user.phone?.includes(search);
+    const matchRole = roleFilter === "All" || user.role === roleFilter;
+    const matchStatus = statusFilter === "All" || user.status === statusFilter;
+    return matchSearch && matchRole && matchStatus;
   });
 
-  // Count user orders by status
+  // 🔹 Get order stats for modal
   const getOrderStats = (userId) => {
     const orders = userOrders[userId] || [];
     return {
@@ -74,72 +112,66 @@ export default function Users() {
     };
   };
 
-  // Export user orders as CSV
+  // 🔹 Export CSV
   const exportUserOrdersCSV = (user) => {
-    const orders = userOrders[user.id] || [];
+    const orders = userOrders[user._id] || [];
     if (orders.length === 0) return alert("No orders found for this user.");
-
     const headers = ["Order ID", "Status"];
-    const rows = orders.map((o) => [o.id, o.status]);
-
+    const rows = orders.map((o) => [o._id, o.status]);
     const csvContent =
       "data:text/csv;charset=utf-8," +
       [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-
     const link = document.createElement("a");
     link.href = encodeURI(csvContent);
     link.download = `Orders_${user.name.replace(/\s+/g, "_")}.csv`;
     link.click();
   };
 
-  // Export user orders as PDF
+  // 🔹 Export PDF
   const exportUserOrdersPDF = (user) => {
-  const orders = userOrders[user.id] || [];
-  const doc = new jsPDF();
+    const orders = userOrders[user._id] || [];
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("ADRS Technosoft - User Order Report", 14, 20);
 
-  // Title
-  doc.setFontSize(16);
-  doc.text("ADRS Technosoft - User Order Report", 14, 20);
+    doc.setFontSize(12);
+    doc.text(`User ID: ${user._id}`, 14, 35);
+    doc.text(`Name: ${user.name}`, 14, 45);
+    doc.text(`Email: ${user.email}`, 14, 55);
+    doc.text(`Phone: ${user.phone}`, 14, 65);
+    doc.text(`Role: ${user.role}`, 14, 75);
+    doc.text(`Status: ${user.status}`, 14, 85);
 
-  // Customer Info
-  doc.setFontSize(12);
-  doc.text(`User ID: ${user.id}`, 14, 35);
-  doc.text(`Name: ${user.name}`, 14, 45);
-  doc.text(`Email: ${user.email}`, 14, 55);
-  doc.text(`Phone: ${user.phone}`, 14, 65);
-  doc.text(`Role: ${user.role}`, 14, 75);
-  doc.text(`Status: ${user.status}`, 14, 85);
+    if (orders.length > 0) {
+      autoTable(doc, {
+        startY: 95,
+        head: [["Order ID", "Status"]],
+        body: orders.map((o) => [o._id, o.status]),
+      });
+    } else {
+      doc.text("No orders found for this user.", 14, 100);
+    }
 
-  // Orders Table
-  autoTable(doc, {
-    startY: 95,
-    head: [["Order ID", "Status"]],
-    body: orders.map((o) => [o.id, o.status]),
-  });
+    doc.setFontSize(10);
+    doc.text(
+      "Generated by ADRS Technosoft",
+      14,
+      doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 120
+    );
 
-  // If no orders
-  if (orders.length === 0) {
-    doc.text("No orders found for this user.", 14, 100);
-  }
+    const safeName = user.name.replace(/\s+/g, "_");
+    doc.save(`User_${safeName}_Orders.pdf`);
+  };
 
-  // Footer
-  doc.setFontSize(10);
-  doc.text("Generated by ADRS Technosoft", 14, doc.lastAutoTable ? doc.lastAutoTable.finalY + 20 : 120);
-
-  // File name: "User_John_Doe_Orders.pdf"
-  const safeName = user.name.replace(/\s+/g, "_");
-  const fileName = `User_${safeName}_Orders.pdf`;
-
-  doc.save(fileName);
-};
+  if (loading)
+    return <div className="p-6 text-center text-gray-600">Loading users...</div>;
 
   return (
     <div className="p-6">
-      {/* Header */}
+      {/* Header Section */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
         <h1 className="text-2xl font-bold">Users</h1>
 
-        {/* Filters */}
         <div className="flex flex-wrap gap-3 items-center">
           <div className="relative">
             <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -188,11 +220,12 @@ export default function Users() {
               <th className="py-3 px-6 text-center">Actions</th>
             </tr>
           </thead>
+
           <tbody className="text-gray-700">
             {filteredUsers.length > 0 ? (
               filteredUsers.map((user) => (
-                <tr key={user.id} className="border-b hover:bg-gray-50">
-                  <td className="py-3 px-6">{user.id}</td>
+                <tr key={user._id} className="border-b hover:bg-gray-50">
+                  <td className="py-3 px-6">{user._id.slice(-6).toUpperCase()}</td>
                   <td className="py-3 px-6 font-medium flex items-center gap-2">
                     <User className="w-4 h-4 text-gray-500" />
                     {user.name}
@@ -211,40 +244,45 @@ export default function Users() {
                       {user.status}
                     </span>
                   </td>
-                  <td className="py-3 px-6 text-center relative">
+
+                  <td className="py-3 px-6 text-center relative" ref={dropdownRef}>
                     <button
-                      onClick={() => setActionUser(actionUser === user.id ? null : user.id)}
+                      onClick={() =>
+                        setActionUser(actionUser === user._id ? null : user._id)
+                      }
                       className="p-2 rounded-full hover:bg-gray-200"
                     >
                       <MoreVertical className="w-5 h-5 text-gray-600" />
                     </button>
 
-                    {/* Dropdown */}
-                    {actionUser === user.id && (
-                      <div className="absolute right-0 mt-2 w-40 bg-white shadow-lg border rounded-lg z-10">
+                    {actionUser === user._id && (
+                      <div className="absolute right-0 mt-2 w-44 bg-white shadow-lg border rounded-lg z-10">
                         <button
                           onClick={() => {
                             setViewUser(user);
+                            fetchUserOrders(user._id);
                             setActionUser(null);
                           }}
                           className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
                         >
-                          <Eye className="w-4 h-4 text-blue-600" /> View
+                          <Eye className="w-4 h-4 text-blue-600" /> View Details
                         </button>
                         <button
-                          onClick={() => handleToggleAdmin(user.id)}
+                          onClick={() => handleToggleAdmin(user._id)}
                           className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
                         >
                           <Shield className="w-4 h-4 text-purple-600" />{" "}
                           {user.role === "Admin" ? "Remove Admin" : "Make Admin"}
                         </button>
                         <button
-                          onClick={() => handleToggleBlock(user.id)}
+                          onClick={() => handleToggleBlock(user._id)}
                           className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
                         >
                           <Ban
                             className={`w-4 h-4 ${
-                              user.status === "Active" ? "text-red-600" : "text-green-600"
+                              user.status === "Active"
+                                ? "text-red-600"
+                                : "text-green-600"
                             }`}
                           />{" "}
                           {user.status === "Active" ? "Block" : "Unblock"}
@@ -278,17 +316,16 @@ export default function Users() {
 
             <h2 className="text-xl font-bold mb-4">User Details</h2>
             <div className="space-y-2 text-sm">
-              <p><span className="font-semibold">ID:</span> {viewUser.id}</p>
-              <p><span className="font-semibold">Name:</span> {viewUser.name}</p>
-              <p><span className="font-semibold">Email:</span> {viewUser.email}</p>
-              <p><span className="font-semibold">Phone:</span> {viewUser.phone}</p>
-              <p><span className="font-semibold">Role:</span> {viewUser.role}</p>
-              <p><span className="font-semibold">Status:</span> {viewUser.status}</p>
+              <p><b>ID:</b> {viewUser._id}</p>
+              <p><b>Name:</b> {viewUser.name}</p>
+              <p><b>Email:</b> {viewUser.email}</p>
+              <p><b>Phone:</b> {viewUser.phone}</p>
+              <p><b>Role:</b> {viewUser.role}</p>
+              <p><b>Status:</b> {viewUser.status}</p>
 
-              {/* Orders summary */}
               <h3 className="mt-4 font-semibold">Order Summary:</h3>
               {(() => {
-                const stats = getOrderStats(viewUser.id);
+                const stats = getOrderStats(viewUser._id);
                 return (
                   <>
                     <ul className="list-disc ml-6 space-y-1 mb-3">
@@ -297,49 +334,10 @@ export default function Users() {
                       <li className="text-yellow-600">Pending: {stats.pending}</li>
                       <li className="text-red-600">Cancelled: {stats.cancelled}</li>
                     </ul>
-
-                    {/* Orders table */}
-                    <div className="overflow-x-auto bg-gray-50 rounded-lg shadow-inner p-2">
-                      <table className="min-w-full text-xs border-collapse">
-                        <thead className="bg-gray-200 text-gray-600 uppercase">
-                          <tr>
-                            <th className="px-3 py-2 text-left">Order ID</th>
-                            <th className="px-3 py-2 text-left">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {userOrders[viewUser.id] && userOrders[viewUser.id].length > 0 ? (
-                            userOrders[viewUser.id].map((o) => (
-                              <tr key={o.id} className="border-b">
-                                <td className="px-3 py-2 font-medium">{o.id}</td>
-                                <td
-                                  className={`px-3 py-2 font-semibold ${
-                                    o.status === "Completed"
-                                      ? "text-green-600"
-                                      : o.status === "Pending"
-                                      ? "text-yellow-600"
-                                      : "text-red-600"
-                                  }`}
-                                >
-                                  {o.status}
-                                </td>
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan="2" className="text-center py-2 text-gray-500 italic">
-                                No orders found
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
                   </>
                 );
               })()}
 
-              {/* Download buttons */}
               <div className="flex gap-3 mt-4">
                 <button
                   onClick={() => exportUserOrdersCSV(viewUser)}

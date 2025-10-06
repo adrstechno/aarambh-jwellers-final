@@ -1,104 +1,86 @@
 // src/admin/pages/Orders.jsx
-import { useState } from "react";
-import { Eye, X, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Eye,
+  X,
+  Download,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import axios from "axios";
+
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
 export default function Orders() {
-  const initialOrders = [
-    {
-      id: "ORD001",
-      customer: "John Doe",
-      date: "2025-09-20",
-      total: 25000,
-      status: "Pending",
-      paymentMethod: "UPI",
-      transactionId: "TXN123456789",
-      products: [
-        { id: "PROD001", name: "Diamond Necklace", quantity: 1 },
-        { id: "PROD002", name: "Gold Ring", quantity: 2 },
-      ],
-    },
-    {
-      id: "ORD002",
-      customer: "Alice Smith",
-      date: "2025-09-21",
-      total: 12000,
-      status: "Completed",
-      paymentMethod: "Cash",
-      transactionId: null,
-      products: [{ id: "PROD003", name: "Silver Bracelet", quantity: 1 }],
-    },
-    {
-      id: "ORD003",
-      customer: "Rahul Kumar",
-      date: "2025-09-22",
-      total: 5000,
-      status: "Cancelled",
-      paymentMethod: "Card",
-      transactionId: "TXN987654321",
-      products: [{ id: "PROD002", name: "Gold Ring", quantity: 1 }],
-    },
-    // 👇 Add more dummy orders for testing pagination
-    ...Array.from({ length: 25 }, (_, i) => ({
-      id: `ORD${i + 4}`.padStart(6, "0"),
-      customer: `Customer ${i + 4}`,
-      date: "2025-09-23",
-      total: (i + 1) * 1000,
-      status: i % 2 === 0 ? "Pending" : "Completed",
-      paymentMethod: i % 3 === 0 ? "Cash" : i % 3 === 1 ? "UPI" : "Card",
-      transactionId: i % 3 === 0 ? null : `TXN${100000 + i}`,
-      products: [
-        { id: `PROD${100 + i}`, name: "Test Product", quantity: (i % 3) + 1 },
-      ],
-    })),
-  ];
-
-  const [orders, setOrders] = useState(initialOrders);
+  const [orders, setOrders] = useState([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
   const [paymentFilter, setPaymentFilter] = useState("All");
   const [viewOrder, setViewOrder] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Update order status
-  const handleStatusChange = (id, newStatus) => {
-    setOrders((prev) =>
-      prev.map((order) =>
-        order.id === id ? { ...order, status: newStatus } : order
-      )
-    );
+  // ✅ Fetch orders from backend
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const res = await axios.get(`${API_BASE}/api/orders/admin`);
+        setOrders(res.data);
+      } catch (err) {
+        console.error("Error fetching orders:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
+
+  // ✅ Update order status (live)
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      const res = await axios.put(`${API_BASE}/api/orders/${id}`, {
+        status: newStatus,
+      });
+      setOrders((prev) =>
+        prev.map((order) =>
+          order._id === id ? { ...order, status: res.data.status } : order
+        )
+      );
+    } catch (err) {
+      console.error("Failed to update order status:", err);
+    }
   };
 
-  // Filter orders
+  // ✅ Filtering logic
   const filteredOrders = orders.filter((order) => {
-    const matchesSearch =
-      order.id.toLowerCase().includes(search.toLowerCase()) ||
-      order.customer.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus =
-      statusFilter === "All" ? true : order.status === statusFilter;
-    const matchesPayment =
-      paymentFilter === "All" ? true : order.paymentMethod === paymentFilter;
-
-    return matchesSearch && matchesStatus && matchesPayment;
+    const matchSearch =
+      order._id?.toLowerCase().includes(search.toLowerCase()) ||
+      order.user?.name?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus =
+      statusFilter === "All" || order.status === statusFilter;
+    const matchPayment =
+      paymentFilter === "All" || order.paymentMethod === paymentFilter;
+    return matchSearch && matchStatus && matchPayment;
   });
 
-  // Pagination logic
+  // ✅ Pagination logic
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const paginatedOrders = filteredOrders.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
   const goToPage = (page) => {
     if (page >= 1 && page <= totalPages) setCurrentPage(page);
   };
 
-  // Export filtered orders to CSV
+  // ✅ CSV export
   const exportToCSV = () => {
+    if (filteredOrders.length === 0) return alert("No orders to export.");
     const headers = [
       "Order ID",
       "Customer",
@@ -109,92 +91,82 @@ export default function Orders() {
       "Total",
       "Status",
     ];
-
-    const rows = filteredOrders.map((order) => [
-      order.id,
-      order.customer,
-      order.date,
-      order.products
-        .map((p) => `${p.name} (${p.id}) ×${p.quantity}`)
-        .join("; "),
-      order.paymentMethod,
-      order.transactionId || "N/A",
-      order.total,
-      order.status,
+    const rows = filteredOrders.map((o) => [
+      o._id,
+      o.user?.name || "N/A",
+      new Date(o.createdAt).toLocaleDateString(),
+      o.products.map((p) => `${p.name} ×${p.quantity}`).join("; "),
+      o.paymentMethod || "N/A",
+      o.transactionId || "N/A",
+      o.total || 0,
+      o.status || "Pending",
     ]);
-
-    const csvContent =
+    const csv =
       "data:text/csv;charset=utf-8," +
       [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-
     const link = document.createElement("a");
-    link.href = encodeURI(csvContent);
+    link.href = encodeURI(csv);
     link.download = "orders.csv";
     link.click();
   };
 
-  // Download Order as PDF
+  // ✅ PDF export for individual order
   const downloadOrderPDF = (order) => {
     const doc = new jsPDF();
-
     doc.setFontSize(18);
     doc.text("ADRS Technosoft - Order Invoice", 14, 20);
 
     doc.setFontSize(12);
-    doc.text(`Order ID: ${order.id}`, 14, 35);
-    doc.text(`Customer: ${order.customer}`, 14, 45);
-    doc.text(`Date: ${order.date}`, 14, 55);
-    doc.text(`Payment Method: ${order.paymentMethod}`, 14, 65);
-    if (order.transactionId) {
+    doc.text(`Order ID: ${order._id}`, 14, 35);
+    doc.text(`Customer: ${order.user?.name || "N/A"}`, 14, 45);
+    doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString()}`, 14, 55);
+    doc.text(`Payment Method: ${order.paymentMethod || "N/A"}`, 14, 65);
+    if (order.transactionId)
       doc.text(`Transaction ID: ${order.transactionId}`, 14, 75);
-    }
     doc.text(`Status: ${order.status}`, 14, 85);
 
     autoTable(doc, {
       startY: 95,
-      head: [["Product ID", "Name", "Quantity"]],
-      body: order.products.map((p) => [p.id, p.name, p.quantity]),
+      head: [["Product Name", "Quantity", "Price"]],
+      body: order.products.map((p) => [p.name, p.quantity, `₹${p.price}`]),
     });
 
     doc.setFontSize(14);
-    doc.text(
-      `Total: ₹${order.total.toLocaleString()}`,
-      14,
-      doc.lastAutoTable.finalY + 15
-    );
-
-    doc.setFontSize(10);
+    doc.text(`Total: ₹${order.total}`, 14, doc.lastAutoTable.finalY + 15);
     doc.text(
       "Thank you for shopping with ADRS Technosoft!",
       14,
       doc.lastAutoTable.finalY + 30
     );
 
-    const safeCustomer = order.customer.replace(/\s+/g, "_");
-    const fileName = `Invoice_${order.id}_${safeCustomer}.pdf`;
-
-    doc.save(fileName);
+    const safeName = order.user?.name?.replace(/\s+/g, "_") || "Customer";
+    doc.save(`Invoice_${order._id}_${safeName}.pdf`);
   };
+
+  if (loading)
+    return (
+      <div className="p-6 text-center text-gray-600">Loading orders...</div>
+    );
 
   return (
     <div className="p-6">
-      {/* Header */}
+      {/* Header Section */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
         <h1 className="text-2xl font-bold">Orders</h1>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           <input
             type="text"
-            placeholder="Search by Order ID or Customer"
+            placeholder="Search by ID or Customer"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand text-sm"
+            className="px-4 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand"
           />
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-brand text-sm"
+            className="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand"
           >
             <option value="All">All Status</option>
             <option value="Pending">Pending</option>
@@ -205,7 +177,7 @@ export default function Orders() {
           <select
             value={paymentFilter}
             onChange={(e) => setPaymentFilter(e.target.value)}
-            className="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-brand text-sm"
+            className="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-brand"
           >
             <option value="All">All Payments</option>
             <option value="Cash">Cash</option>
@@ -215,7 +187,7 @@ export default function Orders() {
 
           <button
             onClick={exportToCSV}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm"
           >
             Export CSV
           </button>
@@ -224,8 +196,8 @@ export default function Orders() {
 
       {/* Orders Table */}
       <div className="overflow-x-auto bg-white rounded-xl shadow max-h-[500px]">
-        <table className="min-w-full table-auto border-collapse text-sm">
-          <thead className="bg-gray-100 text-gray-600 uppercase text-xs sticky top-0 z-10">
+        <table className="min-w-full table-auto text-sm">
+          <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
             <tr>
               <th className="py-2 px-4 text-left">Order ID</th>
               <th className="py-2 px-4 text-left">Customer</th>
@@ -238,64 +210,41 @@ export default function Orders() {
               <th className="py-2 px-4 text-center">Actions</th>
             </tr>
           </thead>
-          <tbody className="text-gray-700 text-sm">
+          <tbody className="text-gray-700">
             {paginatedOrders.length > 0 ? (
-              paginatedOrders.map((order, idx) => (
-                <tr
-                  key={order.id}
-                  className={`${
-                    idx % 2 === 0 ? "bg-gray-50" : "bg-white"
-                  } hover:bg-gray-100 transition`}
-                >
-                  <td className="py-2 px-4 font-medium">{order.id}</td>
-                  <td className="py-2 px-4">{order.customer}</td>
-                  <td className="py-2 px-4">{order.date}</td>
-                  <td className="py-2 px-4">
-                    <ul className="space-y-1">
-                      {order.products.map((prod) => (
-                        <li key={prod.id} className="text-xs">
-                          <span className="font-medium">{prod.name}</span>{" "}
-                          <span className="text-gray-500 text-[10px]">
-                            ({prod.id})
-                          </span>{" "}
-                          × {prod.quantity}
-                        </li>
-                      ))}
-                    </ul>
+              paginatedOrders.map((order) => (
+                <tr key={order._id} className="border-b hover:bg-gray-50">
+                  <td className="py-2 px-4 font-medium">
+                    {order._id.slice(-6).toUpperCase()}
                   </td>
+                  <td className="py-2 px-4">{order.user?.name || "Guest"}</td>
                   <td className="py-2 px-4">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        order.paymentMethod === "Cash"
-                          ? "bg-gray-200 text-gray-700"
-                          : order.paymentMethod === "UPI"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-blue-100 text-blue-700"
-                      }`}
-                    >
-                      {order.paymentMethod}
-                    </span>
+                    {new Date(order.createdAt).toLocaleDateString()}
                   </td>
                   <td className="py-2 px-4 text-xs">
-                    {order.transactionId || (
-                      <span className="text-gray-400 italic">N/A</span>
-                    )}
+                    {order.products.map((p) => (
+                      <div key={p._id}>
+                        {p.name} × {p.quantity}
+                      </div>
+                    ))}
                   </td>
-                  <td className="py-2 px-4 font-semibold text-sm">
-                    ₹{order.total.toLocaleString()}
+                  <td className="py-2 px-4">{order.paymentMethod || "N/A"}</td>
+                  <td className="py-2 px-4 text-xs">
+                    {order.transactionId || "N/A"}
                   </td>
+                  <td className="py-2 px-4 font-semibold">₹{order.total}</td>
                   <td className="py-2 px-4">
                     <select
                       value={order.status}
                       onChange={(e) =>
-                        handleStatusChange(order.id, e.target.value)
+                        handleStatusChange(order._id, e.target.value)
                       }
                       className={`px-2 py-1 rounded-full text-xs font-semibold border cursor-pointer ${
                         order.status === "Completed"
-                          ? "bg-green-100 text-green-700 border-green-300"
+                          ? "bg-green-100 text-green-700"
                           : order.status === "Cancelled"
-                          ? "bg-red-100 text-red-700 border-red-300"
-                          : "bg-yellow-100 text-yellow-700 border-yellow-300"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-yellow-100 text-yellow-700"
                       }`}
                     >
                       <option value="Pending">Pending</option>
@@ -317,7 +266,7 @@ export default function Orders() {
               <tr>
                 <td
                   colSpan="9"
-                  className="py-6 text-center text-gray-500 italic text-sm"
+                  className="py-6 text-center text-gray-500 italic"
                 >
                   No orders found.
                 </td>
@@ -327,18 +276,15 @@ export default function Orders() {
         </table>
       </div>
 
-      {/* Pagination Controls */}
+      {/* Pagination */}
       <div className="flex justify-between items-center mt-4 text-sm">
         <p>
           Showing{" "}
-          <span className="font-semibold">
-            {(currentPage - 1) * itemsPerPage + 1}
-          </span>{" "}
-          to{" "}
-          <span className="font-semibold">
+          <b>
+            {(currentPage - 1) * itemsPerPage + 1}-
             {Math.min(currentPage * itemsPerPage, filteredOrders.length)}
-          </span>{" "}
-          of <span className="font-semibold">{filteredOrders.length}</span> orders
+          </b>{" "}
+          of <b>{filteredOrders.length}</b> orders
         </p>
         <div className="flex items-center gap-2">
           <button
@@ -373,51 +319,42 @@ export default function Orders() {
             </button>
 
             <h2 className="text-xl font-bold mb-4">
-              Order Details - {viewOrder.id}
+              Order Details - {viewOrder._id.slice(-6).toUpperCase()}
             </h2>
 
             <div className="grid gap-3 text-sm">
               <p>
-                <span className="font-semibold">Customer:</span>{" "}
-                {viewOrder.customer}
+                <b>Customer:</b> {viewOrder.user?.name || "Guest"}
               </p>
               <p>
-                <span className="font-semibold">Date:</span> {viewOrder.date}
+                <b>Date:</b>{" "}
+                {new Date(viewOrder.createdAt).toLocaleDateString()}
               </p>
               <p>
-                <span className="font-semibold">Payment Method:</span>{" "}
-                {viewOrder.paymentMethod}
+                <b>Payment Method:</b> {viewOrder.paymentMethod || "N/A"}
               </p>
-              {viewOrder.transactionId && (
-                <p>
-                  <span className="font-semibold">Transaction ID:</span>{" "}
-                  {viewOrder.transactionId}
-                </p>
-              )}
               <p>
-                <span className="font-semibold">Status:</span>{" "}
-                {viewOrder.status}
+                <b>Status:</b> {viewOrder.status}
               </p>
 
               <h3 className="font-semibold mt-4">Products:</h3>
               <ul className="list-disc ml-6 space-y-1">
-                {viewOrder.products.map((prod) => (
-                  <li key={prod.id}>
-                    {prod.name} ({prod.id}) × {prod.quantity}
+                {viewOrder.products.map((p) => (
+                  <li key={p._id}>
+                    {p.name} × {p.quantity} — ₹{p.price}
                   </li>
                 ))}
               </ul>
 
               <p className="mt-4 text-lg font-semibold">
-                Total: ₹{viewOrder.total.toLocaleString()}
+                Total: ₹{viewOrder.total}
               </p>
 
-              {/* Download Button */}
               <button
                 onClick={() => downloadOrderPDF(viewOrder)}
                 className="mt-4 flex items-center gap-2 px-4 py-2 bg-brand text-white rounded-lg hover:bg-brand-dark transition"
               >
-                <Download className="w-5 h-5" /> Download Order (PDF)
+                <Download className="w-5 h-5" /> Download PDF
               </button>
             </div>
           </div>
