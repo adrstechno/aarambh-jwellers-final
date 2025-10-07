@@ -1,11 +1,14 @@
+// backend/routes/productRoutes.js
 import express from "express";
 import multer from "multer";
 import path from "path";
 import {
   createProduct,
-  getProducts,
   updateProduct,
   deleteProduct,
+  getAllProducts,
+  getProductsByCategory,
+  getProductById,
 } from "../controllers/productController.js";
 
 const router = express.Router();
@@ -22,11 +25,8 @@ const storage = multer.diskStorage({
 // ✅ File filter (only allow image files)
 const fileFilter = (req, file, cb) => {
   const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
-  if (allowedTypes.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error("Only image files (JPG, PNG, WEBP) are allowed."), false);
-  }
+  if (allowedTypes.includes(file.mimetype)) cb(null, true);
+  else cb(new Error("Only image files (JPG, PNG, WEBP) are allowed."), false);
 };
 
 // ✅ 2MB file size limit
@@ -36,9 +36,16 @@ const upload = multer({
   limits: { fileSize: 2 * 1024 * 1024 },
 });
 
-// 🟢 Routes
+/* 🟢 PUBLIC ROUTES — For Website Frontend */
+router.get("/", getAllProducts);
+router.get("/category/:category", getProductsByCategory);
+router.get("/:id", getProductById);
+router.get("/slug/:slug", getProductBySlug);
+router.get("/category/:category", getProductsByCategory);
+
+
+/* 🔵 ADMIN ROUTES — For Admin Panel */
 router.post("/", upload.single("image"), createProduct);
-router.get("/", getProducts);
 router.put("/:id", upload.single("image"), updateProduct);
 router.delete("/:id", deleteProduct);
 

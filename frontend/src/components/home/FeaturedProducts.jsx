@@ -10,7 +10,7 @@ export default function FeaturedProducts() {
 
   const categories = ["necklace", "rings", "bracelets"];
 
-  // 🔹 Fetch products when tab changes
+  // 🟢 Fetch products when tab changes
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
@@ -18,7 +18,8 @@ export default function FeaturedProducts() {
         const data = await getProductsByCategory(activeTab);
         setProducts(data);
       } catch (err) {
-        console.error("Failed to fetch products", err);
+        console.error("❌ Failed to fetch products:", err);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -37,11 +38,11 @@ export default function FeaturedProducts() {
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
             "Celebrate your moments with timeless designs, meticulously crafted
-            to perfection."
+            to perfection by Jina Fashion."
           </p>
         </div>
 
-        {/* Tab Navigation */}
+        {/* Tabs */}
         <div className="flex justify-center mb-12">
           <div className="bg-white rounded-lg shadow-sm p-1">
             {categories.map((tab) => (
@@ -60,11 +61,13 @@ export default function FeaturedProducts() {
           </div>
         </div>
 
-        {/* Products Grid */}
+        {/* Product Grid */}
         {loading ? (
           <p className="text-center text-gray-500">Loading products...</p>
         ) : products.length === 0 ? (
-          <p className="text-center text-gray-500">No products found.</p>
+          <p className="text-center text-gray-500">
+            No products found for "{activeTab}".
+          </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {products.map((product) => (

@@ -2,7 +2,7 @@ import Product from "../models/product.js";
 import Category from "../models/category.js";
 import slugify from "slugify";
 
-// 🟢 Add new product
+// 🟢 Add new product (Admin)
 export const createProduct = async (req, res) => {
   try {
     const { name, category, price, stock, status } = req.body;
@@ -36,7 +36,10 @@ export const createProduct = async (req, res) => {
     });
 
     await newProduct.save();
-    const populatedProduct = await Product.findById(newProduct._id).populate("category", "name");
+    const populatedProduct = await Product.findById(newProduct._id).populate(
+      "category",
+      "name"
+    );
 
     res.status(201).json({
       message: "✅ Product added successfully",
@@ -48,7 +51,7 @@ export const createProduct = async (req, res) => {
   }
 };
 
-// 🟡 Get all products
+// 🟡 Get all products (Admin)
 export const getProducts = async (req, res) => {
   try {
     const products = await Product.find()
@@ -62,16 +65,14 @@ export const getProducts = async (req, res) => {
   }
 };
 
-// 🟠 Update product (final version)
+// 🟠 Update product (Admin)
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
     let { name, category, price, stock, status } = req.body;
 
-    // ✅ Handle category field — works for all possible frontend formats
     try {
       if (typeof category === "string") {
-        // Handle stringified object from FormData like '[object Object]' or '{"_id":"..."}'
         if (category.includes("{")) {
           const parsed = JSON.parse(category);
           category = parsed._id || category;
@@ -108,9 +109,7 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-
-
-// 🔴 Delete product
+// 🔴 Delete product (Admin)
 export const deleteProduct = async (req, res) => {
   try {
     const deleted = await Product.findByIdAndDelete(req.params.id);
@@ -120,5 +119,59 @@ export const deleteProduct = async (req, res) => {
   } catch (error) {
     console.error("❌ Error deleting product:", error);
     res.status(500).json({ message: "Failed to delete product" });
+  }
+};
+
+/* ==========================================================
+   🌐 FRONTEND WEBSITE ROUTES (Do NOT affect Admin APIs)
+   ========================================================== */
+
+// 🟢 Public: Get all active products for frontend
+export const getAllProducts = async (req, res) => {
+  try {
+    const products = await Product.find({ status: "Active" })
+      .populate("category", "name")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(products);
+  } catch (error) {
+    console.error("❌ Error fetching public products:", error);
+    res.status(500).json({ message: "Failed to fetch public products" });
+  }
+};
+
+// 🟣 Public: Get products by category (for FeaturedProducts.jsx)
+export const getProductsByCategory = async (req, res) => {
+  try {
+    const category = req.params.category.toLowerCase();
+    const products = await Product.find({
+      "category.name": { $regex: new RegExp(category, "i") },
+      status: "Active",
+    })
+      .populate("category", "name")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(products);
+  } catch (error) {
+    console.error("❌ Error fetching products by category:", error);
+    res.status(500).json({ message: "Failed to fetch products by category" });
+  }
+};
+
+// 🔵 Public: Get product details by ID (for ProductDetail.jsx)
+export const getProductById = async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id).populate(
+      "category",
+      "name"
+    );
+
+    if (!product)
+      return res.status(404).json({ message: "Product not found" });
+
+    res.status(200).json(product);
+  } catch (error) {
+    console.error("❌ Error fetching product by ID:", error);
+    res.status(500).json({ message: "Failed to fetch product details" });
   }
 };

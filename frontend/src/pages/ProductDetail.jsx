@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getProductBySlug, getProductsByCategory } from "../api/productApi";
-import { useApp } from  "../context/AppContext";
+import { useApp } from "../context/AppContext";
 import { ShoppingCart, Heart } from "lucide-react";
 import ProductCard from "../components/products/ProductCard.jsx";
 
@@ -20,30 +20,36 @@ export default function ProductDetail() {
       try {
         const data = await getProductBySlug(slug);
         setProduct(data);
-        setActiveImage(data.images?.[0] || "/placeholder.jpg");
 
-        // 🔹 Fetch related products
-        if (data?.category?.slug) {
-          const relatedProducts = await getProductsByCategory(data.category.slug);
+        // ✅ Support single image or array of images
+        const mainImage = Array.isArray(data.images)
+          ? data.images[0]
+          : data.image || "/placeholder.jpg";
+        setActiveImage(mainImage);
+
+        // ✅ Fetch related products using category name
+        if (data?.category?.name) {
+          const relatedProducts = await getProductsByCategory(
+            data.category.name.toLowerCase()
+          );
           const filtered = relatedProducts.filter((p) => p._id !== data._id);
           setRelated(filtered);
         }
       } catch (err) {
-        console.error("Failed to fetch product", err);
+        console.error("❌ Failed to fetch product:", err);
       } finally {
         setLoading(false);
       }
     };
+
     fetchData();
   }, [slug]);
 
-  if (loading) {
+  if (loading)
     return <p className="text-center py-20 text-gray-500">Loading product...</p>;
-  }
 
-  if (!product) {
+  if (!product)
     return <p className="text-center py-20 text-gray-500">Product not found.</p>;
-  }
 
   return (
     <>
@@ -55,30 +61,48 @@ export default function ProductDetail() {
             alt={product.name}
             className="w-full rounded-lg shadow-md object-cover"
           />
+
+          {/* Thumbnails */}
           <div className="flex space-x-4 overflow-x-auto">
-            {product.images?.map((img, idx) => (
-              <img
-                key={idx}
-                src={img}
-                alt={`${product.name} ${idx}`}
-                onClick={() => setActiveImage(img)}
-                className={`w-24 h-24 rounded-lg object-cover cursor-pointer ${
-                  activeImage === img ? "ring-2 ring-red-500" : "hover:ring-2 hover:ring-red-500"
-                }`}
-              />
-            ))}
+            {Array.isArray(product.images) && product.images.length > 0 ? (
+              product.images.map((img, idx) => (
+                <img
+                  key={idx}
+                  src={img}
+                  alt={`${product.name} ${idx}`}
+                  onClick={() => setActiveImage(img)}
+                  className={`w-24 h-24 rounded-lg object-cover cursor-pointer ${
+                    activeImage === img
+                      ? "ring-2 ring-red-500"
+                      : "hover:ring-2 hover:ring-red-500"
+                  }`}
+                />
+              ))
+            ) : (
+              product.image && (
+                <img
+                  src={product.image}
+                  alt={product.name}
+                  className="w-24 h-24 rounded-lg object-cover ring-2 ring-red-500"
+                />
+              )
+            )}
           </div>
         </div>
 
         {/* Product Info */}
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">{product.name}</h1>
-          <p className="text-gray-600 mb-6">{product.description}</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            {product.name}
+          </h1>
+          <p className="text-gray-600 mb-6">
+            {product.description || "No description available."}
+          </p>
 
           {/* Price */}
           <div className="flex items-center space-x-4 mb-6">
             <span className="text-2xl font-bold text-red-600">
-              ₹{product.price.toLocaleString()}
+              ₹{product.price?.toLocaleString() || "N/A"}
             </span>
             {product.stock === 0 && (
               <span className="text-sm text-gray-500">(Sold Out)</span>

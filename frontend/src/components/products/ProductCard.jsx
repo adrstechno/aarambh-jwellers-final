@@ -1,7 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useState } from "react";
 import { Heart, Eye, ShoppingCart } from "lucide-react";
-import { useApp } from  "../../context/AppContext.jsx";
+import { useApp } from "../../context/AppContext.jsx";
 import { useNavigate } from "react-router-dom";
 
 export default function ProductCard({ product }) {
@@ -10,22 +10,17 @@ export default function ProductCard({ product }) {
   const navigate = useNavigate();
 
   const isInWishlist = wishlist.some((item) => item._id === product._id);
-  const isSoldOut = product.stock === 0;
+  const isSoldOut = product.stock === 0 || product.status === "Inactive";
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
-    if (!isSoldOut) {
-      addToCart(product);
-    }
+    if (!isSoldOut) addToCart(product);
   };
 
   const handleWishlistToggle = (e) => {
     e.stopPropagation();
-    if (isInWishlist) {
-      removeFromWishlist(product._id);
-    } else {
-      addToWishlist(product);
-    }
+    if (isInWishlist) removeFromWishlist(product._id);
+    else addToWishlist(product);
   };
 
   const handleQuickView = (e) => {
@@ -36,6 +31,14 @@ export default function ProductCard({ product }) {
   const handleCardClick = () => {
     navigate(`/product/${product.slug}`);
   };
+
+  // 🟢 Safe image handling for backend (single string or array)
+  const imageSrc =
+    Array.isArray(product.images) && product.images.length > 0
+      ? product.images[0]
+      : product.image
+      ? product.image
+      : "/placeholder.jpg";
 
   return (
     <div
@@ -51,9 +54,10 @@ export default function ProductCard({ product }) {
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleCardClick}
     >
+      {/* 🖼 Product Image */}
       <div className="relative overflow-hidden">
         <img
-          src={product.images?.[0] || "/placeholder.jpg"}
+          src={imageSrc}
           alt={product.name}
           className="w-full h-64 object-cover will-change-transform"
           style={{
@@ -129,6 +133,7 @@ export default function ProductCard({ product }) {
         </div>
       </div>
 
+      {/* Product Info */}
       <div className="p-6">
         <h3
           className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2"
@@ -140,14 +145,12 @@ export default function ProductCard({ product }) {
           {product.name}
         </h3>
 
-        {/* Price */}
         <div className="flex items-center space-x-2 mb-4">
           <span className="text-xl font-bold text-gray-900">
-            ₹{product.price.toLocaleString()}
+            ₹{product.price?.toLocaleString() || "N/A"}
           </span>
         </div>
 
-        {/* Bottom Add to Cart */}
         <button
           onClick={handleAddToCart}
           className={`w-full py-3 px-4 rounded-lg font-medium border ${
