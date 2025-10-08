@@ -1,9 +1,15 @@
+/* eslint-disable no-unused-vars */
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { getProductBySlug, getProductsByCategory } from "../api/productApi";
 import { useApp } from "../context/AppContext";
 import { ShoppingCart, Heart } from "lucide-react";
 import ProductCard from "../components/products/ProductCard.jsx";
+import {
+  getReviewsByProduct,
+  addReview,
+  getAverageRating,
+} from "../api/reviewApi";
 
 export default function ProductDetail() {
   const { slug } = useParams();
@@ -14,6 +20,34 @@ export default function ProductDetail() {
 
   const { addToCart, addToWishlist, wishlist, removeFromWishlist } = useApp();
   const isInWishlist = wishlist.some((item) => item._id === product?._id);
+
+  const [reviews, setReviews] = useState([]);
+  const [newReview, setNewReview] = useState({ rating: 0, comment: "" });
+  const [averageRating, setAverageRating] = useState(0);
+  const { user } = useApp();
+
+  useEffect(() => {
+    if (!product?._id) return;
+    const fetchReviews = async () => {
+      const data = await getReviewsByProduct(product._id);
+      setReviews(data);
+      const avg = await getAverageRating(product._id);
+      setAverageRating(avg.averageRating);
+    };
+    fetchReviews();
+  }, [product]);
+
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await addReview(product._id, newReview, user?.token);
+      setNewReview({ rating: 0, comment: "" });
+      const updated = await getReviewsByProduct(product._id);
+      setReviews(updated);
+    } catch (err) {
+      alert("Failed to add review");
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -46,10 +80,14 @@ export default function ProductDetail() {
   }, [slug]);
 
   if (loading)
-    return <p className="text-center py-20 text-gray-500">Loading product...</p>;
+    return (
+      <p className="text-center py-20 text-gray-500">Loading product...</p>
+    );
 
   if (!product)
-    return <p className="text-center py-20 text-gray-500">Product not found.</p>;
+    return (
+      <p className="text-center py-20 text-gray-500">Product not found.</p>
+    );
 
   return (
     <>
@@ -64,29 +102,27 @@ export default function ProductDetail() {
 
           {/* Thumbnails */}
           <div className="flex space-x-4 overflow-x-auto">
-            {Array.isArray(product.images) && product.images.length > 0 ? (
-              product.images.map((img, idx) => (
-                <img
-                  key={idx}
-                  src={img}
-                  alt={`${product.name} ${idx}`}
-                  onClick={() => setActiveImage(img)}
-                  className={`w-24 h-24 rounded-lg object-cover cursor-pointer ${
-                    activeImage === img
-                      ? "ring-2 ring-red-500"
-                      : "hover:ring-2 hover:ring-red-500"
-                  }`}
-                />
-              ))
-            ) : (
-              product.image && (
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-24 h-24 rounded-lg object-cover ring-2 ring-red-500"
-                />
-              )
-            )}
+            {Array.isArray(product.images) && product.images.length > 0
+              ? product.images.map((img, idx) => (
+                  <img
+                    key={idx}
+                    src={img}
+                    alt={`${product.name} ${idx}`}
+                    onClick={() => setActiveImage(img)}
+                    className={`w-24 h-24 rounded-lg object-cover cursor-pointer ${
+                      activeImage === img
+                        ? "ring-2 ring-red-500"
+                        : "hover:ring-2 hover:ring-red-500"
+                    }`}
+                  />
+                ))
+              : product.image && (
+                  <img
+                    src={product.image}
+                    alt={product.name}
+                    className="w-24 h-24 rounded-lg object-cover ring-2 ring-red-500"
+                  />
+                )}
           </div>
         </div>
 
@@ -163,6 +199,66 @@ export default function ProductDetail() {
           </div>
         </div>
       )}
+
+      {/* Reviews Section */}
+      <div className="max-w-4xl mx-auto mt-16">
+        <h2 className="text-2xl font-semibold mb-4">
+          Customer Reviews ({reviews.length}) — ⭐ {averageRating}
+        </h2>
+
+        {reviews.length === 0 ? (
+          <p className="text-gray-500">No reviews yet.</p>
+        ) : (
+          <div className="space-y-4 mb-8">
+            {reviews.map((r) => (
+              <div key={r._id} className="bg-white shadow p-4 rounded">
+                <p className="font-semibold">{r.user.name}</p>
+                <p className="text-yellow-500">{"⭐".repeat(r.rating)}</p>
+                <p className="text-gray-600">{r.comment}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {user ? (
+          <form
+            onSubmit={handleReviewSubmit}
+            className="bg-white p-6 shadow rounded"
+          >
+            <label className="block mb-2 font-medium">Your Rating</label>
+            <select
+              value={newReview.rating}
+              onChange={(e) =>
+                setNewReview({ ...newReview, rating: +e.target.value })
+              }
+              className="border rounded px-3 py-2 mb-4 w-full"
+            >
+              <option value="0">Select</option>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <option key={n} value={n}>
+                  {n} Star{n > 1 && "s"}
+                </option>
+              ))}
+            </select>
+
+            <textarea
+              placeholder="Write your review..."
+              value={newReview.comment}
+              onChange={(e) =>
+                setNewReview({ ...newReview, comment: e.target.value })
+              }
+              className="w-full border rounded px-3 py-2 mb-4"
+            />
+            <button className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700">
+              Submit Review
+            </button>
+          </form>
+        ) : (
+          <p className="text-gray-600 italic">
+            Please log in to leave a review.
+          </p>
+        )}
+      </div>
     </>
   );
 }

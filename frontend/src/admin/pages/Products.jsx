@@ -9,14 +9,18 @@ import {
   Image as ImageIcon,
   CheckCircle,
   AlertCircle,
+  Star,
 } from "lucide-react";
 import {
-  getProducts,
+  getAllProducts,
   addProduct,
   updateProduct,
   deleteProduct,
 } from "../../api/productApi";
 import { getCategories } from "../../api/categoryApi";
+import { getReviewsByProduct } from "../../api/reviewApi";
+
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
 export default function Products() {
   const [categories, setCategories] = useState([]);
@@ -28,6 +32,8 @@ export default function Products() {
   const [imageError, setImageError] = useState("");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ type: "", message: "" });
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [reviews, setReviews] = useState([]);
 
   const [newProduct, setNewProduct] = useState({
     name: "",
@@ -50,7 +56,7 @@ export default function Products() {
       try {
         const [cats, prods] = await Promise.all([
           getCategories(),
-          getProducts(),
+          getAllProducts(),
         ]);
         setCategories(cats);
         setProducts(prods);
@@ -91,28 +97,39 @@ export default function Products() {
   const handleAddProduct = async (e) => {
     e.preventDefault();
     if (!newProduct.name || !newProduct.category) {
-      showToast("error", "Please fill in all fields.");
+      showToast("error", "Please fill in all required fields.");
       return;
     }
 
     try {
-      const data = await addProduct({
-        ...newProduct,
-        image: newProduct.image?.file || null,
-      });
+      const formData = new FormData();
+      formData.append("name", newProduct.name);
+      formData.append("category", newProduct.category);
+      formData.append("price", newProduct.price);
+      formData.append("stock", newProduct.stock);
+      formData.append("status", newProduct.status);
+      if (newProduct.material) formData.append("material", newProduct.material);
+      if (newProduct.description)
+        formData.append("description", newProduct.description);
+      if (newProduct.image?.file)
+        formData.append("image", newProduct.image.file);
+
+      const data = await addProduct(formData);
       setProducts((prev) => [...prev, data.product]);
-      setShowForm(false);
       showToast("success", "Product added successfully!");
+      setShowForm(false);
       setNewProduct({
         name: "",
         category: "",
         price: "",
         stock: "",
+        material: "",
+        description: "",
         status: "Active",
         image: null,
       });
     } catch (err) {
-      console.error("Failed to add product:", err);
+      console.error("❌ Failed to add product:", err);
       showToast("error", "Failed to add product.");
     }
   };
@@ -123,13 +140,11 @@ export default function Products() {
     try {
       const payload = {
         ...editProduct,
-        // ensure category is an ID (backend expects ObjectId)
         category: editProduct.category?._id || editProduct.category,
         image: editProduct.image?.file || null,
       };
 
       const updated = await updateProduct(editProduct._id, payload);
-
       setProducts((prev) =>
         prev.map((p) => (p._id === updated.product._id ? updated.product : p))
       );
@@ -146,8 +161,9 @@ export default function Products() {
     if (!deleteProductData) return;
     try {
       await deleteProduct(deleteProductData._id);
-      // use functional update to avoid stale closure
-      setProducts((prev) => prev.filter((p) => p._id !== deleteProductData._id));
+      setProducts((prev) =>
+        prev.filter((p) => p._id !== deleteProductData._id)
+      );
       showToast("success", "Product deleted successfully!");
     } catch (err) {
       console.error("Failed to delete product:", err);
@@ -163,13 +179,11 @@ export default function Products() {
     if (!product) return;
     const newStatus = product.status === "Active" ? "Inactive" : "Active";
     try {
-      // send only the fields backend expects (avoid nested objects)
       const payload = {
         status: newStatus,
         category: product.category?._id || product.category,
       };
       const updated = await updateProduct(id, payload);
-
       setProducts((prev) =>
         prev.map((p) => (p._id === updated.product._id ? updated.product : p))
       );
@@ -183,19 +197,29 @@ export default function Products() {
     }
   };
 
+  // 🔹 Fetch product reviews
+  const viewProductReviews = async (productId) => {
+    try {
+      const data = await getReviewsByProduct(productId);
+      setSelectedProduct(productId);
+      setReviews(data);
+    } catch (err) {
+      showToast("error", "Failed to load product reviews.");
+    }
+  };
+
   // 🔹 Filter products
   const filteredProducts =
     filter === "All" ? products : products.filter((p) => p.status === filter);
 
-  if (loading) {
+  if (loading)
     return (
       <div className="p-6 text-center text-gray-600">Loading products...</div>
     );
-  }
 
   return (
     <div className="p-6 relative">
-      {/* ✅ Toast Notification */}
+      {/* ✅ Toast */}
       {toast.message && (
         <div
           className={`fixed top-5 right-5 px-4 py-2 rounded-lg shadow-lg text-white flex items-center gap-2 z-50 ${
@@ -211,24 +235,22 @@ export default function Products() {
         </div>
       )}
 
-      {/* 🔴 Delete Confirmation Modal */}
+      {/* 🧾 Delete Confirmation Modal */}
       {deleteProductData && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm w-full text-center">
-            <h3 className="text-lg font-semibold mb-2">
-              Delete product?
-            </h3>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-sm text-center">
+            <h3 className="text-lg font-semibold mb-2">Delete Product?</h3>
             <p className="text-gray-600 mb-4">{deleteProductData.name}</p>
             <div className="flex justify-center gap-3">
               <button
                 onClick={confirmDelete}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
               >
                 Delete
               </button>
               <button
                 onClick={() => setDeleteProductData(null)}
-                className="bg-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400 transition"
+                className="bg-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400"
               >
                 Cancel
               </button>
@@ -254,18 +276,17 @@ export default function Products() {
 
           <button
             onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+            className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
           >
-            <Plus className="w-5 h-5" />
-            Add Product
+            <Plus className="w-5 h-5" /> Add Product
           </button>
         </div>
       </div>
 
-      {/* Existing Add Product Form */}
+      {/* 🧩 Add Product Modal */}
       {showForm && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg relative">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg relative max-h-[80vh] overflow-y-auto">
             <button
               onClick={() => setShowForm(false)}
               className="absolute top-2 right-2 text-gray-500 hover:text-red-600"
@@ -275,6 +296,7 @@ export default function Products() {
             <h2 className="text-xl font-semibold mb-4">Add New Product</h2>
 
             <form onSubmit={handleAddProduct} className="grid gap-4">
+              {/* Product Name */}
               <input
                 type="text"
                 placeholder="Product Name"
@@ -282,16 +304,17 @@ export default function Products() {
                 onChange={(e) =>
                   setNewProduct({ ...newProduct, name: e.target.value })
                 }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand"
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
                 required
               />
 
+              {/* Category */}
               <select
                 value={newProduct.category}
                 onChange={(e) =>
                   setNewProduct({ ...newProduct, category: e.target.value })
                 }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand"
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
                 required
               >
                 <option value="">Select Category</option>
@@ -302,6 +325,7 @@ export default function Products() {
                 ))}
               </select>
 
+              {/* Price */}
               <input
                 type="number"
                 placeholder="Price"
@@ -309,27 +333,51 @@ export default function Products() {
                 onChange={(e) =>
                   setNewProduct({ ...newProduct, price: e.target.value })
                 }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand"
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
                 required
               />
 
+              {/* Stock */}
               <input
                 type="number"
-                placeholder="Stock"
+                placeholder="Stock Quantity"
                 value={newProduct.stock}
                 onChange={(e) =>
                   setNewProduct({ ...newProduct, stock: e.target.value })
                 }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand"
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
                 required
               />
 
+              {/* Material */}
+              <input
+                type="text"
+                placeholder="Material (e.g., Gold, Silver, Diamond)"
+                value={newProduct.material}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, material: e.target.value })
+                }
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+              />
+
+              {/* Description */}
+              <textarea
+                placeholder="Enter product description..."
+                value={newProduct.description}
+                onChange={(e) =>
+                  setNewProduct({ ...newProduct, description: e.target.value })
+                }
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+                rows={3}
+              />
+
+              {/* Status */}
               <select
                 value={newProduct.status}
                 onChange={(e) =>
                   setNewProduct({ ...newProduct, status: e.target.value })
                 }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand"
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
               >
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
@@ -349,7 +397,9 @@ export default function Products() {
                   className="px-2 py-1 border rounded-lg"
                   required
                 />
-                {imageError && <p className="text-red-500 text-sm">{imageError}</p>}
+                {imageError && (
+                  <p className="text-red-500 text-sm">{imageError}</p>
+                )}
                 {newProduct.image && (
                   <img
                     src={newProduct.image.preview}
@@ -359,9 +409,10 @@ export default function Products() {
                 )}
               </div>
 
+              {/* Submit Button */}
               <button
                 type="submit"
-                className="bg-brand text-white px-4 py-2 rounded-lg hover:bg-brand-dark transition"
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
               >
                 Save Product
               </button>
@@ -370,118 +421,12 @@ export default function Products() {
         </div>
       )}
 
-      {/* Edit Product Form */}
-      {editProduct && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg relative">
-            <button
-              onClick={() => setEditProduct(null)}
-              className="absolute top-2 right-2 text-gray-500 hover:text-red-600"
-            >
-              <X size={22} />
-            </button>
-            <h2 className="text-xl font-semibold mb-4">Edit Product</h2>
-
-            <form onSubmit={handleEditProductSubmit} className="grid gap-4">
-              <input
-                type="text"
-                placeholder="Product Name"
-                value={editProduct.name}
-                onChange={(e) =>
-                  setEditProduct({ ...editProduct, name: e.target.value })
-                }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand"
-                required
-              />
-              <select
-                value={editProduct.category?._id || editProduct.category}
-                onChange={(e) =>
-                  setEditProduct({ ...editProduct, category: e.target.value })
-                }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand"
-                required
-              >
-                <option value="">Select Category</option>
-                {categories.map((cat) => (
-                  <option key={cat._id} value={cat._id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
-
-              <input
-                type="number"
-                placeholder="Price"
-                value={editProduct.price}
-                onChange={(e) =>
-                  setEditProduct({ ...editProduct, price: e.target.value })
-                }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand"
-                required
-              />
-              <input
-                type="number"
-                placeholder="Stock"
-                value={editProduct.stock}
-                onChange={(e) =>
-                  setEditProduct({ ...editProduct, stock: e.target.value })
-                }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand"
-                required
-              />
-              <select
-                value={editProduct.status}
-                onChange={(e) =>
-                  setEditProduct({ ...editProduct, status: e.target.value })
-                }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand"
-              >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-
-              <div className="flex flex-col gap-2">
-                <label className="font-medium text-gray-700 flex items-center gap-2">
-                  <ImageIcon size={18} /> Product Image
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) =>
-                    handleImageUpload(e, setEditProduct, editProduct)
-                  }
-                  className="px-2 py-1 border rounded-lg"
-                />
-                {editProduct.image && (
-                  <img
-                    src={
-                      editProduct.image.preview
-                        ? editProduct.image.preview
-                        : `http://localhost:5000${editProduct.image}`
-                    }
-                    alt="Preview"
-                    className="h-20 w-20 object-cover rounded mt-2"
-                  />
-                )}
-              </div>
-              <button
-                type="submit"
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
-              >
-                Update Product
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Products Table */}
+      {/* 🧾 Products Table */}
       <div className="overflow-x-auto bg-white rounded-xl shadow">
         <table className="min-w-full table-auto">
           <thead className="bg-gray-100 text-gray-600 uppercase text-sm">
             <tr>
               <th className="py-3 px-6 text-left">Image</th>
-              <th className="py-3 px-6 text-left">ID</th>
               <th className="py-3 px-6 text-left">Name</th>
               <th className="py-3 px-6 text-left">Category</th>
               <th className="py-3 px-6 text-left">Price</th>
@@ -492,11 +437,24 @@ export default function Products() {
           </thead>
           <tbody className="text-gray-700">
             {filteredProducts.map((prod) => (
-              <tr key={prod._id} className="border-b hover:bg-gray-50">
+              <tr
+                key={prod._id}
+                className={`border-b hover:bg-gray-50 ${
+                  prod.stock < 5 ? "bg-red-50" : ""
+                }`}
+              >
                 <td className="py-3 px-6">
                   {prod.image ? (
                     <img
-                      src={`http://localhost:5000${prod.image}`}
+                      src={
+                        prod.image?.startsWith("http")
+                          ? prod.image
+                          : `${import.meta.env.VITE_API_BASE.replace(
+                              "/api",
+                              ""
+                            )}${prod.image}`
+                      }
+                      onError={(e) => (e.target.src = "/placeholder.jpg")}
                       alt={prod.name}
                       className="h-12 w-12 object-cover rounded"
                     />
@@ -504,26 +462,36 @@ export default function Products() {
                     <span className="text-gray-400 italic">No image</span>
                   )}
                 </td>
-                <td className="py-3 px-6">{prod._id.slice(-6).toUpperCase()}</td>
                 <td className="py-3 px-6 font-medium">{prod.name}</td>
                 <td className="py-3 px-6">
                   {prod.category?.name || "Uncategorized"}
                 </td>
                 <td className="py-3 px-6">₹{prod.price}</td>
-                <td className="py-3 px-6">{prod.stock}</td>
+                <td className="py-3 px-6">
+                  {prod.stock}
+                  {prod.stock < 5 && (
+                    <span className="ml-2 text-xs text-red-600">(Low)</span>
+                  )}
+                </td>
                 <td className="py-3 px-6">
                   <button
                     onClick={() => toggleStatus(prod._id)}
                     className={`px-3 py-1 rounded-full text-sm font-semibold transition ${
                       prod.status === "Active"
-                        ? "bg-green-100 text-green-700 hover:bg-green-200"
-                        : "bg-red-100 text-red-700 hover:bg-red-200"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
                     }`}
                   >
                     {prod.status}
                   </button>
                 </td>
-                <td className="py-3 px-6 text-center flex justify-center space-x-3">
+                <td className="py-3 px-6 flex justify-center gap-3">
+                  <button
+                    onClick={() => viewProductReviews(prod._id)}
+                    className="text-yellow-600 hover:text-yellow-800 flex items-center gap-1"
+                  >
+                    <Star className="w-5 h-5" />
+                  </button>
                   <button
                     onClick={() => setEditProduct(prod)}
                     className="text-blue-600 hover:text-blue-800"
@@ -544,10 +512,184 @@ export default function Products() {
 
         {filteredProducts.length === 0 && (
           <div className="text-center py-6 text-gray-500">
-            No products found in "{filter}" status.
+            No products found.
           </div>
         )}
       </div>
+
+      {/* 🧩 Edit Product Modal */}
+      {editProduct && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-lg relative max-h-[80vh] overflow-y-auto">
+            <button
+              onClick={() => setEditProduct(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-red-600"
+            >
+              <X size={22} />
+            </button>
+            <h2 className="text-xl font-semibold mb-4">Edit Product</h2>
+
+            <form onSubmit={handleEditProductSubmit} className="grid gap-4">
+              {/* Product Name */}
+              <input
+                type="text"
+                placeholder="Product Name"
+                value={editProduct.name || ""}
+                onChange={(e) =>
+                  setEditProduct({ ...editProduct, name: e.target.value })
+                }
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+                required
+              />
+
+              {/* Category */}
+              <select
+                value={editProduct.category?._id || editProduct.category}
+                onChange={(e) =>
+                  setEditProduct({ ...editProduct, category: e.target.value })
+                }
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+                required
+              >
+                <option value="">Select Category</option>
+                {categories.map((cat) => (
+                  <option key={cat._id} value={cat._id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
+
+              {/* Price */}
+              <input
+                type="number"
+                placeholder="Price"
+                value={editProduct.price || ""}
+                onChange={(e) =>
+                  setEditProduct({ ...editProduct, price: e.target.value })
+                }
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+                required
+              />
+
+              {/* Stock */}
+              <input
+                type="number"
+                placeholder="Stock Quantity"
+                value={editProduct.stock || ""}
+                onChange={(e) =>
+                  setEditProduct({ ...editProduct, stock: e.target.value })
+                }
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+                required
+              />
+
+              {/* Material */}
+              <input
+                type="text"
+                placeholder="Material (e.g., Gold, Silver, Diamond)"
+                value={editProduct.material || ""}
+                onChange={(e) =>
+                  setEditProduct({ ...editProduct, material: e.target.value })
+                }
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+              />
+
+              {/* Description */}
+              <textarea
+                placeholder="Enter product description..."
+                value={editProduct.description || ""}
+                onChange={(e) =>
+                  setEditProduct({
+                    ...editProduct,
+                    description: e.target.value,
+                  })
+                }
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+                rows={3}
+              />
+
+              {/* Status */}
+              <select
+                value={editProduct.status}
+                onChange={(e) =>
+                  setEditProduct({ ...editProduct, status: e.target.value })
+                }
+                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+              >
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+
+              {/* Image Upload */}
+              <div className="flex flex-col gap-2">
+                <label className="font-medium text-gray-700 flex items-center gap-2">
+                  <ImageIcon size={18} /> Product Image
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) =>
+                    handleImageUpload(e, setEditProduct, editProduct)
+                  }
+                  className="px-2 py-1 border rounded-lg"
+                />
+                {imageError && (
+                  <p className="text-red-500 text-sm">{imageError}</p>
+                )}
+                {editProduct.image && (
+                  <img
+                    src={
+                      editProduct.image.preview
+                        ? editProduct.image.preview
+                        : `${API_BASE}${editProduct.image}`
+                    }
+                    onError={(e) => (e.target.src = "/placeholder.jpg")}
+                    alt="Preview"
+                    className="h-20 w-20 object-cover rounded mt-2"
+                  />
+                )}
+              </div>
+
+              {/* Save Button */}
+              <button
+                type="submit"
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+              >
+                Update Product
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ⭐ Reviews Modal */}
+      {selectedProduct && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-lg w-full relative">
+            <button
+              onClick={() => setSelectedProduct(null)}
+              className="absolute top-2 right-2 text-gray-500 hover:text-red-600"
+            >
+              <X />
+            </button>
+            <h2 className="text-xl font-semibold mb-3">Product Reviews</h2>
+            {reviews.length === 0 ? (
+              <p className="text-gray-500">No reviews yet.</p>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {reviews.map((r) => (
+                  <div key={r._id} className="border p-3 rounded-lg shadow-sm">
+                    <p className="font-semibold text-gray-900">
+                      {r.user.name} — ⭐ {r.rating}
+                    </p>
+                    <p className="text-gray-600 text-sm">{r.comment}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

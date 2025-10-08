@@ -25,7 +25,6 @@ router.get("/:id", getOrderById);
 
 // 🔄 Update order status (Pending → Completed / Cancelled)
 router.put("/:id/status", updateOrderStatus);
-
 // ❌ Delete an order (admin cleanup)
 router.delete("/:id", deleteOrder);
 

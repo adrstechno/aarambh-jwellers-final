@@ -1,8 +1,14 @@
 import express from "express";
-import { getGiftCategories } from "../controllers/giftController.js";
+import {
+  getGiftCategories,
+  getGiftCategoryBySlug,
+  getProductsByGiftCategory
+} from "../controllers/giftController.js";
 
 const router = express.Router();
 
-router.get("/", getGiftCategories);
+router.get("/categories", getGiftCategories);
+router.get("/categories/:slug", getGiftCategoryBySlug);
+router.get("/categories/:slug/products", getProductsByGiftCategory);
 
 export default router;

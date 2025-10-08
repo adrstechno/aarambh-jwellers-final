@@ -1,73 +1,40 @@
-import Discount from "./models/Discount.js";
+import Discount from "../models/discount.js";
+import Category from "../models/category.js";
 
-// @desc Get all active discounts
+// Get all discounts
 export const getDiscounts = async (req, res) => {
   try {
-    const discounts = await Discount.find({ active: true })
+    const discounts = await Discount.find()
       .populate("category", "name slug")
       .sort({ createdAt: -1 });
     res.json(discounts);
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch discounts" });
+    res.status(500).json({ message: "Server Error", error: err.message });
   }
 };
 
-// @desc Get single discount by ID
-export const getDiscountById = async (req, res) => {
+// Get active discount (most recent active one)
+export const getActiveDiscount = async (req, res) => {
   try {
-    const discount = await Discount.findById(req.params.id).populate(
-      "category",
-      "name slug"
-    );
-    if (!discount) return res.status(404).json({ message: "Discount not found" });
+    const discount = await Discount.findOne({ isActive: true })
+      .populate("category", "name slug")
+      .sort({ createdAt: -1 });
+    if (!discount) return res.status(404).json({ message: "No active discount" });
     res.json(discount);
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch discount" });
+    res.status(500).json({ message: "Server Error" });
   }
 };
 
-// @desc Create new discount (Admin)
-export const createDiscount = async (req, res) => {
+// Optional: Get discounts by category
+export const getDiscountsByCategory = async (req, res) => {
   try {
-    const { title, description, discountPercent, category, bannerImage, active, validFrom, validTo } = req.body;
+    const category = await Category.findOne({ slug: req.params.slug });
+    if (!category) return res.status(404).json({ message: "Category not found" });
 
-    const discount = await Discount.create({
-      title,
-      description,
-      discountPercent,
-      category,
-      bannerImage,
-      active,
-      validFrom,
-      validTo,
-    });
-
-    res.status(201).json(discount);
+    const discounts = await Discount.find({ category: category._id });
+    res.json(discounts);
   } catch (err) {
-    res.status(500).json({ message: "Failed to create discount" });
-  }
-};
-
-// @desc Update discount
-export const updateDiscount = async (req, res) => {
-  try {
-    const discount = await Discount.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-    });
-    if (!discount) return res.status(404).json({ message: "Discount not found" });
-    res.json(discount);
-  } catch (err) {
-    res.status(500).json({ message: "Failed to update discount" });
-  }
-};
-
-// @desc Delete discount
-export const deleteDiscount = async (req, res) => {
-  try {
-    const discount = await Discount.findByIdAndDelete(req.params.id);
-    if (!discount) return res.status(404).json({ message: "Discount not found" });
-    res.json({ message: "Discount deleted successfully" });
-  } catch (err) {
-    res.status(500).json({ message: "Failed to delete discount" });
+    res.status(500).json({ message: "Server Error" });
   }
 };

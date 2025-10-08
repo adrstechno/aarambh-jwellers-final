@@ -2,29 +2,33 @@ import Product from "../models/product.js";
 import Category from "../models/category.js";
 import slugify from "slugify";
 
-// 🟢 Add new product (Admin)
-export const createProduct = async (req, res) => {
+/* ==========================================================
+   🟢 Add New Product (Admin)
+   ========================================================== */
+export const addProduct = async (req, res) => {
   try {
-    const { name, category, price, stock, status } = req.body;
+    const { name, category, price, stock, status, material, description } = req.body;
 
+    // ✅ Validate required fields
     if (!name || !category || !price || stock === undefined) {
-      return res.status(400).json({ message: "All fields are required" });
+      return res.status(400).json({ message: "All required fields must be filled" });
     }
 
+    // ✅ Check valid category
     const categoryExists = await Category.findById(category);
     if (!categoryExists) {
-      return res.status(400).json({ message: "Invalid category" });
+      return res.status(400).json({ message: "Invalid category ID" });
     }
 
+    // ✅ Prepare image path
     const imagePath = req.file ? `/uploads/${req.file.filename}` : "";
 
-    // ✅ Generate a unique slug
+    // ✅ Generate unique slug
     let slug = slugify(name, { lower: true });
     const existingSlug = await Product.findOne({ slug });
-    if (existingSlug) {
-      slug = `${slug}-${Date.now()}`;
-    }
+    if (existingSlug) slug = `${slug}-${Date.now()}`;
 
+    // ✅ Create new product
     const newProduct = new Product({
       name: name.trim(),
       slug,
@@ -32,10 +36,13 @@ export const createProduct = async (req, res) => {
       price: parseFloat(price),
       stock: parseInt(stock),
       status: status || "Active",
+      material: material?.trim() || "",
+      description: description?.trim() || "",
       image: imagePath,
     });
 
     await newProduct.save();
+
     const populatedProduct = await Product.findById(newProduct._id).populate(
       "category",
       "name"
@@ -51,7 +58,9 @@ export const createProduct = async (req, res) => {
   }
 };
 
-// 🟡 Get all products (Admin)
+/* ==========================================================
+   🟡 Get All Products (Admin)
+   ========================================================== */
 export const getProducts = async (req, res) => {
   try {
     const products = await Product.find()
@@ -65,18 +74,19 @@ export const getProducts = async (req, res) => {
   }
 };
 
-// 🟠 Update product (Admin)
+/* ==========================================================
+   🟠 Update Product (Admin)
+   ========================================================== */
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    let { name, category, price, stock, status } = req.body;
+    let { name, category, price, stock, status, material, description } = req.body;
 
+    // ✅ Parse category if sent as object stringified by FormData
     try {
-      if (typeof category === "string") {
-        if (category.includes("{")) {
-          const parsed = JSON.parse(category);
-          category = parsed._id || category;
-        }
+      if (typeof category === "string" && category.includes("{")) {
+        const parsed = JSON.parse(category);
+        category = parsed._id || category;
       } else if (typeof category === "object" && category?._id) {
         category = category._id;
       }
@@ -84,12 +94,15 @@ export const updateProduct = async (req, res) => {
       console.warn("⚠️ Could not parse category:", category);
     }
 
+    // ✅ Build update object
     const updateData = {};
     if (name) {
       updateData.name = name.trim();
       updateData.slug = slugify(name, { lower: true });
     }
     if (category) updateData.category = category;
+    if (material !== undefined) updateData.material = material.trim();
+    if (description !== undefined) updateData.description = description.trim();
     if (price !== undefined) updateData.price = parseFloat(price);
     if (stock !== undefined) updateData.stock = parseInt(stock);
     if (status) updateData.status = status;
@@ -99,8 +112,7 @@ export const updateProduct = async (req, res) => {
       new: true,
     }).populate("category", "name");
 
-    if (!updated)
-      return res.status(404).json({ message: "Product not found" });
+    if (!updated) return res.status(404).json({ message: "Product not found" });
 
     res.json({ message: "✅ Product updated successfully", product: updated });
   } catch (error) {
@@ -109,7 +121,9 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-// 🔴 Delete product (Admin)
+/* ==========================================================
+   🔴 Delete Product (Admin)
+   ========================================================== */
 export const deleteProduct = async (req, res) => {
   try {
     const deleted = await Product.findByIdAndDelete(req.params.id);
@@ -123,10 +137,10 @@ export const deleteProduct = async (req, res) => {
 };
 
 /* ==========================================================
-   🌐 FRONTEND WEBSITE ROUTES (Do NOT affect Admin APIs)
+   🌐 FRONTEND WEBSITE ROUTES
    ========================================================== */
 
-// 🟢 Public: Get all active products for frontend
+// 🟢 Public: Get all active products
 export const getAllProducts = async (req, res) => {
   try {
     const products = await Product.find({ status: "Active" })
@@ -143,9 +157,18 @@ export const getAllProducts = async (req, res) => {
 // 🟣 Public: Get products by category (for FeaturedProducts.jsx)
 export const getProductsByCategory = async (req, res) => {
   try {
-    const category = req.params.category.toLowerCase();
+    const { category } = req.params;
+
+    // ✅ Find category by slug or name (case-insensitive)
+    const foundCategory = await Category.findOne({
+      slug: category.toLowerCase(),
+    });
+
+    if (!foundCategory)
+      return res.status(404).json({ message: "Category not found" });
+
     const products = await Product.find({
-      "category.name": { $regex: new RegExp(category, "i") },
+      category: foundCategory._id,
       status: "Active",
     })
       .populate("category", "name")
@@ -158,7 +181,7 @@ export const getProductsByCategory = async (req, res) => {
   }
 };
 
-// 🔵 Public: Get product details by ID (for ProductDetail.jsx)
+// 🔵 Public: Get single product details by ID
 export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id).populate(

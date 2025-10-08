@@ -1,4 +1,5 @@
 import express from "express";
+import multer from "multer";
 import {
   createCategory,
   getCategoriesWithCount,
@@ -8,10 +9,19 @@ import {
 
 const router = express.Router();
 
-// 🟢 Routes
-router.post("/", createCategory); // Add new category
-router.get("/", getCategoriesWithCount); // Get all with product count
-router.put("/:id", updateCategory); // Update name only
-router.delete("/:id", deleteCategory); // Delete category
+// 🗂️ Configure Multer for image upload
+const storage = multer.diskStorage({
+  destination: "uploads/",
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
+});
+const upload = multer({ storage });
+
+// ✅ Routes
+router.post("/", upload.single("image"), createCategory); // <-- Important fix
+router.get("/", getCategoriesWithCount);
+router.put("/:id", upload.single("image"), updateCategory); // <-- Fix update route too
+router.delete("/:id", deleteCategory);
 
 export default router;

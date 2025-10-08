@@ -1,141 +1,142 @@
-import { useRef, useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { getCategories } from "../api/categoryApi";
+import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import ProductCard from "../components/products/ProductCard";
+import { getProductsByCategory } from "../api/productApi";
 
-export default function CategorySection() {
-  const navigate = useNavigate();
-  const scrollRef = useRef(null);
-  const [categories, setCategories] = useState([]);
+export default function CategoryPage() {
+  const { category } = useParams();
+  const [products, setProducts] = useState([]);
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [sortBy, setSortBy] = useState("default");
+  const [priceRange, setPriceRange] = useState([0, 20000]);
+  const [loading, setLoading] = useState(true);
 
-  // 🔹 Fetch categories from backend
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCategoryProducts = async () => {
+      setLoading(true);
       try {
-        let data = await getCategories();
-
-        // ✅ Show only highlighted categories for homepage
-        data = data.filter((cat) => cat.highlight === true);
-
-        setCategories(data);
+        const data = await getProductsByCategory(category.toLowerCase());
+        setProducts(data);
       } catch (err) {
-        console.error("Failed to load categories", err);
+        console.error("❌ Error fetching category products:", err);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchData();
-  }, []);
 
-  const scroll = (direction) => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({
-        left: direction === "left" ? -300 : 300,
-        behavior: "smooth",
-      });
+    fetchCategoryProducts();
+  }, [category]);
+
+  useEffect(() => {
+    let filtered = products.filter(
+      (product) =>
+        product.price >= priceRange[0] && product.price <= priceRange[1]
+    );
+
+    // Sorting
+    switch (sortBy) {
+      case "price-low":
+        filtered.sort((a, b) => a.price - b.price);
+        break;
+      case "price-high":
+        filtered.sort((a, b) => b.price - a.price);
+        break;
+      case "name":
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      default:
+        break;
     }
-  };
+
+    setFilteredProducts(filtered);
+  }, [products, sortBy, priceRange]);
+
+  if (loading)
+    return (
+      <div className="text-center py-20 text-gray-500">
+        Loading products...
+      </div>
+    );
 
   return (
-    <section className="py-12 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Shop by Category
-          </h2>
-          <p className="text-lg text-gray-600">
-            Explore our collections
-          </p>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 capitalize mb-4">
+            {category}
+          </h1>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+            <p className="text-gray-600">
+              {filteredProducts.length} products found
+            </p>
+
+            <div className="flex items-center space-x-4">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+              >
+                <option value="default">Sort by</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+                <option value="name">Name: A to Z</option>
+              </select>
+            </div>
+          </div>
         </div>
 
-        {/* Categories Container */}
-        <div className="relative group">
-          {/* Navigation Arrows */}
-          <motion.button
-            onClick={() => scroll("left")}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white border border-gray-200 rounded-full p-2 shadow-lg"
-            initial={{ opacity: 0 }}
-            whileHover={{ scale: 1.1, opacity: 1 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 400 }}
-            aria-label="Previous categories"
-          >
-            <ChevronLeft className="w-5 h-5 text-gray-700" />
-          </motion.button>
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Sidebar Filters */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-lg shadow-md p-6 sticky top-32">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Filters
+              </h3>
 
-          <motion.button
-            onClick={() => scroll("right")}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white border border-gray-200 rounded-full p-2 shadow-lg"
-            initial={{ opacity: 0 }}
-            whileHover={{ scale: 1.1, opacity: 1 }}
-            whileTap={{ scale: 0.95 }}
-            transition={{ type: "spring", stiffness: 400 }}
-            aria-label="Next categories"
-          >
-            <ChevronRight className="w-5 h-5 text-gray-700" />
-          </motion.button>
-
-          {/* Scrollable Container */}
-          <div
-            ref={scrollRef}
-            className="flex overflow-x-auto py-2 -mx-4 px-4"
-            style={{
-              scrollbarWidth: "none",
-              msOverflowStyle: "none",
-            }}
-            data-scroll-container
-          >
-            {/* Hide scrollbar in Webkit */}
-            <style>{`
-              [data-scroll-container]::-webkit-scrollbar {
-                display: none !important;
-              }
-            `}</style>
-
-            {categories.map((category) => (
-              <motion.div
-                key={category._id}
-                onClick={() => navigate(`/category/${category.slug}`)}
-                className="flex-shrink-0 cursor-pointer w-[150px] mx-2"
-                whileHover={{ y: -3 }}
-                transition={{ type: "spring", stiffness: 500 }}
-              >
-                {/* Image Container */}
-                <motion.div
-                  className="aspect-square w-full relative overflow-hidden rounded-xl bg-gray-50 shadow-sm"
-                  whileHover={{ scale: 1.02 }}
-                  transition={{ type: "spring", stiffness: 400 }}
-                >
-                  <motion.img
-                    src={category.image || "/placeholder.jpg"}
-                    alt={category.name}
-                    className="absolute inset-0 w-full h-full object-cover object-center"
-                    loading="lazy"
-                    initial={{ scale: 1 }}
-                    whileHover={{ scale: 1.05 }}
-                    transition={{ duration: 0.3 }}
+              {/* Price Range */}
+              <div className="mb-6">
+                <h4 className="text-md font-medium text-gray-700 mb-3">
+                  Price Range
+                </h4>
+                <div className="space-y-2">
+                  <input
+                    type="range"
+                    min="0"
+                    max="20000"
+                    value={priceRange[1]}
+                    onChange={(e) =>
+                      setPriceRange([priceRange[0], parseInt(e.target.value)])
+                    }
+                    className="w-full"
                   />
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"
-                    initial={{ opacity: 0 }}
-                    whileHover={{ opacity: 1 }}
-                    transition={{ duration: 0.2 }}
-                  />
-                </motion.div>
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>₹{priceRange[0]}</span>
+                    <span>₹{priceRange[1]}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                {/* Title */}
-                <motion.h3
-                  className="mt-3 text-center text-sm font-medium text-gray-800 truncate"
-                  whileHover={{ color: "#dc2626" }} // red-600
-                  transition={{ duration: 0.15 }}
-                >
-                  {category.name}
-                </motion.h3>
-              </motion.div>
-            ))}
+          {/* Product Grid */}
+          <div className="lg:col-span-3">
+            {filteredProducts.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+                {filteredProducts.map((product) => (
+                  <ProductCard key={product._id} product={product} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500 text-lg">
+                  No products found in this category.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

@@ -2,41 +2,69 @@ import mongoose from "mongoose";
 
 const orderSchema = new mongoose.Schema(
   {
-    // 🆔 Custom readable order ID
-    orderId: {
-      type: String,
-      unique: true,
-      default: () => `ORD${Date.now()}${Math.floor(Math.random() * 1000)}`
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
-
-    // 🧑 Linked User
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-
-    // 🧾 Customer details (for guests)
-    customerName: { type: String },
-    customerEmail: { type: String },
-    customerPhone: { type: String },
-    shippingAddress: { type: String },
-
-    // 📦 Purchased products
     products: [
       {
-        productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
-        name: { type: String, required: true },
-        quantity: { type: Number, required: true },
-        price: { type: Number, required: true },
+        product: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: true,
+        },
+        name: String,
+        price: Number,
+        quantity: Number,
+      },
+    ],
+    total: { type: Number, required: true },
+    paymentMethod: { type: String, default: "Cash" },
+    transactionId: { type: String },
+    status: {
+      type: String,
+      enum: ["Pending", "Shipped", "Delivered", "Returned", "Cancelled"],
+      default: "Pending",
+    },
+
+    // ✅ New fields
+    statusHistory: [
+      {
+        status: {
+          type: String,
+          enum: ["Pending", "Shipped", "Delivered", "Returned", "Cancelled"],
+        },
+        date: { type: Date, default: Date.now },
+        note: String,
       },
     ],
 
-    // 💰 Payment details
-    totalAmount: { type: Number, required: true },
-    paymentMethod: { type: String, enum: ["Cash", "UPI", "Card"], required: true },
-    transactionId: { type: String, default: null },
+    refundStatus: {
+      type: String,
+      enum: ["None", "Requested", "Approved", "Refunded", "Rejected"],
+      default: "None",
+    },
+    refundAmount: { type: Number, default: 0 },
 
-    // 📦 Order tracking
-    status: { type: String, enum: ["Pending", "Completed", "Cancelled"], default: "Pending" },
+    address: {
+      name: String,
+      phone: String,
+      street: String,
+      city: String,
+      state: String,
+      pincode: String,
+    },
   },
   { timestamps: true }
 );
+
+// ✅ Automatically record first status
+orderSchema.pre("save", function (next) {
+  if (this.isNew && this.status) {
+    this.statusHistory.push({ status: this.status });
+  }
+  next();
+});
 
 export default mongoose.model("Order", orderSchema);

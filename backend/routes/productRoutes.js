@@ -3,7 +3,7 @@ import express from "express";
 import multer from "multer";
 import path from "path";
 import {
-  createProduct,
+  addProduct,
   updateProduct,
   deleteProduct,
   getAllProducts,
@@ -40,12 +40,12 @@ const upload = multer({
 router.get("/", getAllProducts);
 router.get("/category/:category", getProductsByCategory);
 router.get("/:id", getProductById);
-router.get("/slug/:slug", getProductBySlug);
+// router.get("/slug/:slug", getProductBySlug);
 router.get("/category/:category", getProductsByCategory);
 
 
 /* 🔵 ADMIN ROUTES — For Admin Panel */
-router.post("/", upload.single("image"), createProduct);
+router.post("/", upload.single("image"), addProduct);
 router.put("/:id", upload.single("image"), updateProduct);
 router.delete("/:id", deleteProduct);
 

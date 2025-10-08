@@ -1,17 +1,18 @@
+// backend/routes/userRoutes.js
 import express from "express";
 import {
   getAllUsers,
   toggleUserRole,
   toggleUserStatus,
-  createUser,
+  getUserOrders,
 } from "../controllers/userController.js";
 
 const router = express.Router();
 
-router.get("/", getAllUsers);
-router.put("/:id/role", toggleUserRole);
-router.put("/:id/status", toggleUserStatus);
-// 🟢 Create a new user (for testing)
-router.post("/", createUser);
+// ✅ FIXED PATHS — no redundant /users here
+router.get("/", getAllUsers); // GET /api/users
+router.put("/:id/role", toggleUserRole); // PUT /api/users/:id/role
+router.put("/:id/status", toggleUserStatus); // PUT /api/users/:id/status
+router.get("/orders/user/:userId", getUserOrders); // GET /api/users/orders/user/:userId
 
 export default router;

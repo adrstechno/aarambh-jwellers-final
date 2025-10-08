@@ -1,5 +1,5 @@
 // backend/controllers/orderController.js
-import Order from "../models/Order.js";
+import Order from "../models/order.js";
 
 /* 🟢 Create new order — called when customer completes a purchase */
 export const createOrder = async (req, res) => {
@@ -88,32 +88,47 @@ export const getOrderById = async (req, res) => {
   }
 };
 
-/* 🟠 Admin: Update order status */
+
+// 🟡 Update order status safely
 export const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!status)
-      return res
-        .status(400)
-        .json({ success: false, message: "Status field is required" });
+    if (!status) {
+      return res.status(400).json({ message: "Status is required" });
+    }
 
+    // ✅ Update only the required fields
     const updatedOrder = await Order.findByIdAndUpdate(
       id,
-      { status },
-      { new: true }
-    );
+      {
+        $set: { status },
+        $push: {
+          statusHistory: {
+            status,
+            note: `Status changed to ${status}`,
+            date: new Date(),
+          },
+        },
+      },
+      { new: true, runValidators: false } // disable full validation
+    ).populate("user", "name email");
 
-    if (!updatedOrder)
-      return res.status(404).json({ success: false, message: "Order not found" });
+    if (!updatedOrder) {
+      return res.status(404).json({ message: "Order not found" });
+    }
 
-    res.status(200).json({ success: true, order: updatedOrder });
-  } catch (err) {
-    console.error("❌ Error updating order status:", err);
-    res.status(500).json({ success: false, message: "Failed to update order status" });
+    res.json({
+      message: "✅ Order status updated successfully",
+      order: updatedOrder,
+    });
+  } catch (error) {
+    console.error("❌ Error updating order:", error);
+    res.status(500).json({ message: "Server error while updating order" });
   }
 };
+
 
 /* 🔴 Admin: Delete order */
 export const deleteOrder = async (req, res) => {

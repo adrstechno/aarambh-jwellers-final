@@ -1,85 +1,50 @@
-// src/api/productAPI.js
+// src/api/productApi.js
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
 
-// ✅ Get all products
-export const getProducts = async () => {
-  try {
-    const { data } = await axios.get(API_BASE);
-    return data;
-  } catch (error) {
-    console.error("❌ Error fetching products:", error);
-    throw error;
-  }
-};
-
-// ✅ Add new product
-export const addProduct = async (productData) => {
-  try {
-    const formData = new FormData();
-    Object.entries(productData).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) formData.append(key, value);
-    });
-
-    const { data } = await axios.post(API_BASE, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return data;
-  } catch (error) {
-    console.error("❌ Error adding product:", error);
-    throw error;
-  }
-};
-
-// ✅ Update product
-export const updateProduct = async (id, productData) => {
-  try {
-    const formData = new FormData();
-    Object.entries(productData).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) formData.append(key, value);
-    });
-
-    const { data } = await axios.put(`${API_BASE}/${id}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return data;
-  } catch (error) {
-    console.error("❌ Error updating product:", error);
-    throw error;
-  }
-};
-
-// ✅ Delete product
-export const deleteProduct = async (id) => {
-  try {
-    const { data } = await axios.delete(`${API_BASE}/${id}`);
-    return data;
-  } catch (error) {
-    console.error("❌ Error deleting product:", error);
-    throw error;
-  }
-};
-// 🟢 Get all products
+// ✅ Get all products (Admin + Public)
 export const getAllProducts = async () => {
-  const res = await axios.get(`${API_BASE}/api/products`);
+  const res = await axios.get(`${API_BASE}/products`);
   return res.data;
 };
 
-// 🟣 Get products by category
+// ✅ Get products by category (Public)
 export const getProductsByCategory = async (category) => {
-  const res = await axios.get(`${API_BASE}/api/products/category/${category}`);
+  const res = await axios.get(`${API_BASE}/products/category/${category}`);
   return res.data;
 };
 
-// 🟠 Get single product details
+// ✅ Get single product by ID (for admin or detail page)
 export const getProductById = async (id) => {
-  const res = await axios.get(`${API_BASE}/api/products/${id}`);
+  const res = await axios.get(`${API_BASE}/products/${id}`);
   return res.data;
 };
 
-// 🟣 Get product by slug (for ProductDetail.jsx)
+// ✅ Get product by slug (ProductDetail.jsx)
 export const getProductBySlug = async (slug) => {
-  const res = await axios.get(`${API_BASE}/api/products/slug/${slug}`);
+  const res = await axios.get(`${API_BASE}/products/slug/${slug}`);
   return res.data;
+};
+
+// ✅ Add product (Admin)
+export const addProduct = async (productData) => {
+  const { data } = await axios.post(`${API_BASE}/products`, productData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+};
+
+// ✅ Update product (Admin)
+export const updateProduct = async (id, productData) => {
+  const { data } = await axios.put(`${API_BASE}/products/${id}`, productData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return data;
+};
+
+// ✅ Delete product (Admin)
+export const deleteProduct = async (id) => {
+  const { data } = await axios.delete(`${API_BASE}/products/${id}`);
+  return data;
 };
