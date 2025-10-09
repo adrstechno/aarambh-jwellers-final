@@ -1,14 +1,20 @@
 import express from "express";
 import {
-  getGiftCategories,
-  getGiftCategoryBySlug,
-  getProductsByGiftCategory
+  createGift,
+  getAllGifts,
+  updateGift,
+  deleteGift,
+  toggleGiftStatus,
 } from "../controllers/giftController.js";
+import { uploadGiftImage } from "../middlewares/uploadMiddleware.js";
 
 const router = express.Router();
 
-router.get("/categories", getGiftCategories);
-router.get("/categories/:slug", getGiftCategoryBySlug);
-router.get("/categories/:slug/products", getProductsByGiftCategory);
+// ✅ Gift routes
+router.post("/", uploadGiftImage.single("image"), createGift);
+router.get("/", getAllGifts);
+router.put("/:id", uploadGiftImage.single("image"), updateGift);
+router.delete("/:id", deleteGift);
+router.put("/:id/status", toggleGiftStatus);
 
 export default router;

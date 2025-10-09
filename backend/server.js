@@ -7,6 +7,10 @@ import categoryRoutes from "./routes/categoryRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
+import reviewRoutes from "./routes/reviewRoutes.js";
+import discountRoutes from "./routes/discountRoutes.js";
+import giftRoutes from "./routes/giftRoutes.js";
+import refundRoutes from "./routes/refundRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -18,11 +22,17 @@ app.use(express.json());
 // Serve uploads folder
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
+
 // Routes
 app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/discounts", discountRoutes);
+app.use("/api/gifts", giftRoutes);
+app.use("/api/refunds", refundRoutes);
+
 
 // DB Connection
 mongoose
