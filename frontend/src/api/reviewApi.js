@@ -33,3 +33,11 @@ export const getReviewsByProduct = async (productId) => {
   const { data } = await axios.get(`${REVIEW_API}/product/${productId}`);
   return data;
 };
+
+// ✅ Add review for a product
+export const addReview = async (reviewData, token) => {
+  const { data } = await axios.post(`${API_BASE}/reviews`, reviewData, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data;
+};

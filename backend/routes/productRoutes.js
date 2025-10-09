@@ -8,8 +8,9 @@ import {
   deleteProduct,
   getAllProducts,
   getProductsByCategory,
-  getProductById,
+  getProductById, getProductBySlug,
 } from "../controllers/productController.js";
+import { protect, adminOnly } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
@@ -40,13 +41,13 @@ const upload = multer({
 router.get("/", getAllProducts);
 router.get("/category/:category", getProductsByCategory);
 router.get("/:id", getProductById);
-// router.get("/slug/:slug", getProductBySlug);
+router.get("/:slug", getProductBySlug); 
 router.get("/category/:category", getProductsByCategory);
 
 
 /* 🔵 ADMIN ROUTES — For Admin Panel */
-router.post("/", upload.single("image"), addProduct);
-router.put("/:id", upload.single("image"), updateProduct);
-router.delete("/:id", deleteProduct);
+router.post("/", upload.single("image"),protect,adminOnly, addProduct);
+router.put("/:id", upload.single("image"),protect, adminOnly, updateProduct);
+router.delete("/:id",protect, adminOnly, deleteProduct);
 
 export default router;

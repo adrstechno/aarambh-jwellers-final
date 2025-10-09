@@ -1,13 +1,25 @@
 /* eslint-disable no-unused-vars */
-import { useState, useCallback } from 'react';
-import { Search, User, Heart, ShoppingCart, Menu, X } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
-import { useNavigate } from 'react-router-dom';
-import LoginModal from './LoginModal';
+import { useState, useCallback } from "react";
+import {
+  Search,
+  User,
+  Heart,
+  ShoppingCart,
+  Menu,
+  X,
+  ChevronDown,
+  Package2,
+  RotateCcw,
+  LogOut,
+} from "lucide-react";
+import { useApp } from "../../context/AppContext";
+import { useNavigate } from "react-router-dom";
+import LoginModal from "./LoginModal";
 
 export default function Header() {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const {
     cart,
@@ -17,7 +29,7 @@ export default function Header() {
     toggleLoginModal,
     isLoginModalOpen,
     user,
-    logoutUser   // 🔹 use global logout
+    logoutUser,
   } = useApp();
 
   const navigate = useNavigate();
@@ -29,19 +41,49 @@ export default function Header() {
     }
   };
 
+  const handleNavigate = (path) => {
+    navigate(path);
+    setIsUserMenuOpen(false);
+  };
+
   const renderUserSection = useCallback(() => {
     if (user) {
       return (
-        <div className="flex items-center space-x-3">
-          <span className="text-gray-700 hidden font-bold uppercase lg:inline">
-            Hi, {user.name?.toUpperCase() || user.email.toUpperCase()}
-          </span>
+        <div className="relative">
           <button
-            onClick={logoutUser}
-            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+            onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+            className="flex items-center gap-1 text-gray-700 hover:text-red-600 font-semibold transition-colors"
           >
-            Logout
+            <User className="w-5 h-5" />
+            <span className="hidden md:inline">
+              Hi, {user.name?.split(" ")[0] || user.email}
+            </span>
+            <ChevronDown className="w-4 h-4" />
           </button>
+
+          {/* 🔽 User Dropdown Menu */}
+          {isUserMenuOpen && (
+            <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg border rounded-lg z-50">
+              <button
+                onClick={() => handleNavigate("/orders")}
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
+              >
+                <Package2 size={16} className="text-gray-500" /> My Orders
+              </button>
+              <button
+                onClick={() => handleNavigate("/my-refunds")}
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
+              >
+                <RotateCcw size={16} className="text-gray-500" /> My Refunds
+              </button>
+              <button
+                onClick={logoutUser}
+                className="w-full text-left px-4 py-2 hover:bg-red-50 flex items-center gap-2 text-sm text-red-600 border-t"
+              >
+                <LogOut size={16} /> Logout
+              </button>
+            </div>
+          )}
         </div>
       );
     } else {
@@ -56,41 +98,44 @@ export default function Header() {
         </button>
       );
     }
-  }, [user, toggleLoginModal, logoutUser]);
+  }, [user, toggleLoginModal, logoutUser, isUserMenuOpen]);
 
-  const renderCartWishlist = useCallback(() => (
-    <div className="flex items-center space-x-6">
-      <button
-        onClick={() => navigate('/wishlist')}
-        className="relative text-gray-700 hover:text-red-600 transition-colors"
-        aria-label="Go to Wishlist"
-      >
-        <Heart className="w-6 h-6" />
-        {wishlist.length > 0 && (
-          <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-            {wishlist.length}
-          </span>
-        )}
-      </button>
+  const renderCartWishlist = useCallback(
+    () => (
+      <div className="flex items-center space-x-6">
+        <button
+          onClick={() => navigate("/wishlist")}
+          className="relative text-gray-700 hover:text-red-600 transition-colors"
+          aria-label="Go to Wishlist"
+        >
+          <Heart className="w-6 h-6" />
+          {wishlist.length > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              {wishlist.length}
+            </span>
+          )}
+        </button>
 
-      <button
-        onClick={() => navigate('/cart')}
-        className="relative text-gray-700 hover:text-red-600 transition-colors"
-        aria-label="Go to Cart"
-      >
-        <ShoppingCart className="w-6 h-6" />
-        {getTotalItems() > 0 && (
-          <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-            {getTotalItems()}
-          </span>
-        )}
-      </button>
+        <button
+          onClick={() => navigate("/cart")}
+          className="relative text-gray-700 hover:text-red-600 transition-colors"
+          aria-label="Go to Cart"
+        >
+          <ShoppingCart className="w-6 h-6" />
+          {getTotalItems() > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              {getTotalItems()}
+            </span>
+          )}
+        </button>
 
-      <span className="font-semibold text-gray-800">
-        ₹{getTotalPrice().toLocaleString()}
-      </span>
-    </div>
-  ), [wishlist, getTotalItems, getTotalPrice, navigate]);
+        <span className="font-semibold text-gray-800">
+          ₹{getTotalPrice().toLocaleString()}
+        </span>
+      </div>
+    ),
+    [wishlist, getTotalItems, getTotalPrice, navigate]
+  );
 
   return (
     <>
@@ -102,7 +147,7 @@ export default function Header() {
               src="/logo2.png"
               alt="Logo"
               className="h-14 cursor-pointer"
-              onClick={() => navigate('/')}
+              onClick={() => navigate("/")}
             />
 
             {/* Search Bar */}
@@ -137,7 +182,11 @@ export default function Header() {
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Toggle Mobile Menu"
             >
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {isMobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
             </button>
           </div>
 

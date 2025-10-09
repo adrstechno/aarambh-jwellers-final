@@ -112,3 +112,33 @@ export const getReviewsByProduct = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch product reviews" });
   }
 };
+
+// ✅ Create a review
+export const createReview = async (req, res) => {
+  try {
+    const { product, rating, comment, userId } = req.body;
+
+    if (!product || !rating || !comment)
+      return res.status(400).json({ message: "Missing fields" });
+
+    const review = await Review.create({
+      product,
+      rating,
+      comment,
+      user: userId, // userId should come from frontend (or JWT)
+      status: "Pending",
+    });
+
+    // Optionally update product average rating
+    const reviews = await Review.find({ product, status: "Approved" });
+    const avgRating =
+      reviews.reduce((sum, r) => sum + r.rating, 0) / (reviews.length || 1);
+
+    await Product.findByIdAndUpdate(product, { avgRating });
+
+    res.status(201).json({ message: "Review submitted", review });
+  } catch (err) {
+    console.error("❌ Error creating review:", err);
+    res.status(500).json({ message: "Failed to submit review" });
+  }
+};

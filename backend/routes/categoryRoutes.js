@@ -6,6 +6,7 @@ import {
   updateCategory,
   deleteCategory,
 } from "../controllers/categoryController.js";
+import { protect, adminOnly } from "../middlewares/authMiddleware.js"
 
 const router = express.Router();
 
@@ -19,9 +20,9 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // ✅ Routes
-router.post("/", upload.single("image"), createCategory); // <-- Important fix
-router.get("/", getCategoriesWithCount);
-router.put("/:id", upload.single("image"), updateCategory); // <-- Fix update route too
-router.delete("/:id", deleteCategory);
+router.post("/", upload.single("image"),protect,adminOnly, createCategory); // <-- Important fix
+router.get("/",protect,adminOnly, getCategoriesWithCount);
+router.put("/:id", upload.single("image"),protect,adminOnly, updateCategory); // <-- Fix update route too
+router.delete("/:id",protect,adminOnly, deleteCategory);
 
 export default router;

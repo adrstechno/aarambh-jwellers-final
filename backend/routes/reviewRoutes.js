@@ -5,8 +5,9 @@ import {
   getPaginatedReviews,
   getTopRatedProducts,
   updateReviewStatus,
-  deleteReview, getReviewsByProduct,
+  deleteReview, getReviewsByProduct, createReview,
 } from "../controllers/reviewController.js";
+import { protect, adminOnly } from "../middlewares/authMiddleware.js"
 
 const router = express.Router();
 
@@ -20,11 +21,13 @@ router.get("/", getPaginatedReviews);
 router.get("/top-rated", getTopRatedProducts);
 
 // 🟠 Update review status (approve/reject)
-router.put("/:id/status", updateReviewStatus);
+router.put("/:id/status",protect,adminOnly, updateReviewStatus);
 
 // 🔴 Delete a review
-router.delete("/:id", deleteReview);
+router.delete("/:id", protect, deleteReview);
 
 router.get("/product/:productId", getReviewsByProduct); 
+
+router.post("/", createReview);
 
 export default router;

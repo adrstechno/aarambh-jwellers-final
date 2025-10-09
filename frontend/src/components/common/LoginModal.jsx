@@ -1,179 +1,120 @@
-import { useState } from 'react';
-import { X } from 'lucide-react';
-import { useApp } from '../../context/AppContext';
-import { login, register } from '../../api/authApi';
+import { useState } from "react";
+import { X } from "lucide-react";
+import { useApp } from "../../context/AppContext.jsx";
+import { loginUserAPI, registerUserAPI } from "../../api/authApi.js";
 
 export default function LoginModal() {
+  const { toggleLoginModal, loginUser } = useApp();
   const [isLogin, setIsLogin] = useState(true);
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    confirmPassword: '',
-    name: ''
-  });
+  const [form, setForm] = useState({ name: "", email: "", password: "", phone: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const { toggleLoginModal, setUser } = useApp();  // 🔹 get setUser from context
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
     try {
-      if (isLogin) {
-        const data = await login({
-          email: formData.email,
-          password: formData.password
-        });
-        setUser(data);   // 🔹 Update global state
-        alert("Login successful!");
-      } else {
-        if (formData.password !== formData.confirmPassword) {
-          alert("Passwords do not match!");
-          return;
-        }
-        const data = await register({
-          email: formData.email,
-          password: formData.password,
-          name: formData.name
-        });
-        setUser(data);   // 🔹 Update global state
-        alert("Registration successful!");
-      }
+      const user =
+        isLogin
+          ? await loginUserAPI({ email: form.email, password: form.password })
+          : await registerUserAPI(form);
+
+      loginUser(user);
       toggleLoginModal();
-    } catch (error) {
-      console.error(error);
-      alert(error.response?.data?.message || error.message || "Something went wrong!");
-    }
-  };
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  // Placeholder for Google login
-  const handleGoogleLogin = async () => {
-    try {
-      alert("Google login not yet connected to backend!");
-    } catch (error) {
-      alert(error.message);
+    } catch (err) {
+      console.error("❌ Auth failed:", err);
+      setError(err.response?.data?.message || "Something went wrong.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-500 bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">
-            {isLogin ? 'Login' : 'Register'}
-          </h2>
-          <button
-            onClick={toggleLoginModal}
-            className="text-gray-400 hover:text-gray-600"
-            aria-label="Close Login Modal"
-          >
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-sm relative">
+        <button
+          onClick={toggleLoginModal}
+          className="absolute top-2 right-2 text-gray-500 hover:text-red-600"
+        >
+          <X size={22} />
+        </button>
 
-        {/* Email/Password Form */}
+        <h2 className="text-xl font-bold mb-4 text-center">
+          {isLogin ? "Login to Your Account" : "Create an Account"}
+        </h2>
+
+        {error && (
+          <div className="bg-red-100 text-red-700 px-3 py-2 rounded mb-3 text-sm">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name
-              </label>
+            <>
               <input
                 type="text"
                 name="name"
-                value={formData.name}
+                placeholder="Full Name"
+                value={form.name}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                required={!isLogin}
+                required
+                className="w-full border px-3 py-2 rounded-lg"
               />
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-              required
-            />
-          </div>
-
-          {!isLogin && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Confirm Password
-              </label>
               <input
-                type="password"
-                name="confirmPassword"
-                value={formData.confirmPassword}
+                type="text"
+                name="phone"
+                placeholder="Phone Number"
+                value={form.phone}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
-                required={!isLogin}
+                className="w-full border px-3 py-2 rounded-lg"
               />
-            </div>
+            </>
           )}
+
+          <input
+            type="email"
+            name="email"
+            placeholder="Email Address"
+            value={form.email}
+            onChange={handleChange}
+            required
+            className="w-full border px-3 py-2 rounded-lg"
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            value={form.password}
+            onChange={handleChange}
+            required
+            className="w-full border px-3 py-2 rounded-lg"
+          />
 
           <button
             type="submit"
-            className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 transition-colors"
+            disabled={loading}
+            className="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition"
           >
-            {isLogin ? 'Login' : 'Register'}
+            {loading ? "Please wait..." : isLogin ? "Login" : "Register"}
           </button>
         </form>
 
-        {/* Divider */}
-        <div className="my-6 flex items-center">
-          <div className="flex-grow border-t border-gray-300"></div>
-          <span className="mx-2 text-gray-500 text-sm">OR</span>
-          <div className="flex-grow border-t border-gray-300"></div>
-        </div>
-
-        {/* Google Login */}
-        <button
-          onClick={handleGoogleLogin}
-          className="w-full bg-white border border-gray-300 text-gray-700 py-2 px-4 rounded-md flex items-center justify-center gap-2 hover:bg-gray-100 transition-colors"
-        >
-          <img
-            src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
-            alt="Google"
-            className="w-5 h-5"
-          />
-          Continue with Google
-        </button>
-
-        <div className="mt-6 text-center">
+        <p className="text-center mt-4 text-sm text-gray-600">
+          {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
           <button
+            type="button"
             onClick={() => setIsLogin(!isLogin)}
-            className="text-red-600 hover:text-red-700"
+            className="text-red-600 hover:underline"
           >
-            {isLogin ? "Don't have an account? Register" : "Already have an account? Login"}
+            {isLogin ? "Register here" : "Login here"}
           </button>
-        </div>
+        </p>
       </div>
     </div>
   );

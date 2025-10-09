@@ -198,3 +198,20 @@ export const getProductById = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch product details" });
   }
 };
+
+// ✅ Get product by slug
+export const getProductBySlug = async (req, res) => {
+  try {
+    const product = await Product.findOne({ slug: req.params.slug })
+      .populate("category", "name slug")
+      .exec();
+
+    if (!product)
+      return res.status(404).json({ message: "Product not found" });
+
+    res.status(200).json(product);
+  } catch (err) {
+    console.error("❌ Error fetching product by slug:", err);
+    res.status(500).json({ message: "Failed to fetch product details" });
+  }
+};

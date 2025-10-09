@@ -8,6 +8,11 @@ const handleError = (action, error) => {
   throw error;
 };
 
+export const loginUser = async (email, password) => {
+  const { data } = await axios.post(`${USER_API}/login`, { email, password });
+  return data;
+};
+
 // ✅ Get all users
 export const getAllUsers = async () => {
   try {

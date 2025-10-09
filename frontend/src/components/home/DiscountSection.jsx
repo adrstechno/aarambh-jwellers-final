@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getDiscounts } from "../../api/discountApi";
+// import { getDiscounts } from "../../api/discountApi";
 
 export default function DiscountSection() {
   const navigate = useNavigate();

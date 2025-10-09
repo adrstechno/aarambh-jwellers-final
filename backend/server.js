@@ -11,6 +11,9 @@ import reviewRoutes from "./routes/reviewRoutes.js";
 import discountRoutes from "./routes/discountRoutes.js";
 import giftRoutes from "./routes/giftRoutes.js";
 import refundRoutes from "./routes/refundRoutes.js";
+import wishlistRoutes from "./routes/wishlistRoutes.js";
+import cartRoutes from "./routes/cartRoutes.js"
+import authRoutes from "./routes/authRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -32,6 +35,10 @@ app.use("/api/reviews", reviewRoutes);
 app.use("/api/discounts", discountRoutes);
 app.use("/api/gifts", giftRoutes);
 app.use("/api/refunds", refundRoutes);
+app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/auth", authRoutes);
+
 
 
 // DB Connection
