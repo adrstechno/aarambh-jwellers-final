@@ -9,16 +9,28 @@ export default function Sidebar() {
           Dashboard
         </Link>
         <Link to="/admin/products" className="block px-3 py-2 rounded hover:bg-gray-700">
-          Products
+          Product Management
         </Link>
         <Link to="/admin/categories" className="block px-3 py-2 rounded hover:bg-gray-700">
-          Categories
+          Category Management
         </Link>
         <Link to="/admin/orders" className="block px-3 py-2 rounded hover:bg-gray-700">
-          Orders
+          Order Management
         </Link>
         <Link to="/admin/users" className="block px-3 py-2 rounded hover:bg-gray-700">
-          Users
+          User Management
+        </Link>
+        <Link to="/admin/reviews" className="block px-3 py-2 rounded hover:bg-gray-700">
+          Review Management
+        </Link>
+        <Link to="/admin/discount" className="block px-3 py-2 rounded hover:bg-gray-700">
+          Discount Management
+        </Link>
+        <Link to="/admin/gifts" className="block px-3 py-2 rounded hover:bg-gray-700">
+          Gift Management
+        </Link>
+        <Link to="/admin/refunds" className="block px-3 py-2 rounded hover:bg-gray-700">
+          Refund Management
         </Link>
         <Link to="/admin/reports" className="block px-3 py-2 rounded hover:bg-gray-700">
           Reports

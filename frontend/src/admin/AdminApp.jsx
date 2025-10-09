@@ -9,6 +9,10 @@ import Orders from "./pages/Orders.jsx";
 import Users from "./pages/Users.jsx";
 import Banners from "./pages/Banners.jsx";
 import Reports from "./pages/Reports.jsx";
+import Reviews from "./pages/Reviews.jsx";
+import Discount from "./pages/Discount.jsx";
+import Gifts from "./pages/Gifts.jsx";
+import Refunds from "./pages/Refunds.jsx";
 
 export default function AdminApp() {
   return (
@@ -28,8 +32,12 @@ export default function AdminApp() {
               <Route path="/admin/categories" element={<Categories />} />
               <Route path="/admin/orders" element={<Orders />} />
               <Route path="/admin/users" element={<Users />} />
+              <Route path="/admin/reviews" element={<Reviews />} />
+              <Route path="/admin/discount" element={<Discount />} />
               <Route path="/admin/reports" element={<Reports />} />
               <Route path="/admin/banners" element={<Banners />} />
+               <Route path="/admin/gifts" element={<Gifts />} />
+               <Route path="/admin/refunds" element={<Refunds />} />
             </Routes>
           </main>
         </div>

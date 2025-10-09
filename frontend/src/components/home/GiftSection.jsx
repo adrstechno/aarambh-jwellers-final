@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Gift, Heart, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { getGiftCategories } from "../../api/giftApi";
+// import { getGiftCategories } from "../../api/giftApi";
 
 export default function GiftSection() {
   const [hoveredIndex, setHoveredIndex] = useState(null);
