@@ -139,12 +139,12 @@ export function AppProvider({ children }) {
   const toggleLoginModal = () => setIsLoginModalOpen((prev) => !prev);
 
   // 🧠 Login
-  const loginUser = (data) => {
-    setUser(data.user);
-    localStorage.setItem("user", JSON.stringify(data.user));
-    localStorage.setItem("token", data.token);
-  };
-
+const loginUser = (data) => {
+  const fullUser = { ...data.user, token: data.token }; // attach token to user object
+  setUser(fullUser);
+  localStorage.setItem("user", JSON.stringify(fullUser));
+  localStorage.setItem("token", data.token);
+};
   // 🧠 Logout
   const logoutUser = () => {
     setUser(null);

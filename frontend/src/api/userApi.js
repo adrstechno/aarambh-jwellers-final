@@ -52,3 +52,43 @@ export const toggleUserStatus = async (id) => {
     handleError("updating user status", error);
   }
 };
+
+
+// ✅ Get user profile
+export const getUserProfile = async (token) => {
+  try {
+    const { data } = await axios.get(`${USER_API}/profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  } catch (error) {
+    console.error("❌ Error fetching user profile:", error.response?.data || error);
+    throw error;
+  }
+};
+
+// ✅ Update user profile
+export const updateUserProfile = async (profileData, token) => {
+  try {
+    const { data } = await axios.put(`${USER_API}/profile`, profileData, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  } catch (error) {
+    console.error("❌ Error updating profile:", error.response?.data || error);
+    throw error;
+  }
+};
+
+// ✅ Change password
+export const updateUserPassword = async (passwordData, token) => {
+  try {
+    const { data } = await axios.put(`${USER_API}/change-password`, passwordData, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  } catch (error) {
+    console.error("❌ Error updating password:", error.response?.data || error);
+    throw error;
+  }
+};

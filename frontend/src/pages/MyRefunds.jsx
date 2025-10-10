@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-// import { getUserReturns } from "../api/returnApi";
-// import { getUserRefunds } from "../api/refundApi";
+import { getUserReturns } from "../api/returnApi";
+import { getUserRefunds } from "../api/refundApi";
 import { useApp } from "../context/AppContext";
 import { CheckCircle, AlertCircle, Loader } from "lucide-react";
 

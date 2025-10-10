@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { CheckCircle, AlertCircle, Save } from "lucide-react";
 import { useApp } from "../context/AppContext";
-// import { getUserProfile, updateUserProfile, updateUserPassword } from "../api/userApi";
+import { getUserProfile, updateUserProfile, updateUserPassword } from "../api/userApi";
 
 export default function Profile() {
   const { user } = useApp();
@@ -28,6 +28,7 @@ export default function Profile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        console.log("🟢 Using token:", user?.token);
         const data = await getUserProfile(user.token);
         setProfile(data);
       } catch (err) {

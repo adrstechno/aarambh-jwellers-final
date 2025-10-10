@@ -5,33 +5,24 @@ import User from "../models/user.js";
 export const protect = async (req, res, next) => {
   let token;
 
-  try {
-    // Token may come from headers or body
-    if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith("Bearer")
-    ) {
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer ")
+  ) {
+    try {
       token = req.headers.authorization.split(" ")[1];
+      console.log("🟡 Token received:", req.headers.authorization);
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = await User.findById(decoded.id).select("-password");
+      next();
+    } catch (error) {
+      console.error("❌ Auth middleware error:", error);
+      return res.status(401).json({ message: "Not authorized, token invalid" });
     }
+  }
 
-    if (!token) {
-      return res.status(401).json({ message: "No token provided. Access denied." });
-    }
-
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Attach user to request (without password)
-    req.user = await User.findById(decoded.id).select("-password");
-
-    if (!req.user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    next();
-  } catch (error) {
-    console.error("❌ Auth middleware error:", error);
-    res.status(401).json({ message: "Invalid or expired token" });
+  if (!token) {
+    return res.status(401).json({ message: "Not authorized, no token" });
   }
 };
 

@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
   Search,
   User,
@@ -20,6 +20,7 @@ export default function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   const {
     cart,
@@ -34,22 +35,36 @@ export default function Header() {
 
   const navigate = useNavigate();
 
+  // ✅ Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      setIsMobileMenuOpen(false);
     }
   };
 
   const handleNavigate = (path) => {
     navigate(path);
     setIsUserMenuOpen(false);
+    setIsMobileMenuOpen(false);
   };
 
+  // 🧠 User Dropdown Menu
   const renderUserSection = useCallback(() => {
     if (user) {
       return (
-        <div className="relative">
+        <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
             className="flex items-center gap-1 text-gray-700 hover:text-red-600 font-semibold transition-colors"
@@ -61,9 +76,14 @@ export default function Header() {
             <ChevronDown className="w-4 h-4" />
           </button>
 
-          {/* 🔽 User Dropdown Menu */}
           {isUserMenuOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg border rounded-lg z-50">
+            <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg border rounded-lg z-50 animate-fadeIn">
+              <button
+                onClick={() => handleNavigate("/account")}
+                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
+              >
+                <User size={16} className="text-gray-500" /> My Profile
+              </button>
               <button
                 onClick={() => handleNavigate("/orders")}
                 className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
@@ -104,7 +124,7 @@ export default function Header() {
     () => (
       <div className="flex items-center space-x-6">
         <button
-          onClick={() => navigate("/wishlist")}
+          onClick={() => handleNavigate("/wishlist")}
           className="relative text-gray-700 hover:text-red-600 transition-colors"
           aria-label="Go to Wishlist"
         >
@@ -117,7 +137,7 @@ export default function Header() {
         </button>
 
         <button
-          onClick={() => navigate("/cart")}
+          onClick={() => handleNavigate("/cart")}
           className="relative text-gray-700 hover:text-red-600 transition-colors"
           aria-label="Go to Cart"
         >
@@ -147,7 +167,7 @@ export default function Header() {
               src="/logo2.png"
               alt="Logo"
               className="h-14 cursor-pointer"
-              onClick={() => navigate("/")}
+              onClick={() => handleNavigate("/")}
             />
 
             {/* Search Bar */}
@@ -179,14 +199,13 @@ export default function Header() {
             {/* Mobile Menu Button */}
             <button
               className="md:hidden text-gray-700 hover:text-red-600 transition-colors"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              onClick={() => {
+                setIsMobileMenuOpen(!isMobileMenuOpen);
+                setIsUserMenuOpen(false);
+              }}
               aria-label="Toggle Mobile Menu"
             >
-              {isMobileMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
+              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
 

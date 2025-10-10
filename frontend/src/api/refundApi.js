@@ -26,3 +26,29 @@ export const deleteRefund = async (id) => {
   const { data } = await axios.delete(`${REFUND_API}/${id}`);
   return data;
 };
+
+// 🟢 Get refund requests for a specific user
+export const getUserRefunds = async (token) => {
+  try {
+    const { data } = await axios.get(`${REFUND_API}/my`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  } catch (error) {
+    console.error("❌ Error fetching user refunds:", error.response?.data || error);
+    throw error;
+  }
+};
+
+// 🟡 Create new return/refund request
+export const createReturnRequest = async (formData, token) => {
+  try {
+    const { data } = await axios.post(`${REFUND_API}/create`, formData, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  } catch (error) {
+    console.error("❌ Error creating return request:", error.response?.data || error);
+    throw error;
+  }
+};

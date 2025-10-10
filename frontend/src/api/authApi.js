@@ -1,13 +1,16 @@
 import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
+const AUTH_API = `${API_BASE}/auth`;
 
-export const registerUserAPI = async (formData) => {
-  const { data } = await axios.post(`${API_BASE}/auth/register`, formData);
-  return data.user;
+// ✅ Login
+export const loginUserAPI = async (payload) => {
+  const { data } = await axios.post(`${AUTH_API}/login`, payload);
+  return data;
 };
 
-export const loginUserAPI = async (credentials) => {
-  const { data } = await axios.post(`${API_BASE}/auth/login`, credentials);
-  return data.user;
+// ✅ Register
+export const registerUserAPI = async (payload) => {
+  const { data } = await axios.post(`${AUTH_API}/register`, payload);
+  return data;
 };

@@ -21,7 +21,7 @@ import CategoryPage from "./pages/CategoryPage.jsx";
 import ProductDetail from "./pages/ProductDetail.jsx";
 import CartPage from "./pages/CartPage.jsx";
 import WishlistPage from "./pages/WishlistPage.jsx";
-// import Orders from "./pages/Orders.jsx";
+import Orders from "./pages/Orders.jsx";
 import MyRefunds from "./pages/MyRefunds.jsx";
 import Profile from "./pages/Profile.jsx";
 
@@ -63,7 +63,7 @@ export default function App() {
             {/* ✅ Account Pages with Sidebar */}
             <Route element={<AccountLayout />}>
               <Route path="/account" element={<Profile />} />
-              {/* <Route path="/orders" element={<Orders />} /> */}
+              <Route path="/orders" element={<Orders />} />
               <Route path="/my-refunds" element={<MyRefunds />} />
             </Route>
           </Routes>

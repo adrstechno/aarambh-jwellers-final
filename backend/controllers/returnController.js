@@ -1,31 +1,51 @@
 import ReturnRequest from "../models/returnRequest.js";
 import Order from "../models/order.js";
 
-// 🟢 Customer creates return request
+// 🟢 Create Return Request
 export const createReturnRequest = async (req, res) => {
   try {
     const { orderId, productId, reason } = req.body;
-    const userId = req.user._id;
 
-    const order = await Order.findOne({ _id: orderId, user: userId });
-    if (!order) return res.status(404).json({ message: "Order not found" });
+    if (!orderId || !productId || !reason)
+      return res.status(400).json({ message: "Missing required fields" });
 
-    const purchaseDate = new Date(order.createdAt);
-    const today = new Date();
-    const diffDays = Math.floor((today - purchaseDate) / (1000 * 60 * 60 * 24));
-    if (diffDays > 7)
-      return res.status(400).json({ message: "Return period (7 days) expired" });
+    const order = await Order.findOne({ _id: orderId, user: req.user._id });
+    if (!order)
+      return res.status(404).json({ message: "Order not found for this user" });
 
-    const returnRequest = await ReturnRequest.create({
+    const existingReturn = await Return.findOne({
       order: orderId,
       product: productId,
-      user: userId,
+      user: req.user._id,
+    });
+    if (existingReturn)
+      return res.status(400).json({ message: "Return already requested" });
+
+    const newReturn = await Return.create({
+      user: req.user._id,
+      order: orderId,
+      product: productId,
       reason,
     });
 
-    res.status(201).json(returnRequest);
-  } catch (err) {
-    res.status(500).json({ message: "Error creating return request", error: err.message });
+    res.status(201).json(newReturn);
+  } catch (error) {
+    console.error("❌ Error creating return:", error);
+    res.status(500).json({ message: "Failed to create return" });
+  }
+};
+
+// 🟡 Get all Returns for logged-in user
+export const getUserReturns = async (req, res) => {
+  try {
+    const returns = await Return.find({ user: req.user._id })
+      .populate("product", "name price image")
+      .populate("order", "totalAmount createdAt")
+      .sort({ createdAt: -1 });
+    res.status(200).json(returns);
+  } catch (error) {
+    console.error("❌ Error fetching returns:", error);
+    res.status(500).json({ message: "Failed to load returns" });
   }
 };
 
