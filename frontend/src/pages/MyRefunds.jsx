@@ -19,24 +19,40 @@ export default function MyRefunds() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [returnData, refundData] = await Promise.all([
+        const [returnRes, refundRes] = await Promise.all([
           getUserReturns(user.token),
           getUserRefunds(user.token),
         ]);
+
+        // Handle both array and object API responses
+        const returnData = Array.isArray(returnRes)
+          ? returnRes
+          : returnRes?.data || [];
+
+        const refundData = Array.isArray(refundRes)
+          ? refundRes
+          : refundRes?.data || [];
+
         setReturns(returnData);
         setRefunds(refundData);
       } catch (err) {
-        console.error("Error loading refunds:", err);
+        console.error("❌ Error loading refunds:", err);
         showToast("error", "Failed to load refund data.");
       } finally {
         setLoading(false);
       }
     };
-    fetchData();
-  }, [user.token]);
 
-  const getRefundForReturn = (returnId) => {
-    return refunds.find((r) => r.returnRequest?._id === returnId);
+    if (user?.token) fetchData();
+  }, [user?.token]);
+
+  // Match refunds based on order + product
+  const getRefundForReturn = (orderId, productId) => {
+    return refunds.find(
+      (r) =>
+        String(r.order?._id) === String(orderId) &&
+        String(r.product?._id) === String(productId)
+    );
   };
 
   if (loading)
@@ -71,7 +87,8 @@ export default function MyRefunds() {
       ) : (
         <div className="space-y-6">
           {returns.map((r) => {
-            const refund = getRefundForReturn(r._id);
+            const refund = getRefundForReturn(r.order?._id, r.product?._id);
+
             return (
               <div
                 key={r._id}
@@ -106,7 +123,10 @@ export default function MyRefunds() {
                       <b>Refund ID:</b> {refund._id}
                     </p>
                     <p className="text-sm text-gray-700">
-                      <b>Amount:</b> ₹{refund.amount}
+                      <b>Amount:</b> ₹{refund.refundAmount || 0}
+                    </p>
+                    <p className="text-sm text-gray-700">
+                      <b>Method:</b> {refund.refundMethod}
                     </p>
                     <p className="text-sm text-gray-700">
                       <b>Status:</b>{" "}

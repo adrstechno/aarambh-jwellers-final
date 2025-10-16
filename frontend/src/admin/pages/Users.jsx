@@ -1,4 +1,3 @@
-// src/admin/pages/Users.jsx
 import { useState, useEffect } from "react";
 import {
   User,
@@ -20,8 +19,11 @@ import {
   toggleUserRole,
   toggleUserStatus,
 } from "../../api/userApi";
+import { useApp } from "../../context/AppContext";
 
 export default function Users() {
+  const { user } = useApp();
+
   const [users, setUsers] = useState([]);
   const [userOrders, setUserOrders] = useState({});
   const [search, setSearch] = useState("");
@@ -38,11 +40,11 @@ export default function Users() {
     setTimeout(() => setToast({ type: "", message: "" }), 2500);
   };
 
-  // ✅ Fetch all users
+  // ✅ Fetch all users (auto token handled by userApi.js)
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const data = await getAllUsers();
+        const data = await getAllUsers(); // ⬅️ no token passed now
         setUsers(data);
       } catch (err) {
         console.error("Error fetching users:", err);
@@ -58,7 +60,7 @@ export default function Users() {
   const fetchUserOrdersHandler = async (userId) => {
     if (userOrders[userId]) return;
     try {
-      const data = await getUserOrders(userId);
+      const data = await getUserOrders(userId); // ⬅️ auto token
       setUserOrders((prev) => ({ ...prev, [userId]: data }));
     } catch (err) {
       console.error(`Error fetching orders for user ${userId}:`, err);
@@ -69,16 +71,25 @@ export default function Users() {
   // ✅ Toggle Admin Role
   const handleToggleAdmin = async (id) => {
     try {
-      const res = await toggleUserRole(id);
+      const targetUser = users.find((u) => u._id === id);
+      if (!targetUser) return showToast("error", "User not found.");
+
+      const res = await toggleUserRole(id); // ⬅️ auto token
+
       if (res?.updatedUser) {
         setUsers((prev) =>
           prev.map((u) => (u._id === id ? res.updatedUser : u))
         );
-        showToast("success", "User role updated successfully!");
+        showToast(
+          "success",
+          res.updatedUser.role === "Admin"
+            ? "User promoted to Admin!"
+            : "Admin privileges removed!"
+        );
       } else {
-        console.warn("⚠️ Backend did not return updatedUser:", res);
         showToast("error", "Unexpected server response.");
       }
+
       setActionUser(null);
     } catch (err) {
       console.error("Failed to update role:", err);
@@ -89,14 +100,13 @@ export default function Users() {
   // ✅ Toggle Block / Unblock
   const handleToggleBlock = async (id) => {
     try {
-      const res = await toggleUserStatus(id);
+      const res = await toggleUserStatus(id); // ⬅️ auto token
       if (res?.updatedUser) {
         setUsers((prev) =>
           prev.map((u) => (u._id === id ? res.updatedUser : u))
         );
         showToast("success", "User status updated!");
       } else {
-        console.warn("⚠️ Backend did not return updatedUser:", res);
         showToast("error", "Unexpected server response.");
       }
       setActionUser(null);
@@ -184,7 +194,6 @@ export default function Users() {
 
   if (loading)
     return <div className="p-6 text-center text-gray-600">Loading users...</div>;
-
   return (
     <div className="p-6 relative">
       {/* ✅ Toast */}

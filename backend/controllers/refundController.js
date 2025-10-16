@@ -1,30 +1,43 @@
+// backend/controllers/refundController.js
 import Refund from "../models/refund.js";
 import Order from "../models/order.js";
 
-// 🟢 Get all refund requests
+/* =======================================================
+   👨‍💼 ADMIN CONTROLLERS
+   ======================================================= */
+
+// 🧾 Get all refund requests (Admin)
 export const getAllRefunds = async (req, res) => {
   try {
     const refunds = await Refund.find()
-      .populate("order", "id total status")
+      .populate("order", "id totalAmount status createdAt")
       .populate("user", "name email")
-      .populate("product", "name")
+      .populate("product", "name price image")
       .sort({ createdAt: -1 });
 
-    res.status(200).json(refunds);
+    res.status(200).json({
+      success: true,
+      count: refunds.length,
+      data: refunds,
+    });
   } catch (error) {
     console.error("❌ Error fetching refunds:", error);
-    res.status(500).json({ message: "Failed to fetch refunds" });
+    res.status(500).json({ success: false, message: "Failed to fetch refunds" });
   }
 };
 
-// 🟡 Create refund request
+// 🟡 Create refund manually (Admin)
 export const createRefund = async (req, res) => {
   try {
     const refund = await Refund.create(req.body);
-    res.status(201).json({ message: "Refund request created", refund });
+    res.status(201).json({
+      success: true,
+      message: "Refund created successfully",
+      data: refund,
+    });
   } catch (error) {
     console.error("❌ Error creating refund:", error);
-    res.status(500).json({ message: "Failed to create refund" });
+    res.status(500).json({ success: false, message: "Failed to create refund" });
   }
 };
 
@@ -32,32 +45,51 @@ export const createRefund = async (req, res) => {
 export const updateRefundStatus = async (req, res) => {
   try {
     const { status, adminNote } = req.body;
+
     const refund = await Refund.findByIdAndUpdate(
       req.params.id,
       { status, adminNote },
       { new: true }
-    );
+    )
+      .populate("user", "name email")
+      .populate("order", "id totalAmount status createdAt");
 
-    if (!refund) return res.status(404).json({ message: "Refund not found" });
-    res.status(200).json({ message: "Refund status updated", refund });
+    if (!refund)
+      return res.status(404).json({ success: false, message: "Refund not found" });
+
+    res.status(200).json({
+      success: true,
+      message: "Refund status updated successfully",
+      data: refund,
+    });
   } catch (error) {
     console.error("❌ Error updating refund status:", error);
-    res.status(500).json({ message: "Failed to update refund" });
+    res.status(500).json({ success: false, message: "Failed to update refund" });
   }
 };
 
-// 🔴 Delete refund record
+// 🔴 Delete refund record (Admin)
 export const deleteRefund = async (req, res) => {
   try {
-    await Refund.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: "Refund deleted successfully" });
+    const refund = await Refund.findByIdAndDelete(req.params.id);
+    if (!refund)
+      return res.status(404).json({ success: false, message: "Refund not found" });
+
+    res.status(200).json({
+      success: true,
+      message: "Refund deleted successfully",
+    });
   } catch (error) {
     console.error("❌ Error deleting refund:", error);
-    res.status(500).json({ message: "Failed to delete refund" });
+    res.status(500).json({ success: false, message: "Failed to delete refund" });
   }
 };
 
-// 🟢 Create Refund / Return Request
+/* =======================================================
+   🧍 USER CONTROLLERS
+   ======================================================= */
+
+// 🟢 Create Refund Request (User)
 export const createRefundRequest = async (req, res) => {
   try {
     const { orderId, productId, reason } = req.body;
@@ -66,13 +98,13 @@ export const createRefundRequest = async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // Check order ownership
+    // Validate order ownership
     const order = await Order.findOne({ _id: orderId, user: req.user._id });
     if (!order) {
       return res.status(404).json({ message: "Order not found for this user" });
     }
 
-    // Prevent duplicate return requests for same product
+    // Prevent duplicate refund for the same product
     const existingRefund = await Refund.findOne({
       order: orderId,
       product: productId,
@@ -82,7 +114,6 @@ export const createRefundRequest = async (req, res) => {
       return res.status(400).json({ message: "Refund already requested for this product" });
     }
 
-    // Create new refund request
     const refund = await Refund.create({
       user: req.user._id,
       order: orderId,
@@ -91,24 +122,32 @@ export const createRefundRequest = async (req, res) => {
       status: "Pending",
     });
 
-    res.status(201).json({ message: "Refund request created successfully", refund });
+    res.status(201).json({
+      success: true,
+      message: "Refund request created successfully",
+      data: refund,
+    });
   } catch (error) {
     console.error("❌ Error creating refund request:", error);
-    res.status(500).json({ message: "Failed to create refund request" });
+    res.status(500).json({ success: false, message: "Failed to create refund request" });
   }
 };
 
-// 🟡 Get all refund requests for the logged-in user
+// 🟣 Get Refunds for the Logged-in User
 export const getUserRefunds = async (req, res) => {
   try {
     const refunds = await Refund.find({ user: req.user._id })
       .populate("product", "name price image")
-      .populate("order", "totalAmount createdAt")
+      .populate("order", "totalAmount createdAt status")
       .sort({ createdAt: -1 });
 
-    res.status(200).json(refunds);
+    res.status(200).json({
+      success: true,
+      count: refunds.length,
+      data: refunds,
+    });
   } catch (error) {
     console.error("❌ Error fetching user refunds:", error);
-    res.status(500).json({ message: "Failed to load refunds" });
+    res.status(500).json({ success: false, message: "Failed to load refunds" });
   }
 };

@@ -6,7 +6,12 @@ import { loginUserAPI, registerUserAPI } from "../../api/authApi.js";
 export default function LoginModal() {
   const { toggleLoginModal, loginUser } = useApp();
   const [isLogin, setIsLogin] = useState(true);
-  const [form, setForm] = useState({ name: "", email: "", password: "", phone: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    password: "",
+    phone: "",
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -18,14 +23,26 @@ export default function LoginModal() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    try {
-      const user =
-        isLogin
-          ? await loginUserAPI({ email: form.email, password: form.password })
-          : await registerUserAPI(form);
 
-      loginUser(user);
+    try {
+      // 🟢 Login or Register API call
+      const userData = isLogin
+        ? await loginUserAPI({ email: form.email, password: form.password })
+        : await registerUserAPI(form);
+
+      // 🧠 Save user in AppContext + localStorage
+      loginUser(userData);
+
+      // ✅ Close modal
       toggleLoginModal();
+
+      // 🧭 Redirect based on role
+      const userRole = userData?.user?.role;
+      if (userRole === "Admin" || userData?.user?.isAdmin) {
+        window.location.href = "/admin"; // redirect to admin panel
+      } else {
+        window.location.href = "/"; // redirect to main app
+      }
     } catch (err) {
       console.error("❌ Auth failed:", err);
       setError(err.response?.data?.message || "Something went wrong.");

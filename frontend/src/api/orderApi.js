@@ -1,45 +1,73 @@
-// src/api/orderApi.js
 import axios from "axios";
 
-const API_URL = "http://localhost:5000/api/orders";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
+const ORDER_API = `${API_BASE}/orders`;
 
-// Get all orders (Admin)
+/* 🟢 ADMIN: Get all orders */
 export const getAllOrders = async (token) => {
-  const res = await axios.get(`${API_URL}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return res.data;
+  try {
+    const { data } = await axios.get(`${ORDER_API}/admin`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  } catch (error) {
+    console.error("❌ Error fetching all orders:", error.response?.data || error);
+    throw error;
+  }
 };
 
-// Update order status (Admin)
+/* 🟡 ADMIN: Update order status */
 export const updateOrderStatus = async (id, status, token) => {
-  const res = await axios.put(
-    `${API_URL}/${id}/status`,
-    { status },
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  return res.data;
+  try {
+    const { data } = await axios.put(
+      `${ORDER_API}/${id}/status`,
+      { status },
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+    return data;
+  } catch (error) {
+    console.error("❌ Error updating order status:", error.response?.data || error);
+    throw error;
+  }
 };
 
-
-// Create order
+/* 🟣 USER: Create a new order */
 export const createOrder = async (orderData, token) => {
-  const res = await axios.post(API_URL, orderData, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return res.data;
+  try {
+    const { data } = await axios.post(`${ORDER_API}`, orderData, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  } catch (error) {
+    console.error("❌ Error creating order:", error.response?.data || error);
+    throw error;
+  }
 };
 
-// 🔴 Delete order (optional)
-export const deleteOrder = async (id) => {
-  const { data } = await axios.delete(`${API_URL}/${id}`);
-  return data;
+/* 🔵 USER: Get orders by current user */
+export const getUserOrders = async (userId, token) => {
+  try {
+    const { data } = await axios.get(`${ORDER_API}/user/${userId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  } catch (error) {
+    console.error("❌ Error fetching user orders:", error.response?.data || error);
+    throw error;
+  }
 };
 
-// Get user orders
-export const getUserOrders = async (token) => {
-  const res = await axios.get(`${API_URL}/user`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return res.data;
+/* 🔴 ADMIN: Delete order (optional) */
+export const deleteOrder = async (id, token) => {
+  try {
+    const { data } = await axios.delete(`${ORDER_API}/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return data;
+  } catch (error) {
+    console.error("❌ Error deleting order:", error.response?.data || error);
+    throw error;
+  }
 };

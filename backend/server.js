@@ -14,6 +14,7 @@ import refundRoutes from "./routes/refundRoutes.js";
 import wishlistRoutes from "./routes/wishlistRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js"
 import authRoutes from "./routes/authRoutes.js";
+import returnRoutes from "./routes/returnRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -38,14 +39,22 @@ app.use("/api/refunds", refundRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/auth", authRoutes);
-
+app.use("/api/returns", returnRoutes);
 
 
 // DB Connection
 mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.error("MongoDB Error:", err));
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 10000, // 10 seconds timeout
+  })
+  .then(() => console.log("✅ MongoDB Atlas Connected"))
+  .catch((err) => {
+    console.error("❌ MongoDB Atlas Connection Error:", err.message);
+    process.exit(1);
+  });
+
 
 // Start server
 const PORT = process.env.PORT || 5000;

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useApp } from "../../context/AppContext";
 import {
   Eye,
   X,
@@ -10,11 +11,13 @@ import {
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import axios from "axios";
+import { getAllOrders, updateOrderStatus } from "../../api/orderApi";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+// const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
 export default function Orders() {
+  const app = useApp() || {};
+  const user = app.user || {};
   const [orders, setOrders] = useState([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -30,7 +33,7 @@ export default function Orders() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/orders/admin`);
+        const res = await getAllOrders(user.token);
         setOrders(res.data);
       } catch (err) {
         console.error("Error fetching orders:", err);
@@ -38,8 +41,8 @@ export default function Orders() {
         setLoading(false);
       }
     };
-    fetchOrders();
-  }, []);
+    if (user?.token) fetchOrders();
+  }, [user?.token]);
 
   // ✅ Toast utility
   const showToast = (type, message) => {
@@ -50,9 +53,7 @@ export default function Orders() {
   // ✅ Update order status (admin)
   const handleStatusChange = async (id, newStatus) => {
     try {
-      const res = await axios.put(`${API_BASE}/orders/${id}/status`, {
-        status: newStatus,
-      });
+      const res = await updateOrderStatus(id, newStatus, user?.token);
 
       if (res.data?.order) {
         setOrders((prev) =>

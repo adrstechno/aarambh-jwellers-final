@@ -1,11 +1,14 @@
 // backend/controllers/orderController.js
 import Order from "../models/order.js";
 
+/* =======================================================
+   🧍 USER CONTROLLERS
+   ======================================================= */
+
 /* 🟢 Create new order — called when customer completes a purchase */
 export const createOrder = async (req, res) => {
   try {
     const {
-      user,
       customerName,
       customerEmail,
       customerPhone,
@@ -17,22 +20,23 @@ export const createOrder = async (req, res) => {
       status,
     } = req.body;
 
-    // Basic validation
     if (!products || products.length === 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Order must contain at least one product" });
+      return res.status(400).json({
+        success: false,
+        message: "Order must contain at least one product",
+      });
     }
 
     if (!totalAmount || !paymentMethod) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Total amount and payment method are required" });
+      return res.status(400).json({
+        success: false,
+        message: "Total amount and payment method are required",
+      });
     }
 
-    // Create and save order
+    // Use logged-in user from token (req.user.id)
     const newOrder = new Order({
-      user,
+      user: req.user._id,
       customerName,
       customerEmail,
       customerPhone,
@@ -45,19 +49,44 @@ export const createOrder = async (req, res) => {
     });
 
     const savedOrder = await newOrder.save();
-
     res.status(201).json({ success: true, order: savedOrder });
   } catch (err) {
     console.error("❌ Error creating order:", err);
-    res.status(500).json({ success: false, message: "Failed to create order", error: err.message });
+    res.status(500).json({
+      success: false,
+      message: "Failed to create order",
+      error: err.message,
+    });
   }
 };
 
-/* 🔵 Admin: Get all orders with user details */
+/* 🧾 Get orders for currently logged-in user (frontend “My Orders” page) */
+export const getUserOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({ user: req.user._id })
+      .populate("user", "name email phone")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error("❌ Error fetching current user's orders:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch user orders",
+      error: error.message,
+    });
+  }
+};
+
+/* =======================================================
+   👨‍💼 ADMIN CONTROLLERS
+   ======================================================= */
+
+/* 🔵 Get all orders (admin dashboard) */
 export const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find()
-      .populate("user", "name email phone") // populate only useful fields
+      .populate("user", "name email phone")
       .sort({ createdAt: -1 });
 
     res.status(200).json(orders);
@@ -67,6 +96,24 @@ export const getAllOrders = async (req, res) => {
       success: false,
       message: "Failed to fetch orders",
       error: err.message,
+    });
+  }
+};
+
+/* 🟣 Get orders of a specific user (for admin Users panel) */
+export const getOrdersByUser = async (req, res) => {
+  try {
+    const orders = await Order.find({ user: req.params.userId })
+      .populate("user", "name email phone")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(orders);
+  } catch (error) {
+    console.error("❌ Error fetching user orders (admin):", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch user orders",
+      error: error.message,
     });
   }
 };
@@ -88,8 +135,7 @@ export const getOrderById = async (req, res) => {
   }
 };
 
-
-// 🟡 Update order status safely
+/* 🟡 Update order status (admin only) */
 export const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -99,7 +145,6 @@ export const updateOrderStatus = async (req, res) => {
       return res.status(400).json({ message: "Status is required" });
     }
 
-    // ✅ Update only the required fields
     const updatedOrder = await Order.findByIdAndUpdate(
       id,
       {
@@ -112,7 +157,7 @@ export const updateOrderStatus = async (req, res) => {
           },
         },
       },
-      { new: true, runValidators: false } // disable full validation
+      { new: true, runValidators: false }
     ).populate("user", "name email");
 
     if (!updatedOrder) {
@@ -129,8 +174,7 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
-
-/* 🔴 Admin: Delete order */
+/* 🔴 Delete order (admin only) */
 export const deleteOrder = async (req, res) => {
   try {
     const { id } = req.params;
@@ -142,23 +186,5 @@ export const deleteOrder = async (req, res) => {
   } catch (err) {
     console.error("❌ Error deleting order:", err);
     res.status(500).json({ success: false, message: "Failed to delete order" });
-  }
-};
-
-/* 🧾 User: Get orders by user ID (for Users.jsx) */
-export const getOrdersByUser = async (req, res) => {
-  try {
-    const orders = await Order.find({ user: req.params.userId })
-      .populate("user", "name email phone")
-      .sort({ createdAt: -1 });
-
-    res.status(200).json(orders);
-  } catch (error) {
-    console.error("❌ Error fetching user orders:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch user orders",
-      error: error.message,
-    });
   }
 };

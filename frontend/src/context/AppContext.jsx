@@ -25,31 +25,37 @@ export function AppProvider({ children }) {
 
   // 🧠 Load user’s cart and wishlist when logged in
   useEffect(() => {
-    if (!user) {
-      setCart([]);
-      setWishlist([]);
-      return;
+  if (!user) {
+    setCart([]);
+    setWishlist([]);
+    return;
+  }
+
+  // 🟢 Skip fetching cart/wishlist for hardcoded admin
+  if (user._id === "hardcoded-admin") {
+    setCart([]);
+    setWishlist([]);
+    return;
+  }
+
+  const fetchData = async () => {
+    try {
+      const [cartData, wishlistData] = await Promise.all([
+        getCart(user._id, user.token),
+        getWishlist(user._id, user.token),
+      ]);
+      setCart(cartData.items || []);
+      setWishlist(wishlistData.products?.map((p) => p.product) || []);
+    } catch (err) {
+      console.error("❌ Failed to load user data:", err);
     }
+  };
 
-    const fetchData = async () => {
-      try {
-        const [cartData, wishlistData] = await Promise.all([
-          getCart(user._id, user.token),
-          getWishlist(user._id, user.token),
-        ]);
-        setCart(cartData.items || []);
-        setWishlist(
-          wishlistData.products?.map((p) => p.product) || []
-        );
-      } catch (err) {
-        console.error("❌ Failed to load user data:", err);
-      }
-    };
-
-    fetchData();
-  }, [user]);
-
-  // 🛒 Add to Cart (Backend Synced)
+  fetchData();
+}, [user]);
+  /* ======================
+     🛒 CART MANAGEMENT
+  ====================== */
   const addToCart = async (product, quantity = 1) => {
     if (!user) return setIsLoginModalOpen(true);
     try {
@@ -110,7 +116,9 @@ export function AppProvider({ children }) {
   const getTotalItems = () =>
     cart.reduce((total, item) => total + item.quantity, 0);
 
-  // ❤️ Wishlist (Backend Synced)
+  /* ======================
+     ❤️ WISHLIST MANAGEMENT
+  ====================== */
   const addToWishlist = async (product) => {
     if (!user) return setIsLoginModalOpen(true);
     try {
@@ -135,29 +143,37 @@ export function AppProvider({ children }) {
     }
   };
 
-  // 🔐 Auth & UI Controls
+  /* ======================
+     🔐 AUTHENTICATION
+  ====================== */
   const toggleLoginModal = () => setIsLoginModalOpen((prev) => !prev);
 
-  // 🧠 Login
-const loginUser = (data) => {
-  const fullUser = { ...data.user, token: data.token }; // attach token to user object
-  setUser(fullUser);
-  localStorage.setItem("user", JSON.stringify(fullUser));
-  localStorage.setItem("token", data.token);
-};
-  // 🧠 Logout
+  // ✅ Login
+  const loginUser = (data) => {
+    // Combine token + user info properly
+    const fullUser = { ...data.user, token: data.token };
+
+    // Save both in memory & localStorage
+    setUser(fullUser);
+    localStorage.setItem("user", JSON.stringify(fullUser));
+    localStorage.setItem("token", data.token);
+  };
+
+  // ✅ Logout
   const logoutUser = () => {
     setUser(null);
     localStorage.removeItem("user");
     localStorage.removeItem("token");
   };
 
-  // 🧠 Auth Token Helper
+  // ✅ Helper — Get Authorization header for API calls
   const getAuthHeader = () => {
-    const token = localStorage.getItem("token");
+    const token = user?.token || localStorage.getItem("token");
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
 
+  // ✅ Helper — Check if current user is admin
+  const isAdmin = () => user?.role === "Admin" || user?.isAdmin === true;
 
   return (
     <AppContext.Provider
@@ -176,13 +192,14 @@ const loginUser = (data) => {
         addToWishlist,
         removeFromWishlist,
 
-        // 🔐 Auth & UI
+        // 🔐 Auth
         user,
         loginUser,
         logoutUser,
         isLoginModalOpen,
         toggleLoginModal,
         getAuthHeader,
+        isAdmin,
       }}
     >
       {children}

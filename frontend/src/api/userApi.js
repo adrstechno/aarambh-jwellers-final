@@ -1,69 +1,125 @@
+// src/api/userApi.js
 import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
 const USER_API = `${API_BASE}/users`;
+
+/* ================================
+   🧩 Helper for Authorization
+================================ */
+const getAuthHeader = (token) => {
+  const finalToken = token || localStorage.getItem("token");
+  return { Authorization: `Bearer ${finalToken}` };
+};
 
 const handleError = (action, error) => {
   console.error(`❌ Error ${action}:`, error.response?.data || error.message);
   throw error;
 };
 
+/* ================================
+   🔐 AUTHENTICATION
+================================ */
+
+// ✅ Login User
 export const loginUser = async (email, password) => {
-  const { data } = await axios.post(`${USER_API}/login`, { email, password });
-  return data;
-};
-
-// ✅ Get all users
-export const getAllUsers = async () => {
   try {
-    const { data } = await axios.get(USER_API);
+    const { data } = await axios.post(`${API_BASE}/auth/login`, { email, password });
     return data;
   } catch (error) {
-    handleError("fetching users", error);
+    handleError("logging in", error);
   }
 };
 
-// ✅ Get orders for a specific user
-export const getUserOrders = async (userId) => {
+/* ================================
+   👑 ADMIN ROUTES
+================================ */
+
+// ✅ Get all users (Admin)
+export const getAllUsers = async (token) => {
   try {
-    const { data } = await axios.get(`${USER_API}/orders/user/${userId}`);
+    const { data } = await axios.get(`${USER_API}`, {
+      headers: getAuthHeader(token),
+    });
     return data;
   } catch (error) {
-    handleError(`fetching orders for user ${userId}`, error);
+    handleError("fetching all users", error);
   }
 };
 
-// ✅ Toggle user role
-export const toggleUserRole = async (id) => {
+// ✅ Get orders of a specific user (Admin)
+export const getUserOrders = async (userId, token) => {
   try {
-    const { data } = await axios.put(`${USER_API}/${id}/role`);
+    const { data } = await axios.get(`${USER_API}/orders/user/${userId}`, {
+      headers: getAuthHeader(token),
+    });
     return data;
   } catch (error) {
-    handleError("updating user role", error);
+    handleError("fetching user orders", error);
   }
 };
 
-// ✅ Toggle user status
-export const toggleUserStatus = async (id) => {
+// ✅ Toggle user Admin / Customer role
+export const toggleUserRole = async (userId, token) => {
   try {
-    const { data } = await axios.put(`${USER_API}/${id}/status`);
+    const { data } = await axios.put(`${USER_API}/${userId}/role`, {}, {
+      headers: getAuthHeader(token),
+    });
     return data;
   } catch (error) {
-    handleError("updating user status", error);
+    handleError("toggling user role", error);
   }
 };
 
+// ✅ Toggle user Active / Blocked status
+export const toggleUserStatus = async (userId, token) => {
+  try {
+    const { data } = await axios.put(`${USER_API}/${userId}/status`, {}, {
+      headers: getAuthHeader(token),
+    });
+    return data;
+  } catch (error) {
+    handleError("toggling user status", error);
+  }
+};
+
+// ✅ Promote a user to Admin
+export const makeAdmin = async (userId, token) => {
+  try {
+    const { data } = await axios.put(`${USER_API}/make-admin/${userId}`, {}, {
+      headers: getAuthHeader(token),
+    });
+    return data;
+  } catch (error) {
+    handleError("promoting user to admin", error);
+  }
+};
+
+// ✅ Remove Admin privileges
+export const removeAdmin = async (userId, token) => {
+  try {
+    const { data } = await axios.put(`${USER_API}/remove-admin/${userId}`, {}, {
+      headers: getAuthHeader(token),
+    });
+    return data;
+  } catch (error) {
+    handleError("removing admin privileges", error);
+  }
+};
+
+/* ================================
+   👤 USER ROUTES
+================================ */
 
 // ✅ Get user profile
 export const getUserProfile = async (token) => {
   try {
     const { data } = await axios.get(`${USER_API}/profile`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: getAuthHeader(token),
     });
     return data;
   } catch (error) {
-    console.error("❌ Error fetching user profile:", error.response?.data || error);
-    throw error;
+    handleError("fetching user profile", error);
   }
 };
 
@@ -71,12 +127,11 @@ export const getUserProfile = async (token) => {
 export const updateUserProfile = async (profileData, token) => {
   try {
     const { data } = await axios.put(`${USER_API}/profile`, profileData, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: getAuthHeader(token),
     });
     return data;
   } catch (error) {
-    console.error("❌ Error updating profile:", error.response?.data || error);
-    throw error;
+    handleError("updating user profile", error);
   }
 };
 
@@ -84,11 +139,10 @@ export const updateUserProfile = async (profileData, token) => {
 export const updateUserPassword = async (passwordData, token) => {
   try {
     const { data } = await axios.put(`${USER_API}/change-password`, passwordData, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: getAuthHeader(token),
     });
     return data;
   } catch (error) {
-    console.error("❌ Error updating password:", error.response?.data || error);
-    throw error;
+    handleError("updating password", error);
   }
 };
