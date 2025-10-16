@@ -6,14 +6,14 @@ import {
   deleteDiscount,
   toggleDiscountStatus,
 } from "../controllers/discountController.js";
-import { protect, adminOnly } from "../middlewares/authMiddleware.js"
+// import { protect, adminOnly } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/",protect,adminOnly, createDiscount);
+router.post("/", createDiscount);
 router.get("/", getAllDiscounts);
-router.put("/:id",protect,adminOnly, updateDiscount);
-router.delete("/:id",protect,adminOnly, deleteDiscount);
-router.put("/:id/status",protect,adminOnly, toggleDiscountStatus);
+router.put("/:id", updateDiscount);
+router.delete("/:id", deleteDiscount);
+router.patch("/:id/toggle", toggleDiscountStatus);
 
 export default router;

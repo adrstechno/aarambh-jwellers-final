@@ -1,34 +1,30 @@
 import Product from "../models/product.js";
 import Category from "../models/category.js";
 import slugify from "slugify";
+import fs from "fs";
+import path from "path";
 
 /* ==========================================================
-   🟢 Add New Product (Admin)
-   ========================================================== */
+   🟢 Add New Product
+========================================================== */
 export const addProduct = async (req, res) => {
   try {
     const { name, category, price, stock, status, material, description } = req.body;
 
-    // ✅ Validate required fields
     if (!name || !category || !price || stock === undefined) {
       return res.status(400).json({ message: "All required fields must be filled" });
     }
 
-    // ✅ Check valid category
     const categoryExists = await Category.findById(category);
     if (!categoryExists) {
       return res.status(400).json({ message: "Invalid category ID" });
     }
 
-    // ✅ Prepare image path
     const imagePath = req.file ? `/uploads/${req.file.filename}` : "";
-
-    // ✅ Generate unique slug
     let slug = slugify(name, { lower: true });
     const existingSlug = await Product.findOne({ slug });
     if (existingSlug) slug = `${slug}-${Date.now()}`;
 
-    // ✅ Create new product
     const newProduct = new Product({
       name: name.trim(),
       slug,
@@ -43,15 +39,9 @@ export const addProduct = async (req, res) => {
 
     await newProduct.save();
 
-    const populatedProduct = await Product.findById(newProduct._id).populate(
-      "category",
-      "name"
-    );
+    const populated = await Product.findById(newProduct._id).populate("category", "name");
 
-    res.status(201).json({
-      message: "✅ Product added successfully",
-      product: populatedProduct,
-    });
+    res.status(201).json({ message: "✅ Product added successfully", product: populated });
   } catch (error) {
     console.error("❌ Error adding product:", error);
     res.status(500).json({ message: "Server error while adding product" });
@@ -60,7 +50,7 @@ export const addProduct = async (req, res) => {
 
 /* ==========================================================
    🟡 Get All Products (Admin)
-   ========================================================== */
+========================================================== */
 export const getProducts = async (req, res) => {
   try {
     const products = await Product.find()
@@ -76,13 +66,12 @@ export const getProducts = async (req, res) => {
 
 /* ==========================================================
    🟠 Update Product (Admin)
-   ========================================================== */
+========================================================== */
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
     let { name, category, price, stock, status, material, description } = req.body;
 
-    // ✅ Parse category if sent as object stringified by FormData
     try {
       if (typeof category === "string" && category.includes("{")) {
         const parsed = JSON.parse(category);
@@ -94,7 +83,6 @@ export const updateProduct = async (req, res) => {
       console.warn("⚠️ Could not parse category:", category);
     }
 
-    // ✅ Build update object
     const updateData = {};
     if (name) {
       updateData.name = name.trim();
@@ -108,11 +96,17 @@ export const updateProduct = async (req, res) => {
     if (status) updateData.status = status;
     if (req.file) updateData.image = `/uploads/${req.file.filename}`;
 
-    const updated = await Product.findByIdAndUpdate(id, updateData, {
-      new: true,
-    }).populate("category", "name");
+    const oldProduct = await Product.findById(id);
+    if (!oldProduct) return res.status(404).json({ message: "Product not found" });
 
-    if (!updated) return res.status(404).json({ message: "Product not found" });
+    // Delete old image if replaced
+    if (req.file && oldProduct.image) {
+      const oldPath = path.join(process.cwd(), oldProduct.image);
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+
+    const updated = await Product.findByIdAndUpdate(id, updateData, { new: true })
+      .populate("category", "name");
 
     res.json({ message: "✅ Product updated successfully", product: updated });
   } catch (error) {
@@ -122,12 +116,17 @@ export const updateProduct = async (req, res) => {
 };
 
 /* ==========================================================
-   🔴 Delete Product (Admin)
-   ========================================================== */
+   🔴 Delete Product
+========================================================== */
 export const deleteProduct = async (req, res) => {
   try {
     const deleted = await Product.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Product not found" });
+
+    if (deleted.image) {
+      const imgPath = path.join(process.cwd(), deleted.image);
+      if (fs.existsSync(imgPath)) fs.unlinkSync(imgPath);
+    }
 
     res.json({ message: "🗑️ Product deleted successfully" });
   } catch (error) {
@@ -137,10 +136,8 @@ export const deleteProduct = async (req, res) => {
 };
 
 /* ==========================================================
-   🌐 FRONTEND WEBSITE ROUTES
-   ========================================================== */
-
-// 🟢 Public: Get all active products
+   🌐 Public Routes
+========================================================== */
 export const getAllProducts = async (req, res) => {
   try {
     const products = await Product.find({ status: "Active" })
@@ -154,18 +151,11 @@ export const getAllProducts = async (req, res) => {
   }
 };
 
-// 🟣 Public: Get products by category (for FeaturedProducts.jsx)
 export const getProductsByCategory = async (req, res) => {
   try {
     const { category } = req.params;
-
-    // ✅ Find category by slug or name (case-insensitive)
-    const foundCategory = await Category.findOne({
-      slug: category.toLowerCase(),
-    });
-
-    if (!foundCategory)
-      return res.status(404).json({ message: "Category not found" });
+    const foundCategory = await Category.findOne({ slug: category.toLowerCase() });
+    if (!foundCategory) return res.status(404).json({ message: "Category not found" });
 
     const products = await Product.find({
       category: foundCategory._id,
@@ -181,17 +171,10 @@ export const getProductsByCategory = async (req, res) => {
   }
 };
 
-// 🔵 Public: Get single product details by ID
 export const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate(
-      "category",
-      "name"
-    );
-
-    if (!product)
-      return res.status(404).json({ message: "Product not found" });
-
+    const product = await Product.findById(req.params.id).populate("category", "name");
+    if (!product) return res.status(404).json({ message: "Product not found" });
     res.status(200).json(product);
   } catch (error) {
     console.error("❌ Error fetching product by ID:", error);
@@ -199,16 +182,11 @@ export const getProductById = async (req, res) => {
   }
 };
 
-// ✅ Get product by slug
 export const getProductBySlug = async (req, res) => {
   try {
     const product = await Product.findOne({ slug: req.params.slug })
-      .populate("category", "name slug")
-      .exec();
-
-    if (!product)
-      return res.status(404).json({ message: "Product not found" });
-
+      .populate("category", "name slug");
+    if (!product) return res.status(404).json({ message: "Product not found" });
     res.status(200).json(product);
   } catch (err) {
     console.error("❌ Error fetching product by slug:", err);

@@ -1,50 +1,82 @@
-// src/api/productApi.js
 import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
 
-// ✅ Get all products (Admin + Public)
+const handleError = (action, error) => {
+  console.error(`❌ Error ${action}:`, error.response?.data || error.message);
+  throw new Error(error.response?.data?.message || `Failed to ${action}`);
+};
+
+// ✅ Get all products
 export const getAllProducts = async () => {
-  const res = await axios.get(`${API_BASE}/products`);
-  return res.data;
+  try {
+    const res = await axios.get(`${API_BASE}/products`);
+    return res.data;
+  } catch (error) {
+    handleError("fetching all products", error);
+  }
 };
 
-// ✅ Get products by category (Public)
+// ✅ Get products by category
 export const getProductsByCategory = async (category) => {
-  const res = await axios.get(`${API_BASE}/products/category/${category}`);
-  return res.data;
+  try {
+    const res = await axios.get(`${API_BASE}/products/category/${category}`);
+    return res.data;
+  } catch (error) {
+    handleError("fetching products by category", error);
+  }
 };
 
-// ✅ Get single product by ID (for admin or detail page)
+// ✅ Get single product by ID
 export const getProductById = async (id) => {
-  const res = await axios.get(`${API_BASE}/products/${id}`);
-  return res.data;
+  try {
+    const res = await axios.get(`${API_BASE}/products/${id}`);
+    return res.data;
+  } catch (error) {
+    handleError("fetching product by ID", error);
+  }
 };
 
-// ✅ Get product by slug (ProductDetail.jsx)
+// ✅ Get product by slug
 export const getProductBySlug = async (slug) => {
-  const res = await axios.get(`${API_BASE}/products/slug/${slug}`);
-  return res.data;
+  try {
+    const res = await axios.get(`${API_BASE}/products/slug/${slug}`);
+    return res.data;
+  } catch (error) {
+    handleError("fetching product by slug", error);
+  }
 };
 
-// ✅ Add product (Admin)
+// ✅ Add new product
 export const addProduct = async (productData) => {
-  const { data } = await axios.post(`${API_BASE}/products`, productData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-  return data;
+  try {
+    const { data } = await axios.post(`${API_BASE}/products`, productData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data;
+  } catch (error) {
+    handleError("adding product", error);
+  }
 };
 
-// ✅ Update product (Admin)
+// ✅ Update product
 export const updateProduct = async (id, productData) => {
-  const { data } = await axios.put(`${API_BASE}/products/${id}`, productData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
-  return data;
+  try {
+    const { data } = await axios.put(`${API_BASE}/products/${id}`, productData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data;
+  } catch (error) {
+    handleError("updating product", error);
+  }
 };
 
-// ✅ Delete product (Admin)
+// ✅ Delete product
 export const deleteProduct = async (id) => {
-  const { data } = await axios.delete(`${API_BASE}/products/${id}`);
-  return data;
+  try {
+    const { data } = await axios.delete(`${API_BASE}/products/${id}`);
+    return data;
+  } catch (error) {
+    handleError("deleting product", error);
+  }
 };

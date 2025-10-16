@@ -3,16 +3,16 @@ import mongoose from "mongoose";
 const giftSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    code: { type: String, unique: true, uppercase: true, trim: true },
-    description: { type: String },
+    code: { type: String, required: true, unique: true, uppercase: true },
+    description: { type: String, trim: true },
     conditionType: {
       type: String,
-      enum: ["Amount", "Product", "Category", "None"],
+      enum: ["None", "Amount", "Product", "Category"],
       default: "None",
     },
-    conditionValue: { type: String },
+    conditionValue: { type: String, default: "" },
     stock: { type: Number, default: 0 },
-    image: { type: String },
+    image: { type: String, default: "" },
     status: { type: String, enum: ["Active", "Inactive"], default: "Active" },
   },
   { timestamps: true }

@@ -6,11 +6,12 @@ import {
   updateCategory,
   deleteCategory,
 } from "../controllers/categoryController.js";
-import { protect, adminOnly } from "../middlewares/authMiddleware.js"
 
 const router = express.Router();
 
-// 🗂️ Configure Multer for image upload
+/* ======================================
+   🗂️ Configure Multer for image upload
+====================================== */
 const storage = multer.diskStorage({
   destination: "uploads/",
   filename: (req, file, cb) => {
@@ -19,10 +20,20 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ✅ Routes
-router.post("/", upload.single("image"),protect,adminOnly, createCategory); // <-- Important fix
-router.get("/",protect,adminOnly, getCategoriesWithCount);
-router.put("/:id", upload.single("image"),protect,adminOnly, updateCategory); // <-- Fix update route too
-router.delete("/:id",protect,adminOnly, deleteCategory);
+/* ======================================
+   🧩 Category Routes (No Auth for Now)
+====================================== */
+
+// 🟢 Create Category
+router.post("/", upload.single("image"), createCategory);
+
+// 🟡 Get All Categories with Product Count
+router.get("/", getCategoriesWithCount);
+
+// 🟠 Update Category
+router.put("/:id", upload.single("image"), updateCategory);
+
+// 🔴 Delete Category
+router.delete("/:id", deleteCategory);
 
 export default router;

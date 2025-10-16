@@ -35,7 +35,7 @@ export default function Header() {
 
   const navigate = useNavigate();
 
-  // ✅ Close dropdown when clicking outside
+  // ✅ Close user dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -46,6 +46,7 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // ✅ Handle search
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -54,13 +55,21 @@ export default function Header() {
     }
   };
 
+  // ✅ Navigation helper
   const handleNavigate = (path) => {
     navigate(path);
     setIsUserMenuOpen(false);
     setIsMobileMenuOpen(false);
   };
 
-  // 🧠 User Dropdown Menu
+  // ✅ Logout (with redirect)
+  const handleLogout = () => {
+    logoutUser();
+    setIsUserMenuOpen(false);
+    navigate("/");
+  };
+
+  // 🧠 Render User Dropdown or Login Button
   const renderUserSection = useCallback(() => {
     if (user) {
       return (
@@ -77,7 +86,7 @@ export default function Header() {
           </button>
 
           {isUserMenuOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg border rounded-lg z-50 animate-fadeIn">
+            <div className="absolute right-0 mt-2 w-52 bg-white shadow-lg border rounded-lg z-50 animate-fadeIn">
               <button
                 onClick={() => handleNavigate("/account")}
                 className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
@@ -97,7 +106,7 @@ export default function Header() {
                 <RotateCcw size={16} className="text-gray-500" /> My Refunds
               </button>
               <button
-                onClick={logoutUser}
+                onClick={handleLogout}
                 className="w-full text-left px-4 py-2 hover:bg-red-50 flex items-center gap-2 text-sm text-red-600 border-t"
               >
                 <LogOut size={16} /> Logout
@@ -106,23 +115,26 @@ export default function Header() {
           )}
         </div>
       );
-    } else {
-      return (
-        <button
-          onClick={toggleLoginModal}
-          className="text-gray-700 hover:text-red-600 transition-colors flex items-center space-x-1"
-          aria-label="Login or Register"
-        >
-          <User className="w-5 h-5" />
-          <span className="hidden lg:inline">LOGIN / REGISTER</span>
-        </button>
-      );
     }
+
+    // 🟢 If not logged in
+    return (
+      <button
+        onClick={toggleLoginModal}
+        className="text-gray-700 hover:text-red-600 transition-colors flex items-center space-x-1"
+        aria-label="Login or Register"
+      >
+        <User className="w-5 h-5" />
+        <span className="hidden lg:inline">LOGIN / REGISTER</span>
+      </button>
+    );
   }, [user, toggleLoginModal, logoutUser, isUserMenuOpen]);
 
+  // ❤️ Cart & Wishlist Buttons
   const renderCartWishlist = useCallback(
     () => (
       <div className="flex items-center space-x-6">
+        {/* Wishlist */}
         <button
           onClick={() => handleNavigate("/wishlist")}
           className="relative text-gray-700 hover:text-red-600 transition-colors"
@@ -136,6 +148,7 @@ export default function Header() {
           )}
         </button>
 
+        {/* Cart */}
         <button
           onClick={() => handleNavigate("/cart")}
           className="relative text-gray-700 hover:text-red-600 transition-colors"
@@ -149,16 +162,18 @@ export default function Header() {
           )}
         </button>
 
+        {/* Total Price */}
         <span className="font-semibold text-gray-800">
           ₹{getTotalPrice().toLocaleString()}
         </span>
       </div>
     ),
-    [wishlist, getTotalItems, getTotalPrice, navigate]
+    [wishlist, getTotalItems, getTotalPrice]
   );
 
   return (
     <>
+      {/* 🔻 Header */}
       <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -236,6 +251,7 @@ export default function Header() {
         </div>
       </header>
 
+      {/* Login Modal */}
       {isLoginModalOpen && <LoginModal />}
     </>
   );

@@ -1,6 +1,9 @@
 import Review from "../models/review.js";
+import Product from "../models/product.js";
 
-// ✅ Get all reviews (Admin)
+/* ==========================================================
+   🟢 Get All Reviews (Admin)
+========================================================== */
 export const getAllReviews = async (req, res) => {
   try {
     const reviews = await Review.find()
@@ -14,27 +17,41 @@ export const getAllReviews = async (req, res) => {
   }
 };
 
-// 🟡 Update review status (approve/reject)
+/* ==========================================================
+   🟡 Update Review Status
+========================================================== */
 export const updateReviewStatus = async (req, res) => {
   try {
     const { status } = req.body;
+
+    if (!["Pending", "Approved", "Rejected"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
     const review = await Review.findByIdAndUpdate(
       req.params.id,
       { status },
       { new: true }
-    );
+    )
+      .populate("user", "name email")
+      .populate("product", "name");
+
     if (!review) return res.status(404).json({ message: "Review not found" });
-    res.status(200).json({ message: "Status updated", review });
+
+    res.status(200).json({ message: "Status updated successfully", review });
   } catch (err) {
     console.error("❌ Error updating review status:", err);
     res.status(500).json({ message: "Failed to update review status" });
   }
 };
 
-// 🔴 Delete review
+/* ==========================================================
+   🔴 Delete Review
+========================================================== */
 export const deleteReview = async (req, res) => {
   try {
-    await Review.findByIdAndDelete(req.params.id);
+    const deleted = await Review.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: "Review not found" });
     res.status(200).json({ message: "Review deleted successfully" });
   } catch (err) {
     console.error("❌ Error deleting review:", err);
@@ -42,7 +59,9 @@ export const deleteReview = async (req, res) => {
   }
 };
 
-// ✅ Get paginated reviews
+/* ==========================================================
+   🟣 Paginated Reviews (Admin)
+========================================================== */
 export const getPaginatedReviews = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -69,7 +88,9 @@ export const getPaginatedReviews = async (req, res) => {
   }
 };
 
-// ✅ Get top-rated products (average rating)
+/* ==========================================================
+   ⭐ Top Rated Products
+========================================================== */
 export const getTopRatedProducts = async (req, res) => {
   try {
     const topRated = await Review.aggregate([
@@ -82,13 +103,12 @@ export const getTopRatedProducts = async (req, res) => {
         },
       },
       { $sort: { avgRating: -1, count: -1 } },
-      { $limit: 5 },
+      { $limit: 6 },
     ]);
 
-    const populated = await Review.populate(topRated, {
+    const populated = await Product.populate(topRated, {
       path: "_id",
       select: "name",
-      model: "Product",
     });
 
     res.status(200).json(populated);
@@ -98,7 +118,9 @@ export const getTopRatedProducts = async (req, res) => {
   }
 };
 
-// 🟢 Get all reviews for a specific product
+/* ==========================================================
+   🧩 Get Reviews by Product
+========================================================== */
 export const getReviewsByProduct = async (req, res) => {
   try {
     const { productId } = req.params;
@@ -113,30 +135,41 @@ export const getReviewsByProduct = async (req, res) => {
   }
 };
 
-// ✅ Create a review
+/* ==========================================================
+   📝 Create Review (User)
+========================================================== */
 export const createReview = async (req, res) => {
   try {
     const { product, rating, comment, userId } = req.body;
 
-    if (!product || !rating || !comment)
+    if (!product || !rating)
       return res.status(400).json({ message: "Missing fields" });
+
+    // Prevent duplicate review by same user
+    const existing = await Review.findOne({ product, user: userId });
+    if (existing)
+      return res
+        .status(400)
+        .json({ message: "You have already reviewed this product" });
 
     const review = await Review.create({
       product,
       rating,
-      comment,
-      user: userId, // userId should come from frontend (or JWT)
+      comment: comment?.trim() || "",
+      user: userId,
       status: "Pending",
     });
 
-    // Optionally update product average rating
-    const reviews = await Review.find({ product, status: "Approved" });
-    const avgRating =
-      reviews.reduce((sum, r) => sum + r.rating, 0) / (reviews.length || 1);
+    // Recalculate average rating
+    const approvedReviews = await Review.find({ product, status: "Approved" });
+    const avgRating = approvedReviews.length
+      ? approvedReviews.reduce((sum, r) => sum + r.rating, 0) /
+        approvedReviews.length
+      : 0;
 
     await Product.findByIdAndUpdate(product, { avgRating });
 
-    res.status(201).json({ message: "Review submitted", review });
+    res.status(201).json({ message: "Review submitted successfully", review });
   } catch (err) {
     console.error("❌ Error creating review:", err);
     res.status(500).json({ message: "Failed to submit review" });

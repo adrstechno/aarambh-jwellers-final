@@ -1,40 +1,93 @@
-// backend/controllers/returnController.js
-import ReturnRequest from "../models/returnRequest.js";
+import Return from "../models/return.js";
 import Order from "../models/order.js";
+
+/* =======================================================
+   👨‍💼 ADMIN CONTROLLERS
+   ======================================================= */
+
+// 🟢 Get all return requests
+export const getAllReturns = async (req, res) => {
+  try {
+    const returns = await Return.find()
+      .populate("user", "name email")
+      .populate("order", "_id totalAmount status")
+      .populate("product", "name price image")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(returns);
+  } catch (error) {
+    console.error("❌ Error fetching returns:", error);
+    res.status(500).json({ message: "Failed to fetch returns" });
+  }
+};
+
+// 🟡 Update return status (Admin)
+export const updateReturnStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, adminNote } = req.body;
+
+    const updatedReturn = await Return.findByIdAndUpdate(
+      id,
+      { status, adminNote },
+      { new: true }
+    )
+      .populate("user", "name email")
+      .populate("order", "_id totalAmount status")
+      .populate("product", "name price");
+
+    if (!updatedReturn)
+      return res.status(404).json({ message: "Return not found" });
+
+    // Optional: link to refund if approved
+    if (status === "Refunded") {
+      await Order.findByIdAndUpdate(updatedReturn.order, {
+        refundStatus: "Refunded",
+      });
+    }
+
+    res.status(200).json(updatedReturn);
+  } catch (error) {
+    console.error("❌ Error updating return status:", error);
+    res.status(500).json({ message: "Failed to update return status" });
+  }
+};
+
+// 🔴 Delete return record (Admin)
+export const deleteReturn = async (req, res) => {
+  try {
+    const deleted = await Return.findByIdAndDelete(req.params.id);
+    if (!deleted)
+      return res.status(404).json({ message: "Return not found" });
+
+    res.status(200).json({ message: "Return deleted successfully" });
+  } catch (error) {
+    console.error("❌ Error deleting return:", error);
+    res.status(500).json({ message: "Failed to delete return" });
+  }
+};
 
 /* =======================================================
    🧍 USER CONTROLLERS
    ======================================================= */
 
-// 🟢 Create Return Request
+// 🟢 Create return request (User)
 export const createReturnRequest = async (req, res) => {
   try {
     const { orderId, productId, reason } = req.body;
 
-    if (!orderId || !productId || !reason) {
+    if (!orderId || !productId || !reason)
       return res.status(400).json({ message: "Missing required fields" });
-    }
 
-    // Validate the order belongs to the user
-    const order = await Order.findOne({ _id: orderId, user: req.user._id });
-    if (!order) {
-      return res
-        .status(404)
-        .json({ message: "Order not found or does not belong to this user" });
-    }
-
-    // Prevent duplicate return requests
-    const existingReturn = await ReturnRequest.findOne({
+    const existing = await Return.findOne({
       order: orderId,
       product: productId,
       user: req.user._id,
     });
-    if (existingReturn) {
+    if (existing)
       return res.status(400).json({ message: "Return already requested" });
-    }
 
-    // Create new return
-    const newReturn = await ReturnRequest.create({
+    const returnReq = await Return.create({
       user: req.user._id,
       order: orderId,
       product: productId,
@@ -42,86 +95,24 @@ export const createReturnRequest = async (req, res) => {
       status: "Pending",
     });
 
-    res.status(201).json({
-      success: true,
-      message: "Return request created successfully",
-      data: newReturn,
-    });
+    res.status(201).json({ message: "Return request submitted", return: returnReq });
   } catch (error) {
     console.error("❌ Error creating return:", error);
-    res.status(500).json({ message: "Failed to create return" });
+    res.status(500).json({ message: "Failed to create return request" });
   }
 };
 
-// 🟡 Get all Returns for logged-in user
+// 🟣 Get user's own return requests
 export const getUserReturns = async (req, res) => {
   try {
-    const returns = await ReturnRequest.find({ user: req.user._id })
+    const returns = await Return.find({ user: req.user._id })
+      .populate("order", "_id totalAmount status")
       .populate("product", "name price image")
-      .populate("order", "totalAmount createdAt status")
       .sort({ createdAt: -1 });
 
-    res.status(200).json({
-      success: true,
-      count: returns.length,
-      data: returns,
-    });
+    res.status(200).json(returns);
   } catch (error) {
-    console.error("❌ Error fetching returns:", error);
-    res.status(500).json({ message: "Failed to load returns" });
-  }
-};
-
-/* =======================================================
-   👨‍💼 ADMIN CONTROLLERS
-   ======================================================= */
-
-// 🟣 Get all returns (Admin)
-export const getAllReturns = async (req, res) => {
-  try {
-    const returns = await ReturnRequest.find()
-      .populate("user", "name email phone")
-      .populate("product", "name price")
-      .populate("order", "id totalAmount status createdAt")
-      .sort({ createdAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      count: returns.length,
-      data: returns,
-    });
-  } catch (err) {
-    console.error("❌ Error fetching all returns:", err);
-    res.status(500).json({ message: "Error fetching return requests" });
-  }
-};
-
-// 🔵 Update return status (Admin)
-export const updateReturnStatus = async (req, res) => {
-  try {
-    const { status } = req.body;
-
-    if (!status) {
-      return res.status(400).json({ message: "Status is required" });
-    }
-
-    const updated = await ReturnRequest.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    ).populate("user", "name email");
-
-    if (!updated) {
-      return res.status(404).json({ message: "Return request not found" });
-    }
-
-    res.status(200).json({
-      success: true,
-      message: "Return status updated successfully",
-      data: updated,
-    });
-  } catch (err) {
-    console.error("❌ Error updating return status:", err);
-    res.status(500).json({ message: "Error updating return status" });
+    console.error("❌ Error fetching user returns:", error);
+    res.status(500).json({ message: "Failed to fetch user returns" });
   }
 };

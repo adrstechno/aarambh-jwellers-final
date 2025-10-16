@@ -13,7 +13,7 @@ export const getAllRefunds = async (token) => {
     const { data } = await axios.get(REFUND_API, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    return data;
+    return data.data || data; // unified return for frontend
   } catch (error) {
     console.error("❌ Error fetching all refunds:", error.response?.data || error);
     throw error;
@@ -36,10 +36,11 @@ export const createRefund = async (refundData, token) => {
 // 🟠 Update refund status (Admin)
 export const updateRefundStatus = async (id, updateData, token) => {
   try {
-    const { data } = await axios.put(`${REFUND_API}/${id}`, updateData, {
+    // ✅ Backend route is `/refunds/:id/status` (not just /:id)
+    const { data } = await axios.put(`${REFUND_API}/${id}/status`, updateData, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    return data;
+    return data.data || data;
   } catch (error) {
     console.error("❌ Error updating refund status:", error.response?.data || error);
     throw error;
@@ -66,10 +67,11 @@ export const deleteRefund = async (id, token) => {
 // 🟢 Get refund requests for logged-in user
 export const getUserRefunds = async (token) => {
   try {
-    const { data } = await axios.get(`${REFUND_API}/my`, {
+    // ✅ backend route is `/refunds/my-refunds`
+    const { data } = await axios.get(`${REFUND_API}/my-refunds`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    return data;
+    return data.data || data;
   } catch (error) {
     console.error("❌ Error fetching user refunds:", error.response?.data || error);
     throw error;
@@ -79,7 +81,8 @@ export const getUserRefunds = async (token) => {
 // 🟡 Create refund request (user-side)
 export const createRefundRequest = async (refundData, token) => {
   try {
-    const { data } = await axios.post(`${REFUND_API}/create`, refundData, {
+    // ✅ backend route is `/refunds/request`
+    const { data } = await axios.post(`${REFUND_API}/request`, refundData, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return data;

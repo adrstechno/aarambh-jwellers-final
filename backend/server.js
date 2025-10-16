@@ -15,6 +15,8 @@ import wishlistRoutes from "./routes/wishlistRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js"
 import authRoutes from "./routes/authRoutes.js";
 import returnRoutes from "./routes/returnRoutes.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js";  
 
 dotenv.config();
 const app = express();
@@ -23,6 +25,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.use(express.urlencoded({ extended: true }));
 // Serve uploads folder
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
@@ -40,6 +43,8 @@ app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/returns", returnRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/reports", reportRoutes);
 
 
 // DB Connection

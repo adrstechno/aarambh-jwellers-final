@@ -1,33 +1,44 @@
-// backend/routes/reviewRoutes.js
 import express from "express";
 import {
   getAllReviews,
   getPaginatedReviews,
   getTopRatedProducts,
   updateReviewStatus,
-  deleteReview, getReviewsByProduct, createReview,
+  deleteReview,
+  getReviewsByProduct,
+  createReview,
 } from "../controllers/reviewController.js";
-import { protect, adminOnly } from "../middlewares/authMiddleware.js"
 
 const router = express.Router();
 
-// 🟢 All reviews (for admin view)
-router.get("/all", getAllReviews);
+/* ==========================================
+   🟢 PUBLIC ROUTES (Frontend)
+========================================== */
 
-// 🟢 Paginated reviews
+// ✅ Get approved reviews for a specific product
+router.get("/product/:productId", getReviewsByProduct);
+
+// ✅ Submit a new product review
+router.post("/", createReview);
+
+/* ==========================================
+   🔵 ADMIN ROUTES (Dashboard)
+   Temporarily open (no auth middleware for testing)
+========================================== */
+
+// ✅ Paginated reviews (with ?page=n)
 router.get("/", getPaginatedReviews);
 
-// 🟢 Top-rated products (used in dashboard)
-router.get("/top-rated", getTopRatedProducts);
+// ✅ Get all reviews (unpaginated, rarely used)
+router.get("/all", getAllReviews);
 
-// 🟠 Update review status (approve/reject)
-router.put("/:id/status",protect,adminOnly, updateReviewStatus);
+// ✅ Top-rated products summary
+router.get("/top-products", getTopRatedProducts);
 
-// 🔴 Delete a review
-router.delete("/:id", protect, deleteReview);
+// ✅ Update review status (Approve/Reject/Pending)
+router.put("/:id/status", updateReviewStatus);
 
-router.get("/product/:productId", getReviewsByProduct); 
-
-router.post("/", createReview);
+// ✅ Delete a review
+router.delete("/:id", deleteReview);
 
 export default router;

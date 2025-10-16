@@ -113,14 +113,10 @@ export const removeAdmin = async (userId, token) => {
 
 // ✅ Get user profile
 export const getUserProfile = async (token) => {
-  try {
-    const { data } = await axios.get(`${USER_API}/profile`, {
-      headers: getAuthHeader(token),
-    });
-    return data;
-  } catch (error) {
-    handleError("fetching user profile", error);
-  }
+  const { data } = await axios.get(`${API_BASE}/users/profile`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data;
 };
 
 // ✅ Update user profile

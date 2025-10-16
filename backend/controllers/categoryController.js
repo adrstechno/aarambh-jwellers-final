@@ -1,7 +1,12 @@
 import Category from "../models/category.js";
+import Product from "../models/product.js";
 import slugify from "slugify";
+import fs from "fs";
+import path from "path";
 
-// 🟢 Add new category
+/* ============================================
+   🟢 Create Category
+============================================ */
 export const createCategory = async (req, res) => {
   try {
     const { name, parentCategory } = req.body;
@@ -43,12 +48,46 @@ export const createCategory = async (req, res) => {
   }
 };
 
-// 🟡 Get categories
+/* ============================================
+   🟡 Get Categories with Product Count
+============================================ */
 export const getCategoriesWithCount = async (req, res) => {
   try {
-    const categories = await Category.find()
-      .populate("parentCategory", "name")
-      .sort({ createdAt: -1 });
+    const categories = await Category.aggregate([
+      {
+        $lookup: {
+          from: "products", // Name of the Product collection
+          localField: "_id",
+          foreignField: "category",
+          as: "products",
+        },
+      },
+      {
+        $addFields: {
+          productCount: { $size: "$products" },
+        },
+      },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "parentCategory",
+          foreignField: "_id",
+          as: "parentCategory",
+        },
+      },
+      { $unwind: { path: "$parentCategory", preserveNullAndEmptyArrays: true } },
+      { $sort: { createdAt: -1 } },
+      {
+        $project: {
+          name: 1,
+          slug: 1,
+          image: 1,
+          productCount: 1,
+          "parentCategory._id": 1,
+          "parentCategory.name": 1,
+        },
+      },
+    ]);
 
     res.status(200).json(categories);
   } catch (error) {
@@ -57,7 +96,9 @@ export const getCategoriesWithCount = async (req, res) => {
   }
 };
 
-// 🟠 Update category
+/* ============================================
+   🟠 Update Category
+============================================ */
 export const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
@@ -89,9 +130,21 @@ export const updateCategory = async (req, res) => {
   }
 };
 
-// 🔴 Delete
+/* ============================================
+   🔴 Delete Category (with image cleanup)
+============================================ */
 export const deleteCategory = async (req, res) => {
   try {
+    const category = await Category.findById(req.params.id);
+    if (!category)
+      return res.status(404).json({ message: "Category not found" });
+
+    // Delete image if exists
+    if (category.image) {
+      const imagePath = path.join(process.cwd(), category.image);
+      if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+    }
+
     await Category.findByIdAndDelete(req.params.id);
     res.json({ message: "🗑️ Category deleted successfully" });
   } catch (error) {

@@ -1,33 +1,22 @@
-// backend/routes/returnRoutes.js
 import express from "express";
 import {
-  createReturnRequest,
   getAllReturns,
   updateReturnStatus,
+  deleteReturn,
+  createReturnRequest,
   getUserReturns,
 } from "../controllers/returnController.js";
-import { protect, adminOnly } from "../middlewares/authMiddleware.js";
+
 
 const router = express.Router();
 
-/* =======================================================
-   🧍 USER ROUTES (Customer side)
-   ======================================================= */
+// 👨‍💼 Admin Routes
+router.get("/", getAllReturns);
+router.put("/:id/status", updateReturnStatus);
+router.delete("/:id",deleteReturn);
 
-// 🟢 Create a new return request
-router.post("/create", protect, createReturnRequest);
-
-// 🟢 Get all return requests of the logged-in user
-router.get("/my", protect, getUserReturns);
-
-/* =======================================================
-   👨‍💼 ADMIN ROUTES (Admin dashboard)
-   ======================================================= */
-
-// 🟣 Get all return requests (admin)
-router.get("/", protect, adminOnly, getAllReturns);
-
-// 🟡 Update return status (admin)
-router.put("/:id/status", protect, adminOnly, updateReturnStatus);
+// 👤 User Routes
+router.post("/request",createReturnRequest);
+router.get("/my-returns", getUserReturns);
 
 export default router;

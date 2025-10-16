@@ -19,10 +19,9 @@ import {
   toggleUserRole,
   toggleUserStatus,
 } from "../../api/userApi";
-import { useApp } from "../../context/AppContext";
 
 export default function Users() {
-  const { user } = useApp();
+
 
   const [users, setUsers] = useState([]);
   const [userOrders, setUserOrders] = useState({});

@@ -1,6 +1,14 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable react/prop-types */
 // src/admin/pages/Reports.jsx
-import { useState } from "react";
-import { FileText, Download, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useApp } from "../../context/AppContext";
+import {
+  FileText,
+  Download,
+  ArrowUpRight,
+  ArrowDownRight,
+} from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
@@ -15,96 +23,86 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import { getReportData } from "../../api/reportApi";
 
 export default function Reports() {
+  const { user } = useApp();
   const [reportType, setReportType] = useState("Sales");
-  const [startDate, setStartDate] = useState("2025-09-18");
-  const [endDate, setEndDate] = useState("2025-09-22");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [reportData, setReportData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  // Dummy data
-  const dummyData = [
-    { id: 1, name: "Order #001", amount: 25000, date: "2025-09-20" },
-    { id: 2, name: "Order #002", amount: 12000, date: "2025-09-21" },
-    { id: 3, name: "Order #003", amount: 5000, date: "2025-09-22" },
-    { id: 4, name: "Order #004", amount: 15000, date: "2025-09-15" },
-    { id: 5, name: "Order #005", amount: 18000, date: "2025-09-16" },
-  ];
-
-  // Filter current period
-  const filteredData = dummyData.filter((item) => {
-    if (startDate && item.date < startDate) return false;
-    if (endDate && item.date > endDate) return false;
-    return true;
-  });
-
-  // Calculate previous period range
-  const getPreviousPeriod = (start, end) => {
-    if (!start || !end) return [];
-    const startDateObj = new Date(start);
-    const endDateObj = new Date(end);
-    const diff = (endDateObj - startDateObj) / (1000 * 60 * 60 * 24);
-
-    const prevStart = new Date(startDateObj);
-    prevStart.setDate(startDateObj.getDate() - diff - 1);
-
-    const prevEnd = new Date(endDateObj);
-    prevEnd.setDate(endDateObj.getDate() - diff - 1);
-
-    return dummyData.filter(
-      (item) => item.date >= prevStart.toISOString().slice(0, 10) && item.date <= prevEnd.toISOString().slice(0, 10)
-    );
+  // ✅ Fetch Report Data
+  const fetchReport = async () => {
+    if (!reportType || !user?.token) return;
+    setLoading(true);
+    try {
+      const data = await getReportData(reportType, startDate, endDate, user.token);
+      setReportData(data.data);
+    } catch (error) {
+      console.error("❌ Error loading report:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const previousData = getPreviousPeriod(startDate, endDate);
+  useEffect(() => {
+    fetchReport();
+  }, [reportType, startDate, endDate]);
 
-  // Summary calculations
+  // ✅ Summary Calculations
   const calcSummary = (data) => {
-    const totalOrders = data.length;
-    const totalRevenue = data.reduce((sum, item) => sum + item.amount, 0);
-    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-    return { totalOrders, totalRevenue, avgOrderValue };
+    if (reportType === "Sales" || reportType === "Orders") {
+      const totalOrders = data.length;
+      const totalRevenue = data.reduce((sum, o) => sum + (o.total || 0), 0);
+      const avgOrderValue = totalOrders ? totalRevenue / totalOrders : 0;
+      return { totalOrders, totalRevenue, avgOrderValue };
+    }
+
+    if (reportType === "Refunds") {
+      const totalRefunds = data.length;
+      const totalAmount = data.reduce((sum, r) => sum + (r.refundAmount || 0), 0);
+      const approvedCount = data.filter((r) => r.status === "Refunded").length;
+      return { totalRefunds, totalAmount, approvedCount };
+    }
+
+    if (reportType === "Returns") {
+      const totalReturns = data.length;
+      const approvedCount = data.filter((r) => r.status === "Approved").length;
+      return { totalReturns, approvedCount };
+    }
+
+    return {};
   };
 
-  const currentSummary = calcSummary(filteredData);
-  const previousSummary = calcSummary(previousData);
+  const summary = calcSummary(reportData);
 
-  // Compare growth %
-  const calcGrowth = (current, previous) => {
-    if (previous === 0) return current > 0 ? 100 : 0;
-    return ((current - previous) / previous) * 100;
-  };
-
-  const growthOrders = calcGrowth(currentSummary.totalOrders, previousSummary.totalOrders);
-  const growthRevenue = calcGrowth(currentSummary.totalRevenue, previousSummary.totalRevenue);
-  const growthAvg = calcGrowth(currentSummary.avgOrderValue, previousSummary.avgOrderValue);
-
-  // Export CSV
+  // ✅ Export to CSV
   const exportToCSV = () => {
-    const headers = ["ID", "Name", "Amount", "Date"];
-    const rows = filteredData.map((d) => [d.id, d.name, d.amount, d.date]);
-
-    const csvContent =
+    if (reportData.length === 0) return alert("No data to export.");
+    const headers = Object.keys(reportData[0]);
+    const rows = reportData.map((r) => Object.values(r));
+    const csv =
       "data:text/csv;charset=utf-8," +
       [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
-
     const link = document.createElement("a");
-    link.href = encodeURI(csvContent);
+    link.href = encodeURI(csv);
     link.download = `${reportType}_report.csv`;
     link.click();
   };
 
-  // Export PDF
+  // ✅ Export to PDF
   const exportToPDF = () => {
     const doc = new jsPDF();
     doc.setFontSize(16);
     doc.text(`${reportType} Report`, 14, 20);
-
+    const headers = Object.keys(reportData[0] || {});
     autoTable(doc, {
       startY: 30,
-      head: [["ID", "Name", "Amount", "Date"]],
-      body: filteredData.map((d) => [d.id, d.name, d.amount, d.date]),
+      head: [headers],
+      body: reportData.map((r) => Object.values(r)),
     });
-
     doc.save(`${reportType}_report.pdf`);
   };
 
@@ -120,12 +118,14 @@ export default function Reports() {
         <select
           value={reportType}
           onChange={(e) => setReportType(e.target.value)}
-          className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-brand"
+          className="px-4 py-2 border rounded-lg"
         >
           <option value="Sales">Sales Report</option>
           <option value="Orders">Orders Report</option>
           <option value="Products">Products Report</option>
           <option value="Customers">Customers Report</option>
+          <option value="Refunds">Refunds Report</option>
+          <option value="Returns">Returns Report</option>
         </select>
 
         <input
@@ -157,115 +157,148 @@ export default function Reports() {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        {/* Orders */}
-        <div className="bg-white shadow rounded-lg p-4">
-          <h3 className="text-gray-600 text-sm">Total Orders</h3>
-          <p className="text-lg font-semibold">{currentSummary.totalOrders}</p>
-          <p
-            className={`flex items-center gap-1 text-sm ${
-              growthOrders >= 0 ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {growthOrders >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-            {growthOrders.toFixed(1)}% vs prev period
-          </p>
+      {/* Summary Section */}
+      {(reportType === "Sales" || reportType === "Orders") && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <SummaryCard title="Total Orders" value={summary.totalOrders} />
+          <SummaryCard
+            title="Total Revenue"
+            value={`₹${summary.totalRevenue.toLocaleString()}`}
+          />
+          <SummaryCard
+            title="Avg Order Value"
+            value={`₹${summary.avgOrderValue.toFixed(2)}`}
+          />
         </div>
+      )}
 
-        {/* Revenue */}
-        <div className="bg-white shadow rounded-lg p-4">
-          <h3 className="text-gray-600 text-sm">Total Revenue</h3>
-          <p className="text-lg font-semibold">₹{currentSummary.totalRevenue.toLocaleString()}</p>
-          <p
-            className={`flex items-center gap-1 text-sm ${
-              growthRevenue >= 0 ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {growthRevenue >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-            {growthRevenue.toFixed(1)}% vs prev period
-          </p>
+      {reportType === "Refunds" && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          <SummaryCard
+            title="Total Refund Requests"
+            value={summary.totalRefunds}
+          />
+          <SummaryCard
+            title="Total Refunded Amount"
+            value={`₹${summary.totalAmount.toLocaleString()}`}
+          />
+          <SummaryCard
+            title="Approved Refunds"
+            value={summary.approvedCount}
+          />
         </div>
+      )}
 
-        {/* Avg Order Value */}
-        <div className="bg-white shadow rounded-lg p-4">
-          <h3 className="text-gray-600 text-sm">Avg. Order Value</h3>
-          <p className="text-lg font-semibold">₹{currentSummary.avgOrderValue.toFixed(2)}</p>
-          <p
-            className={`flex items-center gap-1 text-sm ${
-              growthAvg >= 0 ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {growthAvg >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-            {growthAvg.toFixed(1)}% vs prev period
-          </p>
+      {reportType === "Returns" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <SummaryCard
+            title="Total Return Requests"
+            value={summary.totalReturns}
+          />
+          <SummaryCard
+            title="Approved Returns"
+            value={summary.approvedCount}
+          />
         </div>
-      </div>
+      )}
 
-      {/* Report Table */}
+      {/* Table Section */}
       <div className="overflow-x-auto bg-white rounded-xl shadow mb-6">
-        <table className="min-w-full text-sm">
-          <thead className="bg-gray-100 text-gray-600 uppercase">
-            <tr>
-              <th className="py-3 px-6 text-left">ID</th>
-              <th className="py-3 px-6 text-left">Name</th>
-              <th className="py-3 px-6 text-left">Amount</th>
-              <th className="py-3 px-6 text-left">Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredData.map((item) => (
-              <tr key={item.id} className="border-b hover:bg-gray-50">
-                <td className="py-3 px-6">{item.id}</td>
-                <td className="py-3 px-6">{item.name}</td>
-                <td className="py-3 px-6">₹{item.amount.toLocaleString()}</td>
-                <td className="py-3 px-6">{item.date}</td>
-              </tr>
-            ))}
-            {filteredData.length === 0 && (
+        {loading ? (
+          <div className="p-6 text-center text-gray-500">Loading data...</div>
+        ) : reportData.length > 0 ? (
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-100 text-gray-600 uppercase">
               <tr>
-                <td
-                  colSpan="4"
-                  className="py-6 text-center text-gray-500 italic"
-                >
-                  No data found for selected filters.
-                </td>
+                {Object.keys(reportData[0]).map((key) => (
+                  <th key={key} className="py-3 px-6 text-left">
+                    {key}
+                  </th>
+                ))}
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {reportData.map((item, i) => (
+                <tr key={i} className="border-b hover:bg-gray-50">
+                  {Object.values(item).map((val, j) => (
+                    <td key={j} className="py-3 px-6">
+                      {typeof val === "object"
+                        ? JSON.stringify(val)
+                        : val?.toString()}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <div className="p-6 text-center text-gray-500">
+            No data found for this report.
+          </div>
+        )}
       </div>
 
       {/* Chart Section */}
-      <div className="bg-white shadow rounded-xl p-6">
-        <h2 className="text-lg font-semibold mb-4">Report Chart</h2>
-        <ResponsiveContainer width="100%" height={300}>
-          {reportType === "Sales" || reportType === "Orders" ? (
-            <LineChart data={filteredData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="amount"
-                stroke="#8884d8"
-                strokeWidth={2}
-              />
-            </LineChart>
-          ) : (
-            <BarChart data={filteredData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="amount" fill="#82ca9d" />
-            </BarChart>
-          )}
-        </ResponsiveContainer>
-      </div>
+      {reportData.length > 0 && (
+        <div className="bg-white shadow rounded-xl p-6">
+          <h2 className="text-lg font-semibold mb-4">Report Chart</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            {["Sales", "Orders"].includes(reportType) ? (
+              <LineChart
+                data={reportData.map((d) => ({
+                  date: new Date(d.createdAt).toLocaleDateString(),
+                  amount: d.total || 0,
+                }))}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="amount"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                />
+              </LineChart>
+            ) : (
+              <BarChart
+                data={reportData.map((d) => ({
+                  name:
+                    d.user?.name ||
+                    d.name ||
+                    d.product?.name ||
+                    "Unknown",
+                  value:
+                    d.total ||
+                    d.refundAmount ||
+                    d.price ||
+                    d.stock ||
+                    1,
+                }))}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="value" fill="#82ca9d" />
+              </BarChart>
+            )}
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ✅ Summary Card Component
+function SummaryCard({ title, value }) {
+  return (
+    <div className="bg-white shadow rounded-lg p-4">
+      <h3 className="text-gray-600 text-sm">{title}</h3>
+      <p className="text-lg font-semibold">{value}</p>
     </div>
   );
 }

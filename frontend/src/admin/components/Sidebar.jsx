@@ -32,6 +32,9 @@ export default function Sidebar() {
         <Link to="/admin/refunds" className="block px-3 py-2 rounded hover:bg-gray-700">
           Refund Management
         </Link>
+         <Link to="/admin/returns" className="block px-3 py-2 rounded hover:bg-gray-700">
+          Return Management
+        </Link>
         <Link to="/admin/reports" className="block px-3 py-2 rounded hover:bg-gray-700">
           Reports
         </Link>
