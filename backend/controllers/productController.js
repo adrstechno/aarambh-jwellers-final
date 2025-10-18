@@ -5,6 +5,21 @@ import fs from "fs";
 import path from "path";
 
 /* ==========================================================
+   🧩 Helper: Fix Image Path (make it absolute)
+========================================================== */
+const fixImagePath = (imagePath) => {
+  if (!imagePath) return null;
+
+  const cleanPath = imagePath.replace(/\\/g, "/"); // normalize slashes
+  if (cleanPath.startsWith("http")) return cleanPath;
+
+  const base = process.env.BASE_URL || "http://localhost:5000";
+  return cleanPath.startsWith("/")
+    ? `${base}${cleanPath}`
+    : `${base}/${cleanPath}`;
+};
+
+/* ==========================================================
    🟢 Add New Product
 ========================================================== */
 export const addProduct = async (req, res) => {
@@ -41,7 +56,13 @@ export const addProduct = async (req, res) => {
 
     const populated = await Product.findById(newProduct._id).populate("category", "name");
 
-    res.status(201).json({ message: "✅ Product added successfully", product: populated });
+    // ✅ Fix image URL before sending
+    populated.image = fixImagePath(populated.image);
+
+    res.status(201).json({
+      message: "✅ Product added successfully",
+      product: populated,
+    });
   } catch (error) {
     console.error("❌ Error adding product:", error);
     res.status(500).json({ message: "Server error while adding product" });
@@ -57,7 +78,13 @@ export const getProducts = async (req, res) => {
       .populate("category", "name")
       .sort({ createdAt: -1 });
 
-    res.json(products);
+    // ✅ Fix image URLs
+    const fixedProducts = products.map((p) => ({
+      ...p._doc,
+      image: fixImagePath(p.image),
+    }));
+
+    res.json(fixedProducts);
   } catch (error) {
     console.error("❌ Error fetching products:", error);
     res.status(500).json({ message: "Failed to fetch products" });
@@ -108,6 +135,9 @@ export const updateProduct = async (req, res) => {
     const updated = await Product.findByIdAndUpdate(id, updateData, { new: true })
       .populate("category", "name");
 
+    // ✅ Fix image URL before sending
+    updated.image = fixImagePath(updated.image);
+
     res.json({ message: "✅ Product updated successfully", product: updated });
   } catch (error) {
     console.error("❌ Error updating product:", error);
@@ -144,7 +174,13 @@ export const getAllProducts = async (req, res) => {
       .populate("category", "name")
       .sort({ createdAt: -1 });
 
-    res.status(200).json(products);
+    // ✅ Fix all image paths
+    const fixedProducts = products.map((p) => ({
+      ...p._doc,
+      image: fixImagePath(p.image),
+    }));
+
+    res.status(200).json(fixedProducts);
   } catch (error) {
     console.error("❌ Error fetching public products:", error);
     res.status(500).json({ message: "Failed to fetch public products" });
@@ -164,7 +200,13 @@ export const getProductsByCategory = async (req, res) => {
       .populate("category", "name")
       .sort({ createdAt: -1 });
 
-    res.status(200).json(products);
+    // ✅ Fix image paths
+    const fixedProducts = products.map((p) => ({
+      ...p._doc,
+      image: fixImagePath(p.image),
+    }));
+
+    res.status(200).json(fixedProducts);
   } catch (error) {
     console.error("❌ Error fetching products by category:", error);
     res.status(500).json({ message: "Failed to fetch products by category" });
@@ -175,6 +217,10 @@ export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.id).populate("category", "name");
     if (!product) return res.status(404).json({ message: "Product not found" });
+
+    // ✅ Fix image URL
+    product.image = fixImagePath(product.image);
+
     res.status(200).json(product);
   } catch (error) {
     console.error("❌ Error fetching product by ID:", error);
@@ -187,6 +233,10 @@ export const getProductBySlug = async (req, res) => {
     const product = await Product.findOne({ slug: req.params.slug })
       .populate("category", "name slug");
     if (!product) return res.status(404).json({ message: "Product not found" });
+
+    // ✅ Fix image path
+    product.image = fixImagePath(product.image);
+
     res.status(200).json(product);
   } catch (err) {
     console.error("❌ Error fetching product by slug:", err);

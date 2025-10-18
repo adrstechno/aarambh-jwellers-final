@@ -38,12 +38,14 @@ export const deleteReturn = async (id, token) => {
    ======================================================= */
 
 // 🟢 Get user returns
-export const getUserReturns = async (token) => {
-  const { data } = await axios.get(`${RETURN_API}/my-returns`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+// src/api/returnApi.js
+export const getUserReturns = async (token, userId) => {
+  const { data } = await axios.get(
+    `${API_BASE}/returns/my-returns?userId=${userId}`
+  );
   return data;
 };
+
 
 // 🟡 Create return request
 export const createReturnRequest = async (returnData, token) => {

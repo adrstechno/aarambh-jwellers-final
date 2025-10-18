@@ -1,7 +1,7 @@
 import Gift from "../models/gift.js";
 
 /* =====================================================
-   🟢 Add Gift
+   🟢 Add Gift (Admin)
 ===================================================== */
 export const createGift = async (req, res) => {
   try {
@@ -10,7 +10,7 @@ export const createGift = async (req, res) => {
     if (!name || !code)
       return res.status(400).json({ message: "Name and code are required" });
 
-    const existing = await Gift.findOne({ code });
+    const existing = await Gift.findOne({ code: code.toUpperCase() });
     if (existing)
       return res.status(400).json({ message: "Gift code already exists" });
 
@@ -35,12 +35,27 @@ export const createGift = async (req, res) => {
 };
 
 /* =====================================================
-   🟡 Get All Gifts
+   🟡 Get All Gifts (Admin + User)
 ===================================================== */
 export const getAllGifts = async (req, res) => {
   try {
-    const gifts = await Gift.find().sort({ createdAt: -1 });
-    res.status(200).json(gifts);
+    const { status } = req.query; // optional query ?status=Active
+
+    const filter = status ? { status } : {};
+    const gifts = await Gift.find(filter).sort({ createdAt: -1 });
+
+    // ✅ Normalize image URLs
+    const BASE_URL = process.env.BASE_URL || "http://localhost:5000";
+    const normalized = gifts.map((g) => ({
+      ...g._doc,
+      image: g.image
+        ? g.image.startsWith("http")
+          ? g.image
+          : `${BASE_URL}${g.image}`
+        : `${BASE_URL}/placeholder.jpg`,
+    }));
+
+    res.status(200).json(normalized);
   } catch (error) {
     console.error("❌ Error fetching gifts:", error);
     res.status(500).json({ message: "Failed to fetch gifts" });
@@ -48,7 +63,37 @@ export const getAllGifts = async (req, res) => {
 };
 
 /* =====================================================
-   🟠 Update Gift
+   🟢 Get Single Gift by Code (User)
+===================================================== */
+export const getGiftByCode = async (req, res) => {
+  try {
+    const { code } = req.params;
+    if (!code) return res.status(400).json({ message: "Gift code is required" });
+
+    const gift = await Gift.findOne({ code: code.toUpperCase(), status: "Active" });
+
+    if (!gift)
+      return res.status(404).json({ message: "Gift not found or inactive" });
+
+    const BASE_URL = process.env.BASE_URL || "http://localhost:5000";
+    const normalized = {
+      ...gift._doc,
+      image: gift.image
+        ? gift.image.startsWith("http")
+          ? gift.image
+          : `${BASE_URL}${gift.image}`
+        : `${BASE_URL}/placeholder.jpg`,
+    };
+
+    res.status(200).json(normalized);
+  } catch (error) {
+    console.error("❌ Error fetching gift by code:", error);
+    res.status(500).json({ message: "Failed to fetch gift details" });
+  }
+};
+
+/* =====================================================
+   🟠 Update Gift (Admin)
 ===================================================== */
 export const updateGift = async (req, res) => {
   try {
@@ -73,7 +118,7 @@ export const updateGift = async (req, res) => {
 };
 
 /* =====================================================
-   🔴 Delete Gift
+   🔴 Delete Gift (Admin)
 ===================================================== */
 export const deleteGift = async (req, res) => {
   try {
@@ -89,7 +134,7 @@ export const deleteGift = async (req, res) => {
 };
 
 /* =====================================================
-   🔁 Toggle Status
+   🔁 Toggle Gift Status (Admin)
 ===================================================== */
 export const toggleGiftStatus = async (req, res) => {
   try {

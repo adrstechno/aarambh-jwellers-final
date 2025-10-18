@@ -11,40 +11,35 @@ export default function MyRefunds() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ type: "", message: "" });
 
+  const BASE_URL =
+    import.meta.env.VITE_API_BASE?.replace("/api", "") ||
+    "http://localhost:5000";
+
   const showToast = (type, message) => {
     setToast({ type, message });
     setTimeout(() => setToast({ type: "", message: "" }), 2500);
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [returnRes, refundRes] = await Promise.all([
-          getUserReturns(user.token),
-          getUserRefunds(user.token),
-        ]);
+  const fetchData = async () => {
+    try {
+      const [returnRes, refundRes] = await Promise.all([
+        getUserReturns(user.token, user._id),
+        getUserRefunds(user.token, user._id), // ✅ userId passed
+      ]);
 
-        // Handle both array and object API responses
-        const returnData = Array.isArray(returnRes)
-          ? returnRes
-          : returnRes?.data || [];
+      setReturns(Array.isArray(returnRes) ? returnRes : returnRes?.data || []);
+      setRefunds(Array.isArray(refundRes) ? refundRes : refundRes?.data || []);
+    } catch (err) {
+      console.error("❌ Error loading refunds:", err);
+      showToast("error", "Failed to load refund data.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        const refundData = Array.isArray(refundRes)
-          ? refundRes
-          : refundRes?.data || [];
-
-        setReturns(returnData);
-        setRefunds(refundData);
-      } catch (err) {
-        console.error("❌ Error loading refunds:", err);
-        showToast("error", "Failed to load refund data.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (user?.token) fetchData();
-  }, [user?.token]);
+  if (user?._id) fetchData();
+}, [user?._id]);
 
   // Match refunds based on order + product
   const getRefundForReturn = (orderId, productId) => {
@@ -88,66 +83,84 @@ export default function MyRefunds() {
         <div className="space-y-6">
           {returns.map((r) => {
             const refund = getRefundForReturn(r.order?._id, r.product?._id);
+            const imgSrc =
+              r.product?.image?.startsWith("http") ||
+              r.product?.image?.startsWith("/uploads/")
+                ? `${BASE_URL}${r.product?.image}`
+                : "/placeholder.jpg";
 
             return (
               <div
                 key={r._id}
-                className="bg-white p-6 shadow rounded-lg border border-gray-100"
+                className="bg-white p-6 shadow rounded-lg border border-gray-100 flex flex-col md:flex-row items-start md:items-center gap-6"
               >
-                <div className="flex justify-between items-center mb-2">
-                  <h2 className="font-semibold text-lg">
-                    {r.product?.name || "Unnamed Product"}
-                  </h2>
-                  <span
-                    className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                      r.status === "Pending"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : r.status === "Approved"
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {r.status}
-                  </span>
-                </div>
+                {/* 🖼 Product Image */}
+                <img
+                  src={imgSrc}
+                  alt={r.product?.name || "Product"}
+                  onError={(e) => (e.target.src = "/placeholder.jpg")}
+                  className="w-24 h-24 object-cover rounded-md border border-gray-200"
+                />
 
-                <p className="text-sm text-gray-500 mb-3">
-                  Requested on:{" "}
-                  {new Date(r.createdAt).toLocaleDateString()} <br />
-                  Reason: {r.reason}
-                </p>
-
-                {refund ? (
-                  <div className="border-t pt-3 mt-3">
-                    <p className="text-sm text-gray-700">
-                      <b>Refund ID:</b> {refund._id}
-                    </p>
-                    <p className="text-sm text-gray-700">
-                      <b>Amount:</b> ₹{refund.refundAmount || 0}
-                    </p>
-                    <p className="text-sm text-gray-700">
-                      <b>Method:</b> {refund.refundMethod}
-                    </p>
-                    <p className="text-sm text-gray-700">
-                      <b>Status:</b>{" "}
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs ${
-                          refund.status === "Completed"
-                            ? "bg-green-100 text-green-700"
-                            : refund.status === "Processing"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-gray-100 text-gray-700"
-                        }`}
-                      >
-                        {refund.status}
-                      </span>
-                    </p>
+                {/* 🧾 Product + Return Info */}
+                <div className="flex-1">
+                  <div className="flex justify-between items-center mb-2">
+                    <h2 className="font-semibold text-lg text-gray-800">
+                      {r.product?.name || "Unnamed Product"}
+                    </h2>
+                    <span
+                      className={`text-xs font-semibold px-3 py-1 rounded-full ${
+                        r.status === "Pending"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : r.status === "Approved"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
+                    >
+                      {r.status}
+                    </span>
                   </div>
-                ) : (
-                  <p className="text-gray-500 text-sm italic">
-                    No refund processed yet.
+
+                  <p className="text-sm text-gray-500 mb-3 leading-relaxed">
+                    Requested on:{" "}
+                    <b>{new Date(r.createdAt).toLocaleDateString()}</b>
+                    <br />
+                    Reason: {r.reason}
                   </p>
-                )}
+
+                  {/* 💰 Refund Info */}
+                  {refund ? (
+                    <div className="border-t pt-3 mt-3 space-y-1 text-sm text-gray-700">
+                      <p>
+                        <b>Refund ID:</b> {refund._id}
+                      </p>
+                      <p>
+                        <b>Amount:</b> ₹{refund.refundAmount || 0}
+                      </p>
+                      <p>
+                        <b>Method:</b> {refund.refundMethod || "N/A"}
+                      </p>
+                      <p>
+                        <b>Status:</b>{" "}
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs ${
+                            refund.status === "Completed"
+                              ? "bg-green-100 text-green-700"
+                              : refund.status === "Processing"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-gray-100 text-gray-700"
+                          }`}
+                        >
+                          {refund.status}
+                        </span>
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm italic mt-2">
+                      No refund processed yet.
+                    </p>
+                  )}
+                </div>
               </div>
             );
           })}

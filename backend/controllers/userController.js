@@ -114,22 +114,29 @@ export const removeAdmin = async (req, res) => {
    👤 USER CONTROLLERS
 ====================================== */
 
-// 🟢 Get profile (logged-in user)
-export const getUserProfile = async (req, res) => {
+// 🟢 TEMP: Get user by ID directly from query param or body
+export const getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
+    const userId = req.query.userId || req.body.userId || req.params.id;
+    if (!userId) return res.status(400).json({ message: "Missing userId" });
+
+    const user = await User.findById(userId).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
-    res.status(200).json(user);
+
+    res.json(user);
   } catch (error) {
-    console.error("❌ Error fetching profile:", error);
-    res.status(500).json({ message: "Failed to fetch profile" });
+    console.error("❌ Get profile error:", error);
+    res.status(500).json({ message: "Failed to get user profile" });
   }
 };
 
-// 🟡 Update user profile (name, phone, address)
-export const updateUserProfile = async (req, res) => {
+// 🟡 TEMP: Update user profile without auth middleware
+export const updateProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
+    const userId = req.body.userId || req.query.userId || req.params.id;
+    if (!userId) return res.status(400).json({ message: "Missing userId" });
+
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     user.name = req.body.name || user.name;
@@ -137,37 +144,38 @@ export const updateUserProfile = async (req, res) => {
     user.address = req.body.address || user.address;
 
     const updatedUser = await user.save();
-    res.status(200).json({
+    res.json({
       _id: updatedUser._id,
       name: updatedUser.name,
       email: updatedUser.email,
       phone: updatedUser.phone,
       address: updatedUser.address,
     });
-  } catch (err) {
-    console.error("❌ Error updating profile:", err);
+  } catch (error) {
+    console.error("❌ Update profile error:", error);
     res.status(500).json({ message: "Failed to update profile" });
   }
 };
 
-// 🔑 Update user password
-export const updateUserPassword = async (req, res) => {
+// 🔒 TEMP: Change password without JWT
+export const changePassword = async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
-    const user = await User.findById(req.user.id);
+    const { userId, currentPassword, newPassword } = req.body;
+    if (!userId) return res.status(400).json({ message: "Missing userId" });
 
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch)
-      return res.status(400).json({ message: "Current password is incorrect" });
+      return res.status(400).json({ message: "Incorrect current password" });
 
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 
-    res.status(200).json({ message: "Password updated successfully" });
-  } catch (err) {
-    console.error("❌ Error updating password:", err);
-    res.status(500).json({ message: "Failed to update password" });
+    res.json({ message: "Password updated successfully" });
+  } catch (error) {
+    console.error("❌ Change password error:", error);
+    res.status(500).json({ message: "Failed to change password" });
   }
 };

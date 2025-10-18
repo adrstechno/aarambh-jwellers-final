@@ -6,14 +6,22 @@ import {
   removeItem,
   clearCart,
 } from "../controllers/cartController.js";
-import { protect } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/:userId",getCart);
-router.post("/add",addToCart);
-router.put("/update",updateQuantity);
-router.post("/remove",removeItem);
-router.post("/clear",clearCart);
+// ✅ Get user's cart
+router.get("/:userId", getCart);
+
+// ✅ Add item to cart
+router.post("/", addToCart);
+
+// ✅ Update item quantity
+router.put("/update", updateQuantity);
+
+// ✅ Remove an item
+router.put("/remove", removeItem);
+
+// ✅ Clear full cart
+router.delete("/clear", clearCart);
 
 export default router;

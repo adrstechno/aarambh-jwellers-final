@@ -12,22 +12,37 @@ import { addToCartAPI } from "../../api/cartApi.js";
 export default function ProductCard({ product }) {
   const [isHovered, setIsHovered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(false);
 
   const { user } = useApp();
   const navigate = useNavigate();
 
-  const [isInWishlist, setIsInWishlist] = useState(false);
   const isSoldOut = product.stock === 0 || product.status === "Inactive";
 
-  // 🛒 Add to Cart via backend
+  // ✅ Unified image base URL
+  const BASE_URL =
+    import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
+
+  // ✅ Safe image handling
+  const productImage =
+    (Array.isArray(product.images) && product.images[0]) ||
+    product.image ||
+    "/placeholder.jpg";
+
+  const imageSrc = productImage.startsWith("http")
+    ? productImage
+    : `${BASE_URL}${productImage}`;
+
+  // 🛒 Add to Cart
   const handleAddToCart = async (e) => {
     e.stopPropagation();
     if (!user) return alert("Please login to add to cart.");
     if (isSoldOut) return alert("Product is sold out.");
+
     try {
       setIsLoading(true);
       await addToCartAPI(user._id, product._id, 1, user.token);
-      alert("Product added to cart!");
+      alert("✅ Product added to cart!");
     } catch (err) {
       console.error("❌ Failed to add to cart:", err);
       alert("Failed to add to cart. Try again!");
@@ -36,20 +51,21 @@ export default function ProductCard({ product }) {
     }
   };
 
-  // ❤️ Wishlist toggle via backend
+  // ❤️ Wishlist Toggle
   const handleWishlistToggle = async (e) => {
     e.stopPropagation();
     if (!user) return alert("Please login to manage wishlist.");
+
     try {
       setIsLoading(true);
       if (isInWishlist) {
         await removeFromWishlistAPI(user._id, product._id, user.token);
         setIsInWishlist(false);
-        alert("Removed from wishlist!");
+        alert("💔 Removed from wishlist!");
       } else {
         await addToWishlistAPI(user._id, product._id, user.token);
         setIsInWishlist(true);
-        alert("Added to wishlist!");
+        alert("❤️ Added to wishlist!");
       }
     } catch (err) {
       console.error("❌ Wishlist update failed:", err);
@@ -58,6 +74,7 @@ export default function ProductCard({ product }) {
     }
   };
 
+  // 👁 Quick View
   const handleQuickView = (e) => {
     e.stopPropagation();
     navigate(`/product/${product.slug}`);
@@ -66,12 +83,6 @@ export default function ProductCard({ product }) {
   const handleCardClick = () => {
     navigate(`/product/${product.slug}`);
   };
-
-  // 🟢 Safe image handling
-  const imageSrc =
-    Array.isArray(product.images) && product.images.length > 0
-      ? product.images[0]
-      : product.image || "/placeholder.jpg";
 
   return (
     <div
@@ -92,8 +103,8 @@ export default function ProductCard({ product }) {
         <img
           src={imageSrc}
           alt={product.name}
-          className="w-full h-64 object-cover transition-transform duration-500"
-          style={{ transform: isHovered ? "scale(1.08)" : "scale(1)" }}
+          className="w-full h-64 object-cover rounded-lg transition-transform duration-300 hover:scale-105"
+          onError={(e) => (e.target.src = "/placeholder.jpg")}
         />
 
         {/* Badges */}
@@ -134,6 +145,7 @@ export default function ProductCard({ product }) {
               className={`w-4 h-4 ${isInWishlist ? "fill-current" : ""}`}
             />
           </button>
+
           <button
             onClick={handleQuickView}
             className="bg-white/90 p-2 rounded-full shadow-lg text-gray-600 hover:bg-blue-50 hover:text-blue-500"

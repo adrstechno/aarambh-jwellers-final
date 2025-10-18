@@ -10,12 +10,31 @@ export default function WishlistPage() {
   const [wishlist, setWishlist] = useState([]);
   const navigate = useNavigate();
 
+  const BASE_URL =
+    import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
+
+  // ✅ Normalize image URLs
+  const fixImageURL = (image) => {
+    if (!image) return "/placeholder.jpg";
+    const clean = image.replace(/\\/g, "/");
+    if (clean.startsWith("http")) return clean;
+    if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
+    if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
+    return image;
+  };
+
+  // ✅ Fetch wishlist from backend
   useEffect(() => {
     if (!user) return;
     const fetchWishlist = async () => {
       try {
         const data = await getWishlist(user._id, user.token);
-        setWishlist(data.products.map((p) => p.product));
+        const normalized =
+          data?.products?.map((p) => ({
+            ...p.product,
+            image: fixImageURL(p.product?.image),
+          })) || [];
+        setWishlist(normalized);
       } catch (err) {
         console.error("❌ Failed to load wishlist:", err);
       }
@@ -23,15 +42,22 @@ export default function WishlistPage() {
     fetchWishlist();
   }, [user]);
 
+  // ✅ Remove item from wishlist
   const handleRemove = async (productId) => {
     try {
       const data = await removeFromWishlistAPI(user._id, productId, user.token);
-      setWishlist(data.products.map((p) => p.product));
+      const normalized =
+        data?.products?.map((p) => ({
+          ...p.product,
+          image: fixImageURL(p.product?.image),
+        })) || [];
+      setWishlist(normalized);
     } catch (err) {
       console.error("❌ Failed to remove item:", err);
     }
   };
 
+  // 🟡 Not logged in
   if (!user)
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-center">
@@ -41,7 +67,8 @@ export default function WishlistPage() {
       </div>
     );
 
-  if (wishlist.length === 0) {
+  // 🔴 Empty wishlist
+  if (wishlist.length === 0)
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -61,8 +88,8 @@ export default function WishlistPage() {
         </div>
       </div>
     );
-  }
 
+  // ✅ Wishlist UI
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -73,14 +100,14 @@ export default function WishlistPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {wishlist.map((product) => (
-            <div key={product._id} className="relative">
+            <div key={product._id} className="relative group">
               <ProductCard product={product} />
               <button
                 onClick={() => handleRemove(product._id)}
-                className="absolute top-2 right-2 bg-white rounded-full shadow p-1 hover:bg-red-100"
+                className="absolute top-2 right-2 bg-white rounded-full shadow p-1 hover:bg-red-100 transition"
                 title="Remove from Wishlist"
               >
-                <Heart className="w-5 h-5 text-red-500 fill-red-500" />
+                <Heart className="w-5 h-5 text-red-500 fill-red-500 group-hover:scale-110 transition-transform" />
               </button>
             </div>
           ))}

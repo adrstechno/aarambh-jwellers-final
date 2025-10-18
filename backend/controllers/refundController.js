@@ -2,8 +2,33 @@ import Refund from "../models/refund.js";
 import Order from "../models/order.js";
 
 /* =======================================================
+   🧩 Helper — Normalize Image URLs
+======================================================= */
+const fixImagePath = (image) => {
+  if (!image) return null;
+  const cleanPath = image.replace(/\\/g, "/"); // fix Windows backslashes
+  if (cleanPath.startsWith("http")) return cleanPath;
+
+  const base = process.env.BASE_URL || "http://localhost:5000";
+  return cleanPath.startsWith("/")
+    ? `${base}${cleanPath}`
+    : `${base}/${cleanPath}`;
+};
+
+const normalizeRefundImages = (refunds) =>
+  refunds.map((r) => ({
+    ...r._doc,
+    product: r.product
+      ? {
+          ...r.product._doc,
+          image: fixImagePath(r.product.image),
+        }
+      : null,
+  }));
+
+/* =======================================================
    👨‍💼 ADMIN CONTROLLERS
-   ======================================================= */
+======================================================= */
 
 // 🧾 Get all refund requests (Admin)
 export const getAllRefunds = async (req, res) => {
@@ -14,7 +39,8 @@ export const getAllRefunds = async (req, res) => {
       .populate("product", "name price image")
       .sort({ createdAt: -1 });
 
-    res.status(200).json(refunds);
+    const normalized = normalizeRefundImages(refunds);
+    res.status(200).json(normalized);
   } catch (error) {
     console.error("❌ Error fetching refunds:", error);
     res.status(500).json({ message: "Failed to fetch refunds" });
@@ -44,17 +70,18 @@ export const updateRefundStatus = async (req, res) => {
     )
       .populate("user", "name email")
       .populate("order", "_id totalAmount status createdAt")
-      .populate("product", "name price");
+      .populate("product", "name price image");
 
     if (!refund)
       return res.status(404).json({ message: "Refund not found" });
 
-    // Optional: sync refund status in Order model
+    // ✅ Sync refund status to Order model if refunded
     if (status === "Refunded") {
       await Order.findByIdAndUpdate(refund.order, { refundStatus: "Refunded" });
     }
 
-    res.status(200).json({ success: true, refund });
+    const normalized = normalizeRefundImages([refund]);
+    res.status(200).json({ success: true, refund: normalized[0] });
   } catch (error) {
     console.error("❌ Error updating refund status:", error);
     res.status(500).json({ message: "Failed to update refund" });
@@ -77,7 +104,7 @@ export const deleteRefund = async (req, res) => {
 
 /* =======================================================
    🧍 USER CONTROLLERS
-   ======================================================= */
+======================================================= */
 
 // 🟢 Create Refund Request (User)
 export const createRefundRequest = async (req, res) => {
@@ -115,9 +142,16 @@ export const createRefundRequest = async (req, res) => {
 };
 
 // 🟣 Get Refunds for the Logged-in User
+// 🟣 Get Refunds for the Logged-in User (temporary version)
 export const getUserRefunds = async (req, res) => {
   try {
-    const refunds = await Refund.find({ user: req.user._id })
+    const userId = req.user?._id || req.query.userId;
+
+    if (!userId) {
+      return res.status(400).json({ message: "User ID missing in request" });
+    }
+
+    const refunds = await Refund.find({ user: userId })
       .populate("product", "name price image")
       .populate("order", "totalAmount createdAt status")
       .sort({ createdAt: -1 });

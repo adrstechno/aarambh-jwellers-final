@@ -64,19 +64,23 @@ export const deleteRefund = async (id, token) => {
    👤 USER API FUNCTIONS
    ======================================================= */
 
-// 🟢 Get refund requests for logged-in user
-export const getUserRefunds = async (token) => {
+// ✅ Get user refunds (temporary version with userId query)
+export const getUserRefunds = async (token, userId) => {
   try {
-    // ✅ backend route is `/refunds/my-refunds`
-    const { data } = await axios.get(`${REFUND_API}/my-refunds`, {
-      headers: { Authorization: `Bearer ${token}` },
+    if (!userId) throw new Error("Missing userId in getUserRefunds");
+
+    const { data } = await axios.get(`${API_BASE}/refunds/my-refunds`, {
+      params: { userId },
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
-    return data.data || data;
+
+    return data;
   } catch (error) {
     console.error("❌ Error fetching user refunds:", error.response?.data || error);
     throw error;
   }
 };
+
 
 // 🟡 Create refund request (user-side)
 export const createRefundRequest = async (refundData, token) => {

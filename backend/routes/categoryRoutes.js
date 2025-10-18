@@ -1,5 +1,7 @@
 import express from "express";
 import multer from "multer";
+import path from "path";
+import fs from "fs";
 import {
   createCategory,
   getCategoriesWithCount,
@@ -10,18 +12,40 @@ import {
 const router = express.Router();
 
 /* ======================================
-   🗂️ Configure Multer for image upload
+   🗂️ Multer Configuration for Image Upload
 ====================================== */
+
+// ✅ Ensure the upload directory exists
+const uploadDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log("📁 Created uploads directory");
+}
+
+// ✅ Configure disk storage
 const storage = multer.diskStorage({
-  destination: "uploads/",
+  destination: (req, file, cb) => cb(null, uploadDir),
   filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
+    const uniqueName = `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`;
+    cb(null, uniqueName);
   },
 });
-const upload = multer({ storage });
+
+// ✅ Basic file filter (optional: restrict to images only)
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only JPEG, PNG, or WEBP images are allowed"), false);
+  }
+};
+
+// ✅ Initialize multer instance
+const upload = multer({ storage, fileFilter });
 
 /* ======================================
-   🧩 Category Routes (No Auth for Now)
+   🧩 Category Routes (Public for now)
 ====================================== */
 
 // 🟢 Create Category

@@ -15,11 +15,15 @@ import {
 import { useApp } from "../../context/AppContext";
 import { useNavigate } from "react-router-dom";
 import LoginModal from "./LoginModal";
+import { getUserProfile } from "../../api/userApi";
+import { getCart } from "../../api/cartApi";
+import { getWishlist } from "../../api/wishlistApi";
 
 export default function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [profile, setProfile] = useState(null);
   const dropdownRef = useRef(null);
 
   const {
@@ -35,7 +39,11 @@ export default function Header() {
 
   const navigate = useNavigate();
 
-  // ✅ Close user dropdown when clicking outside
+  const BASE_URL =
+    import.meta.env.VITE_API_BASE?.replace("/api", "") ||
+    "http://localhost:5000";
+
+  // ✅ Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -46,7 +54,33 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ✅ Handle search
+  // ✅ Fetch live user profile & sync backend cart/wishlist
+  useEffect(() => {
+    if (!user?.token) return;
+
+    const fetchUserData = async () => {
+      try {
+        const data = await getUserProfile(user.token);
+        setProfile(data);
+
+        // 🛒 Fetch cart + wishlist
+        await Promise.all([
+          getCart(user._id, user.token),
+          getWishlist(user._id, user.token),
+        ]);
+      } catch (err) {
+        console.error("❌ Error loading user data:", err);
+        if (err.response?.status === 401) {
+          logoutUser();
+          navigate("/");
+        }
+      }
+    };
+
+    fetchUserData();
+  }, [user?.token]);
+
+  // ✅ Search functionality
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -76,15 +110,25 @@ export default function Header() {
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-            className="flex items-center gap-1 text-gray-700 hover:text-red-600 font-semibold transition-colors"
+            className="flex items-center gap-2 text-gray-700 hover:text-red-600 font-semibold transition-colors"
           >
-            <User className="w-5 h-5" />
+            {/* 🧍 Profile Image */}
+            <img
+              src={
+                profile?.profileImage
+                  ? `${BASE_URL}${profile.profileImage}`
+                  : "https://cdn-icons-png.flaticon.com/512/1077/1077012.png"
+              }
+              alt="User Avatar"
+              className="w-7 h-7 rounded-full border"
+            />
             <span className="hidden md:inline">
-              Hi, {user.name?.split(" ")[0] || user.email}
+              Hi, {profile?.name?.split(" ")[0] || user.name || "User"}
             </span>
             <ChevronDown className="w-4 h-4" />
           </button>
 
+          {/* Dropdown */}
           {isUserMenuOpen && (
             <div className="absolute right-0 mt-2 w-52 bg-white shadow-lg border rounded-lg z-50 animate-fadeIn">
               <button
@@ -117,7 +161,7 @@ export default function Header() {
       );
     }
 
-    // 🟢 If not logged in
+    // 🟢 Not Logged In
     return (
       <button
         onClick={toggleLoginModal}
@@ -128,7 +172,7 @@ export default function Header() {
         <span className="hidden lg:inline">LOGIN / REGISTER</span>
       </button>
     );
-  }, [user, toggleLoginModal, logoutUser, isUserMenuOpen]);
+  }, [user, profile, toggleLoginModal, logoutUser, isUserMenuOpen]);
 
   // ❤️ Cart & Wishlist Buttons
   const renderCartWishlist = useCallback(
@@ -220,7 +264,11 @@ export default function Header() {
               }}
               aria-label="Toggle Mobile Menu"
             >
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {isMobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
             </button>
           </div>
 

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // src/api/userApi.js
 import axios from "axios";
 
@@ -9,7 +10,7 @@ const USER_API = `${API_BASE}/users`;
 ================================ */
 const getAuthHeader = (token) => {
   const finalToken = token || localStorage.getItem("token");
-  return { Authorization: `Bearer ${finalToken}` };
+  return finalToken ? { Authorization: `Bearer ${finalToken}` } : {};
 };
 
 const handleError = (action, error) => {
@@ -24,7 +25,10 @@ const handleError = (action, error) => {
 // ✅ Login User
 export const loginUser = async (email, password) => {
   try {
-    const { data } = await axios.post(`${API_BASE}/auth/login`, { email, password });
+    const { data } = await axios.post(`${API_BASE}/auth/login`, {
+      email,
+      password,
+    });
     return data;
   } catch (error) {
     handleError("logging in", error);
@@ -62,9 +66,11 @@ export const getUserOrders = async (userId, token) => {
 // ✅ Toggle user Admin / Customer role
 export const toggleUserRole = async (userId, token) => {
   try {
-    const { data } = await axios.put(`${USER_API}/${userId}/role`, {}, {
-      headers: getAuthHeader(token),
-    });
+    const { data } = await axios.put(
+      `${USER_API}/${userId}/role`,
+      {},
+      { headers: getAuthHeader(token) }
+    );
     return data;
   } catch (error) {
     handleError("toggling user role", error);
@@ -74,21 +80,25 @@ export const toggleUserRole = async (userId, token) => {
 // ✅ Toggle user Active / Blocked status
 export const toggleUserStatus = async (userId, token) => {
   try {
-    const { data } = await axios.put(`${USER_API}/${userId}/status`, {}, {
-      headers: getAuthHeader(token),
-    });
+    const { data } = await axios.put(
+      `${USER_API}/${userId}/status`,
+      {},
+      { headers: getAuthHeader(token) }
+    );
     return data;
   } catch (error) {
     handleError("toggling user status", error);
   }
 };
 
-// ✅ Promote a user to Admin
+// ✅ Promote user to Admin
 export const makeAdmin = async (userId, token) => {
   try {
-    const { data } = await axios.put(`${USER_API}/make-admin/${userId}`, {}, {
-      headers: getAuthHeader(token),
-    });
+    const { data } = await axios.put(
+      `${USER_API}/make-admin/${userId}`,
+      {},
+      { headers: getAuthHeader(token) }
+    );
     return data;
   } catch (error) {
     handleError("promoting user to admin", error);
@@ -98,9 +108,11 @@ export const makeAdmin = async (userId, token) => {
 // ✅ Remove Admin privileges
 export const removeAdmin = async (userId, token) => {
   try {
-    const { data } = await axios.put(`${USER_API}/remove-admin/${userId}`, {}, {
-      headers: getAuthHeader(token),
-    });
+    const { data } = await axios.put(
+      `${USER_API}/remove-admin/${userId}`,
+      {},
+      { headers: getAuthHeader(token) }
+    );
     return data;
   } catch (error) {
     handleError("removing admin privileges", error);
@@ -109,34 +121,38 @@ export const removeAdmin = async (userId, token) => {
 
 /* ================================
    👤 USER ROUTES
+   (TEMPORARY — without JWT middleware)
 ================================ */
 
 // ✅ Get user profile
-export const getUserProfile = async (token) => {
-  const { data } = await axios.get(`${API_BASE}/users/profile`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  return data;
+export const getUserProfile = async (token, userId) => {
+  try {
+    const { data } = await axios.get(`${USER_API}/me`, {
+      params: { userId }, // ✅ send userId as query param
+    });
+    return data;
+  } catch (error) {
+    handleError("fetching user profile", error);
+  }
 };
 
 // ✅ Update user profile
-export const updateUserProfile = async (profileData, token) => {
+export const updateUserProfile = async (profile, token) => {
   try {
-    const { data } = await axios.put(`${USER_API}/profile`, profileData, {
-      headers: getAuthHeader(token),
-    });
+    const { data } = await axios.put(`${USER_API}/me`, profile);
     return data;
   } catch (error) {
     handleError("updating user profile", error);
   }
 };
 
-// ✅ Change password
+// ✅ Update password
 export const updateUserPassword = async (passwordData, token) => {
   try {
-    const { data } = await axios.put(`${USER_API}/change-password`, passwordData, {
-      headers: getAuthHeader(token),
-    });
+    const { data } = await axios.put(
+      `${USER_API}/change-password`,
+      passwordData
+    );
     return data;
   } catch (error) {
     handleError("updating password", error);

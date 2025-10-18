@@ -17,6 +17,7 @@ import authRoutes from "./routes/authRoutes.js";
 import returnRoutes from "./routes/returnRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";  
+import bannerRoutes from "./routes/bannerRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -45,6 +46,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/returns", returnRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/reports", reportRoutes);
+app.use("/api/banners", bannerRoutes);
 
 
 // DB Connection

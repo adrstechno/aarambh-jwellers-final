@@ -2,10 +2,35 @@ import Return from "../models/return.js";
 import Order from "../models/order.js";
 
 /* =======================================================
-   👨‍💼 ADMIN CONTROLLERS
-   ======================================================= */
+   🧩 Helper — Normalize Image URLs
+======================================================= */
+const fixImagePath = (image) => {
+  if (!image) return null;
+  const cleanPath = image.replace(/\\/g, "/");
+  if (cleanPath.startsWith("http")) return cleanPath;
 
-// 🟢 Get all return requests
+  const base = process.env.BASE_URL || "http://localhost:5000";
+  return cleanPath.startsWith("/")
+    ? `${base}${cleanPath}`
+    : `${base}/${cleanPath}`;
+};
+
+const normalizeReturnImages = (returns) =>
+  returns.map((r) => ({
+    ...r._doc,
+    product: r.product
+      ? {
+          ...r.product._doc,
+          image: fixImagePath(r.product.image),
+        }
+      : null,
+  }));
+
+/* =======================================================
+   👨‍💼 ADMIN CONTROLLERS
+======================================================= */
+
+// 🟢 Get all return requests (Admin)
 export const getAllReturns = async (req, res) => {
   try {
     const returns = await Return.find()
@@ -14,7 +39,8 @@ export const getAllReturns = async (req, res) => {
       .populate("product", "name price image")
       .sort({ createdAt: -1 });
 
-    res.status(200).json(returns);
+    const normalized = normalizeReturnImages(returns);
+    res.status(200).json(normalized);
   } catch (error) {
     console.error("❌ Error fetching returns:", error);
     res.status(500).json({ message: "Failed to fetch returns" });
@@ -34,19 +60,20 @@ export const updateReturnStatus = async (req, res) => {
     )
       .populate("user", "name email")
       .populate("order", "_id totalAmount status")
-      .populate("product", "name price");
+      .populate("product", "name price image");
 
     if (!updatedReturn)
       return res.status(404).json({ message: "Return not found" });
 
-    // Optional: link to refund if approved
+    // ✅ Link to refund if approved
     if (status === "Refunded") {
       await Order.findByIdAndUpdate(updatedReturn.order, {
         refundStatus: "Refunded",
       });
     }
 
-    res.status(200).json(updatedReturn);
+    const normalized = normalizeReturnImages([updatedReturn]);
+    res.status(200).json(normalized[0]);
   } catch (error) {
     console.error("❌ Error updating return status:", error);
     res.status(500).json({ message: "Failed to update return status" });
@@ -69,7 +96,7 @@ export const deleteReturn = async (req, res) => {
 
 /* =======================================================
    🧍 USER CONTROLLERS
-   ======================================================= */
+======================================================= */
 
 // 🟢 Create return request (User)
 export const createReturnRequest = async (req, res) => {
@@ -105,7 +132,11 @@ export const createReturnRequest = async (req, res) => {
 // 🟣 Get user's own return requests
 export const getUserReturns = async (req, res) => {
   try {
-    const returns = await Return.find({ user: req.user._id })
+    const userId = req.user?._id || req.query.userId || req.params.userId;
+    if (!userId)
+      return res.status(400).json({ message: "User ID missing in request" });
+
+    const returns = await Return.find({ user: userId })
       .populate("order", "_id totalAmount status")
       .populate("product", "name price image")
       .sort({ createdAt: -1 });

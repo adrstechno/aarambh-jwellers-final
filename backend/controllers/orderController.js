@@ -1,113 +1,135 @@
-// backend/controllers/orderController.js
 import Order from "../models/order.js";
 
 /* =======================================================
-   🧍 USER CONTROLLERS
-   ======================================================= */
+   🧩 Helper: Fix Image URLs
+======================================================= */
+const fixImagePath = (image) => {
+  if (!image) return null;
 
-/* 🟢 Create new order — called when customer completes a purchase */
+  const cleanPath = image.replace(/\\/g, "/"); // normalize Windows slashes
+  if (cleanPath.startsWith("http")) return cleanPath;
+
+  const base = process.env.BASE_URL || "http://localhost:5000";
+  return cleanPath.startsWith("/")
+    ? `${base}${cleanPath}`
+    : `${base}/${cleanPath}`;
+};
+
+const normalizeOrderImages = (orders) => {
+  return orders.map((order) => ({
+    ...order._doc,
+    products: order.products.map((item) => ({
+      ...item._doc,
+      product: {
+        ...item.product,
+        image: fixImagePath(item.product?.image),
+      },
+    })),
+  }));
+};
+
+/* =======================================================
+   🧍 USER CONTROLLERS
+======================================================= */
+
 export const createOrder = async (req, res) => {
   try {
     const {
+      userId,
       customerName,
       customerEmail,
       customerPhone,
       shippingAddress,
       products,
-      totalAmount,
+      total,
       paymentMethod,
-      transactionId,
-      status,
     } = req.body;
 
-    if (!products || products.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Order must contain at least one product",
-      });
-    }
+    if (!userId || !products?.length)
+      return res.status(400).json({ message: "Invalid order data" });
 
-    if (!totalAmount || !paymentMethod) {
-      return res.status(400).json({
-        success: false,
-        message: "Total amount and payment method are required",
-      });
-    }
-
-    // Use logged-in user from token (req.user.id)
     const newOrder = new Order({
-      user: req.user._id,
-      customerName,
-      customerEmail,
-      customerPhone,
-      shippingAddress,
-      products,
-      totalAmount,
-      paymentMethod,
-      transactionId,
-      status: status || "Pending",
+      user: userId,
+      products: products.map((p) => ({
+        product: p.product,
+        quantity: p.quantity,
+        price: p.price,
+        name: p.name, // ✅ add embedded name
+      })),
+      total,
+      paymentMethod: paymentMethod || "COD",
+      status: "Pending",
+      address: {
+        name: customerName,
+        phone: customerPhone,
+        street: shippingAddress,
+      },
     });
 
     const savedOrder = await newOrder.save();
-    res.status(201).json({ success: true, order: savedOrder });
+    res.status(201).json(savedOrder);
   } catch (err) {
     console.error("❌ Error creating order:", err);
-    res.status(500).json({
-      success: false,
-      message: "Failed to create order",
-      error: err.message,
-    });
+    res.status(500).json({ message: "Failed to create order" });
   }
 };
-
-/* 🧾 Get orders for currently logged-in user (frontend “My Orders” page) */
+// 🟡 Get user orders
 export const getUserOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ user: req.user._id })
-      .populate("user", "name email phone")
+    const userId = req.query.userId || req.params.userId;
+    if (!userId)
+      return res.status(400).json({ message: "User ID missing" });
+
+    const orders = await Order.find({ user: userId })
+      .populate({
+        path: "products.product", // ✅ correct populate path
+        select: "name image price category",
+      })
       .sort({ createdAt: -1 });
 
     res.status(200).json(orders);
   } catch (error) {
-    console.error("❌ Error fetching current user's orders:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch user orders",
-      error: error.message,
-    });
+    console.error("❌ Error fetching user orders:", error);
+    res.status(500).json({ message: "Failed to fetch user orders" });
   }
 };
 
 /* =======================================================
    👨‍💼 ADMIN CONTROLLERS
-   ======================================================= */
+======================================================= */
 
-/* 🔵 Get all orders (admin dashboard) */
+// 🟢 Get all orders for admin
 export const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.find()
-      .populate("user", "name email phone")
+      .populate({
+        path: "products.product", // ✅ Correct path
+        select: "name image price category",
+      })
+      .populate("user", "name email phone") // ✅ includes phone
       .sort({ createdAt: -1 });
 
     res.status(200).json(orders);
-  } catch (err) {
-    console.error("❌ Error fetching all orders:", err);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch orders",
-      error: err.message,
-    });
+  } catch (error) {
+    console.error("❌ Error fetching all orders:", error);
+    res.status(500).json({ message: "Failed to fetch orders", error: error.message });
   }
 };
 
-/* 🟣 Get orders of a specific user (for admin Users panel) */
+
+// 🟣 Get Orders by User (Admin)
 export const getOrdersByUser = async (req, res) => {
   try {
     const orders = await Order.find({ user: req.params.userId })
+      .populate({
+        path: "products.product",
+        select: "name image price category",
+      })
       .populate("user", "name email phone")
       .sort({ createdAt: -1 });
 
-    res.status(200).json(orders);
+    const normalized = normalizeOrderImages(orders);
+    res.status(200).json(normalized);
   } catch (error) {
     console.error("❌ Error fetching user orders (admin):", error);
     res.status(500).json({
@@ -118,24 +140,30 @@ export const getOrdersByUser = async (req, res) => {
   }
 };
 
-/* 🟣 Admin: Get a single order by ID */
+// 🟣 Get Single Order by ID (Admin)
 export const getOrderById = async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id).populate(
-      "user",
-      "name email phone"
-    );
-    if (!order)
-      return res.status(404).json({ success: false, message: "Order not found" });
+    const order = await Order.findById(req.params.id)
+      .populate({
+        path: "products.product",
+        select: "name image price category",
+      })
+      .populate("user", "name email phone");
 
-    res.status(200).json({ success: true, order });
+    if (!order)
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
+
+    const normalized = normalizeOrderImages([order]);
+    res.status(200).json({ success: true, order: normalized[0] });
   } catch (err) {
     console.error("❌ Error fetching order by ID:", err);
     res.status(500).json({ success: false, message: "Failed to fetch order" });
   }
 };
 
-/* 🟡 Update order status (admin only) */
+// 🟡 Update Order Status (Admin)
 export const updateOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -158,15 +186,21 @@ export const updateOrderStatus = async (req, res) => {
         },
       },
       { new: true, runValidators: false }
-    ).populate("user", "name email");
+    )
+      .populate({
+        path: "products.product",
+        select: "name image price category",
+      })
+      .populate("user", "name email");
 
     if (!updatedOrder) {
       return res.status(404).json({ message: "Order not found" });
     }
 
+    const normalized = normalizeOrderImages([updatedOrder]);
     res.json({
       message: "✅ Order status updated successfully",
-      order: updatedOrder,
+      order: normalized[0],
     });
   } catch (error) {
     console.error("❌ Error updating order:", error);
@@ -174,17 +208,23 @@ export const updateOrderStatus = async (req, res) => {
   }
 };
 
-/* 🔴 Delete order (admin only) */
+// 🔴 Delete Order (Admin)
 export const deleteOrder = async (req, res) => {
   try {
     const { id } = req.params;
     const deletedOrder = await Order.findByIdAndDelete(id);
     if (!deletedOrder)
-      return res.status(404).json({ success: false, message: "Order not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
 
-    res.status(200).json({ success: true, message: "Order deleted successfully" });
+    res
+      .status(200)
+      .json({ success: true, message: "Order deleted successfully" });
   } catch (err) {
     console.error("❌ Error deleting order:", err);
-    res.status(500).json({ success: false, message: "Failed to delete order" });
+    res
+      .status(500)
+      .json({ success: false, message: "Failed to delete order" });
   }
 };

@@ -1,10 +1,14 @@
 import { useState, useEffect } from "react";
 import { CheckCircle, AlertCircle, Save } from "lucide-react";
 import { useApp } from "../context/AppContext";
-import { getUserProfile, updateUserProfile, updateUserPassword } from "../api/userApi";
+import {
+  getUserProfile,
+  updateUserProfile,
+  updateUserPassword,
+} from "../api/userApi";
 
 export default function Profile() {
-  const { user } = useApp();
+  const { user, logoutUser } = useApp();
   const [profile, setProfile] = useState({
     name: "",
     email: "",
@@ -24,50 +28,74 @@ export default function Profile() {
     setTimeout(() => setToast({ type: "", message: "" }), 3000);
   };
 
-  // ✅ Fetch user profile
+  // ✅ Fetch user profile (TEMP: use userId instead of token)
   useEffect(() => {
+    if (!user?._id) {
+      showToast("error", "You need to log in first.");
+      setLoading(false);
+      return;
+    }
+
     const fetchProfile = async () => {
       try {
-        console.log("🟢 Using token:", user?.token);
-        const data = await getUserProfile(user.token);
-        setProfile(data);
+        const data = await getUserProfile(null, user._id); // ⚡ pass userId instead of token
+        setProfile({
+          name: data.name || "",
+          email: data.email || "",
+          phone: data.phone || "",
+          address: data.address || "",
+        });
       } catch (err) {
-        console.error("Error loading profile:", err);
+        console.error("❌ Error loading profile:", err);
         showToast("error", "Failed to load profile details.");
       } finally {
         setLoading(false);
       }
     };
-    fetchProfile();
-  }, [user]);
 
-  // ✅ Update profile handler
+    fetchProfile();
+  }, [user?._id]);
+
+  // ✅ Update profile
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     try {
-      await updateUserProfile(profile, user.token);
+      const updated = await updateUserProfile(
+        { ...profile, userId: user._id }, // ⚡ send userId manually
+        null
+      );
+      setProfile(updated);
       showToast("success", "Profile updated successfully!");
     } catch (err) {
-      console.error("Error updating profile:", err);
+      console.error("❌ Error updating profile:", err);
       showToast("error", "Failed to update profile.");
     }
   };
 
-  // ✅ Change password
+  // ✅ Update password
   const handlePasswordUpdate = async (e) => {
     e.preventDefault();
     try {
-      await updateUserPassword(passwordData, user.token);
+      await updateUserPassword(
+        { ...passwordData, userId: user._id }, // ⚡ include userId
+        null
+      );
       showToast("success", "Password updated successfully!");
       setPasswordData({ currentPassword: "", newPassword: "" });
     } catch (err) {
-      console.error("Error updating password:", err);
-      showToast("error", "Failed to change password.");
+      console.error("❌ Error updating password:", err);
+      const msg =
+        err.response?.data?.message || "Failed to change password.";
+      showToast("error", msg);
     }
   };
 
   if (loading)
-    return <div className="text-center text-gray-600 py-10">Loading profile...</div>;
+    return (
+      <div className="text-center text-gray-600 py-10">
+        Loading your profile...
+      </div>
+    );
 
   return (
     <div className="space-y-10">
@@ -78,7 +106,11 @@ export default function Profile() {
             toast.type === "success" ? "bg-green-600" : "bg-red-600"
           }`}
         >
-          {toast.type === "success" ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+          {toast.type === "success" ? (
+            <CheckCircle size={18} />
+          ) : (
+            <AlertCircle size={18} />
+          )}
           <span>{toast.message}</span>
         </div>
       )}
@@ -89,16 +121,22 @@ export default function Profile() {
         <form onSubmit={handleProfileUpdate} className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Full Name</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                Full Name
+              </label>
               <input
                 type="text"
                 value={profile.name}
-                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                onChange={(e) =>
+                  setProfile({ ...profile, name: e.target.value })
+                }
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                Email
+              </label>
               <input
                 type="email"
                 value={profile.email}
@@ -110,20 +148,28 @@ export default function Profile() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Phone</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                Phone
+              </label>
               <input
                 type="text"
                 value={profile.phone}
-                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                onChange={(e) =>
+                  setProfile({ ...profile, phone: e.target.value })
+                }
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">Address</label>
+              <label className="block text-sm font-medium text-gray-600 mb-1">
+                Address
+              </label>
               <input
                 type="text"
                 value={profile.address}
-                onChange={(e) => setProfile({ ...profile, address: e.target.value })}
+                onChange={(e) =>
+                  setProfile({ ...profile, address: e.target.value })
+                }
                 className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
               />
             </div>
@@ -150,7 +196,10 @@ export default function Profile() {
               type="password"
               value={passwordData.currentPassword}
               onChange={(e) =>
-                setPasswordData({ ...passwordData, currentPassword: e.target.value })
+                setPasswordData({
+                  ...passwordData,
+                  currentPassword: e.target.value,
+                })
               }
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
               required
@@ -164,7 +213,10 @@ export default function Profile() {
               type="password"
               value={passwordData.newPassword}
               onChange={(e) =>
-                setPasswordData({ ...passwordData, newPassword: e.target.value })
+                setPasswordData({
+                  ...passwordData,
+                  newPassword: e.target.value,
+                })
               }
               className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
               required

@@ -16,7 +16,15 @@ export default function FeaturedProducts() {
       setLoading(true);
       try {
         const data = await getProductsByCategory(activeTab);
-        setProducts(data);
+
+        // Ensure product array is consistent
+        if (Array.isArray(data)) {
+          setProducts(data);
+        } else if (data?.products) {
+          setProducts(data.products);
+        } else {
+          setProducts([]);
+        }
       } catch (err) {
         console.error("❌ Failed to fetch products:", err);
         setProducts([]);

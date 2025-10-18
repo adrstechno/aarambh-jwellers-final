@@ -30,17 +30,20 @@ export default function Orders() {
   const itemsPerPage = 10;
 
   // ✅ Fetch all orders
-  useEffect(() => {
+ useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await getAllOrders(user.token);
-        setOrders(res.data);
+        const data = await getAllOrders(user?.token);
+        // your backend returns array directly
+        setOrders(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.error("Error fetching orders:", err);
+        console.error("❌ Error fetching orders:", err);
+        setOrders([]);
       } finally {
         setLoading(false);
       }
     };
+
     if (user?.token) fetchOrders();
   }, [user?.token]);
 
@@ -270,22 +273,21 @@ export default function Orders() {
                     {order._id.slice(-6).toUpperCase()}
                   </td>
                   <td className="py-2 px-4">{order.user?.name || "Guest"}</td>
-                  <td className="py-2 px-4">{order.address?.phone || "N/A"}</td>
-                  <td className="py-2 px-4 text-xs">
-                    {order.address
-                      ? `${order.address.street}, ${order.address.city}`
-                      : "N/A"}
-                  </td>
+                  <td className="py-2 px-4">{order.address?.phone || order.user?.phone || "N/A"}</td>
+<td className="py-2 px-4 text-xs">
+  {order.address?.street || "N/A"}
+</td>
                   <td className="py-2 px-4">
                     {new Date(order.createdAt).toLocaleDateString()}
                   </td>
                   <td className="py-2 px-4 text-xs">
-                    {order.products.map((p) => (
-                      <div key={p._id}>
-                        {p.name} × {p.quantity}
-                      </div>
-                    ))}
-                  </td>
+  {(order.products || []).map((p) => (
+    <div key={p._id || Math.random()}>
+      {p.product?.name || p.name} × {p.quantity}
+    </div>
+  ))}
+</td>
+
                   <td className="py-2 px-4">{order.paymentMethod || "N/A"}</td>
                   <td className="py-2 px-4 text-xs">
                     {order.transactionId || "N/A"}

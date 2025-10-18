@@ -11,10 +11,11 @@ export const createCategory = async (req, res) => {
   try {
     const { name, parentCategory } = req.body;
 
-    if (!name || !name.trim()) {
+    if (!name?.trim()) {
       return res.status(400).json({ message: "Category name is required" });
     }
 
+    // 🔎 Check for duplicates (case-insensitive)
     const existing = await Category.findOne({
       name: { $regex: new RegExp(`^${name}$`, "i") },
     });
@@ -22,7 +23,8 @@ export const createCategory = async (req, res) => {
       return res.status(400).json({ message: "Category already exists" });
     }
 
-    const imagePath = req.file ? `/uploads/${req.file.filename}` : "";
+    // 🖼️ Image path (optional)
+    const imagePath = req.file ? `/uploads/${req.file.filename}` : "/placeholder.jpg";
 
     const category = new Category({
       name: name.trim(),
@@ -56,7 +58,7 @@ export const getCategoriesWithCount = async (req, res) => {
     const categories = await Category.aggregate([
       {
         $lookup: {
-          from: "products", // Name of the Product collection
+          from: "products",
           localField: "_id",
           foreignField: "category",
           as: "products",
@@ -89,7 +91,8 @@ export const getCategoriesWithCount = async (req, res) => {
       },
     ]);
 
-    res.status(200).json(categories);
+    // ✅ Always return consistent structure
+    res.status(200).json({ categories });
   } catch (error) {
     console.error("❌ Error fetching categories:", error);
     res.status(500).json({ message: "Failed to fetch categories" });
@@ -112,6 +115,7 @@ export const updateCategory = async (req, res) => {
     if (parentCategory !== undefined) {
       updateData.parentCategory = parentCategory || null;
     }
+
     if (req.file) {
       updateData.image = `/uploads/${req.file.filename}`;
     }
@@ -120,10 +124,14 @@ export const updateCategory = async (req, res) => {
       new: true,
     }).populate("parentCategory", "name");
 
-    if (!updated)
+    if (!updated) {
       return res.status(404).json({ message: "Category not found" });
+    }
 
-    res.json({ message: "✅ Category updated successfully", category: updated });
+    res.json({
+      message: "✅ Category updated successfully",
+      category: updated,
+    });
   } catch (error) {
     console.error("❌ Error updating category:", error);
     res.status(500).json({ message: "Failed to update category" });
@@ -139,13 +147,17 @@ export const deleteCategory = async (req, res) => {
     if (!category)
       return res.status(404).json({ message: "Category not found" });
 
-    // Delete image if exists
-    if (category.image) {
+    // 🧹 Delete image if exists (excluding placeholder)
+    if (category.image && !category.image.includes("placeholder")) {
       const imagePath = path.join(process.cwd(), category.image);
-      if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath);
+        console.log(`🗑️ Deleted image: ${imagePath}`);
+      }
     }
 
     await Category.findByIdAndDelete(req.params.id);
+
     res.json({ message: "🗑️ Category deleted successfully" });
   } catch (error) {
     console.error("❌ Error deleting category:", error);

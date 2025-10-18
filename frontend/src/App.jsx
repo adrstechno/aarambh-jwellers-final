@@ -24,6 +24,7 @@ import WishlistPage from "./pages/WishlistPage.jsx";
 import Orders from "./pages/Orders.jsx";
 import MyRefunds from "./pages/MyRefunds.jsx";
 import Profile from "./pages/Profile.jsx";
+import CheckoutPage from "./pages/CheckoutPage.jsx";
 
 // 👤 Layout
 import AccountLayout from "./layouts/AccountLayout.jsx";
@@ -59,6 +60,7 @@ export default function App() {
             <Route path="/category/:category" element={<CategoryPage />} />
             <Route path="/cart" element={<CartPage />} />
             <Route path="/wishlist" element={<WishlistPage />} />
+            <Route path="/checkout" element={<CheckoutPage />} />
 
             {/* ✅ Account Pages with Sidebar */}
             <Route element={<AccountLayout />}>

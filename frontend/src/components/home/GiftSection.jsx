@@ -2,23 +2,42 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Gift, Heart, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-// import { getGiftCategories } from "../../api/giftApi";
+import { getAllGifts } from "../../api/giftApi.js";
 
 export default function GiftSection() {
   const [hoveredIndex, setHoveredIndex] = useState(null);
-  const [giftRecipients, setGiftRecipients] = useState([]);
+  const [giftList, setGiftList] = useState([]);
   const navigate = useNavigate();
 
+  const BASE_URL =
+    import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
+
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchGifts = async () => {
       try {
-        const data = await getGiftCategories();
-        setGiftRecipients(data);
+        const data = await getAllGifts();
+
+        // ✅ Normalize URLs properly
+        const normalized = data
+          .filter((g) => g.status === "Active")
+          .map((g) => ({
+            ...g,
+            image:
+              g.image?.startsWith("http")
+                ? g.image
+                : g.image?.startsWith("/uploads/")
+                ? `${BASE_URL}${g.image}`
+                : g.image
+                ? `${BASE_URL}/uploads/${g.image}`
+                : "/placeholder.jpg",
+          }));
+
+        setGiftList(normalized);
       } catch (err) {
-        console.error("Failed to load gift categories", err);
+        console.error("❌ Failed to load gifts:", err);
       }
     };
-    fetchData();
+    fetchGifts();
   }, []);
 
   return (
@@ -33,90 +52,90 @@ export default function GiftSection() {
             </h2>
           </div>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Find the perfect jewelry piece for your loved ones. Every
-            relationship deserves something special.
+            Discover thoughtful jewelry gifts for every occasion. Elegant,
+            timeless, and crafted with love.
           </p>
         </div>
 
         {/* Gift Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-          {giftRecipients.map((recipient, index) => (
-            <motion.div
-              key={recipient._id || index}
-              className="relative cursor-pointer"
-              onMouseEnter={() => setHoveredIndex(index)}
-              onMouseLeave={() => setHoveredIndex(null)}
-              whileHover={{ y: -8 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
-              onClick={() => navigate(`/gifts/${recipient.slug}`)}
-            >
+          {giftList.length > 0 ? (
+            giftList.map((gift, index) => (
               <motion.div
-                className="relative overflow-hidden rounded-xl shadow-lg bg-white"
-                whileHover={{
-                  boxShadow: "0 20px 40px -12px rgba(0, 0, 0, 0.2)",
-                }}
+                key={gift._id || index}
+                className="relative cursor-pointer"
+                onMouseEnter={() => setHoveredIndex(index)}
+                onMouseLeave={() => setHoveredIndex(null)}
+                whileHover={{ y: -8 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
+                onClick={() => navigate(`/gifts/${gift.code}`)} // ✅ navigate by code
               >
-                {/* Image */}
-                <div className="relative overflow-hidden">
-                  <motion.img
-                    src={recipient.image}
-                    alt={recipient.name}
-                    className="w-full h-40 sm:h-32 object-cover"
-                    whileHover={{ scale: 1.1 }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
-                  />
+                <motion.div
+                  className="relative overflow-hidden rounded-xl shadow-lg bg-white"
+                  whileHover={{
+                    boxShadow: "0 20px 40px -12px rgba(0, 0, 0, 0.2)",
+                  }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                >
+                  <div className="relative overflow-hidden">
+                    <motion.img
+                      src={gift.image || "/placeholder.jpg"}
+                      alt={gift.name}
+                      className="w-full h-40 sm:h-32 object-cover"
+                      whileHover={{ scale: 1.1 }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                      onError={(e) => (e.target.src = "/placeholder.jpg")}
+                    />
 
-                  {/* Gradient Overlay */}
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-t ${recipient.gradient}`}
-                  />
+                    {/* Overlay Gradient */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
 
-                  {/* Overlay Content */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
-                    {/* Heart Icon */}
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: hoveredIndex === index ? 1 : 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="mb-2"
-                    >
-                      <Heart className="w-5 h-5 text-white fill-current" />
-                    </motion.div>
+                    {/* Overlay Text */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white p-3">
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: hoveredIndex === index ? 1 : 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="mb-1"
+                      >
+                        <Heart className="w-5 h-5 text-white fill-current" />
+                      </motion.div>
 
-                    {/* Title */}
-                    <h3 className="text-white font-bold text-sm sm:text-base mb-1">
-                      {recipient.name}
-                    </h3>
+                      <h3 className="font-bold text-sm sm:text-base mb-1">
+                        {gift.name}
+                      </h3>
 
-                    {/* Subtitle */}
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: hoveredIndex === index ? 0.9 : 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="text-white text-xs mb-3"
-                    >
-                      {recipient.subtitle}
-                    </motion.p>
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: hoveredIndex === index ? 1 : 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="text-white text-xs mb-3"
+                      >
+                        {gift.description || "A special gift for your loved ones"}
+                      </motion.p>
 
-                    {/* Shop Now */}
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: hoveredIndex === index ? 1 : 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="flex items-center text-white text-xs font-medium bg-white/20 px-3 py-1 rounded-full backdrop-blur-sm"
-                    >
-                      <span className="mr-2">Shop Now</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </motion.div>
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: hoveredIndex === index ? 1 : 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="flex items-center text-white text-xs font-medium bg-white/20 px-3 py-1 rounded-full backdrop-blur-sm"
+                      >
+                        <span className="mr-2">Shop Now</span>
+                        <ArrowRight className="w-3 h-3" />
+                      </motion.div>
+                    </div>
                   </div>
-                </div>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          ))}
+            ))
+          ) : (
+            <p className="col-span-6 text-center text-gray-500 py-10">
+              No gifts available right now.
+            </p>
+          )}
         </div>
 
-        {/* Call to Action Banner */}
+        {/* Banner */}
         <div className="text-center mt-16">
           <img
             src="https://jinafashion.com/wp-content/uploads/2025/08/rakhi-Ba.webp"

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-// import { getDiscounts } from "../../api/discountApi";
+import { getAllDiscounts } from "../../api/discountApi";
 
 export default function DiscountSection() {
   const navigate = useNavigate();
@@ -9,12 +9,12 @@ export default function DiscountSection() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const discounts = await getDiscounts();
+        const discounts = await getAllDiscounts();
         if (discounts.length > 0) {
-          setDiscount(discounts[0]); // show latest active discount
+          setDiscount(discounts[0]); // Show latest active valid discount
         }
       } catch (err) {
-        console.error("Failed to fetch discount", err);
+        console.error("❌ Failed to fetch discount", err);
       }
     };
     fetchData();
@@ -29,7 +29,7 @@ export default function DiscountSection() {
         alt="secretgems"
       />
 
-      {/* Jewellery Video Highlight */}
+      {/* Jewelry Video Highlight */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center px-6 py-16">
         <div className="w-full">
           <video
@@ -59,37 +59,46 @@ export default function DiscountSection() {
         </div>
       </div>
 
-      {/* Dynamic Discount Banner */}
+      {/* Dynamic Discount Section */}
       {discount && (
         <div className="bg-gradient-to-r from-amber-50 to-gray-100 py-16 px-6">
           <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 items-center gap-10">
-            {/* Left: Discount Text */}
+            {/* Left - Text */}
             <div className="text-center lg:text-left space-y-4">
               <h2 className="text-4xl font-bold text-gray-900">
-                DISCOUNT OF{" "}
-                <span className="text-amber-600">
-                  {discount.discountPercent}%
-                </span>
+                {discount.type === "Percentage"
+                  ? `SAVE ${discount.value}%`
+                  : `SAVE ₹${discount.value}`}{" "}
+                ON YOUR PURCHASE
               </h2>
-              <p className="text-2xl font-serif text-gray-700">
-                {discount.title}
+              <p className="text-xl font-serif text-gray-700">
+                Use Code:{" "}
+                <span className="text-amber-600 font-semibold">
+                  {discount.code}
+                </span>
               </p>
-              <p className="text-gray-500">{discount.description}</p>
-              {discount.category && (
-                <button
-                  onClick={() => navigate(`/category/${discount.category.slug}`)}
-                  className="mt-4 px-6 py-3 bg-amber-600 text-white rounded-md font-semibold hover:bg-amber-700 transition"
-                >
-                  Shop {discount.category.name}
-                </button>
+              {discount.description && (
+                <p className="text-gray-500">{discount.description}</p>
               )}
+              <p className="text-sm text-gray-400">
+                Valid from{" "}
+                <b>{new Date(discount.startDate).toLocaleDateString()}</b> to{" "}
+                <b>{new Date(discount.endDate).toLocaleDateString()}</b>
+              </p>
+
+              <button
+                onClick={() => navigate("/shop")}
+                className="mt-4 px-6 py-3 bg-amber-600 text-white rounded-md font-semibold hover:bg-amber-700 transition"
+              >
+                Shop Now
+              </button>
             </div>
 
-            {/* Right: Banner Image */}
+            {/* Right - Static Banner */}
             <div className="bg-gradient-to-br from-amber-100 to-gray-50 rounded-lg shadow-md">
               <img
-                src={discount.bannerImage || "/silverProducts.png"}
-                alt={discount.title}
+                src="/silverProducts.png"
+                alt={discount.code}
                 className="rounded-lg border border-gray-200"
               />
             </div>

@@ -14,12 +14,29 @@ export default function ProductDetail() {
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [newReview, setNewReview] = useState({ rating: 0, comment: "" });
+  const [loading, setLoading] = useState(true);
 
+  const BASE_URL =
+    import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
+
+  // ✅ Helper: Fix image URL safely
+  const fixImageURL = (image) => {
+    if (!image) return "/placeholder.jpg";
+    const clean = image.replace(/\\/g, "/"); // Fix Windows slashes
+    if (clean.startsWith("http")) return clean;
+    if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
+    if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
+    return image;
+  };
+
+  // 🟢 Fetch product + related products + reviews
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setLoading(true);
         const data = await getProductBySlug(slug);
-        setProduct(data);
+        const normalized = { ...data, image: fixImageURL(data.image) };
+        setProduct(normalized);
 
         if (data.category?.slug) {
           const related = await getProductsByCategory(data.category.slug);
@@ -29,17 +46,20 @@ export default function ProductDetail() {
         const revs = await getReviewsByProduct(data._id);
         setReviews(revs);
       } catch (err) {
-        console.error("Error fetching product details:", err);
+        console.error("❌ Error fetching product details:", err);
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
   }, [slug]);
 
+  // ✍️ Add new review
   const handleAddReview = async (e) => {
     e.preventDefault();
     if (!user) return alert("Please login to add a review.");
     if (!newReview.comment || !newReview.rating)
-      return alert("Please add a rating and a comment.");
+      return alert("Please add both rating and comment.");
 
     try {
       const reviewData = {
@@ -48,37 +68,43 @@ export default function ProductDetail() {
         comment: newReview.comment,
         userId: user._id,
       };
+
       await addReview(reviewData, user.token);
       const updatedReviews = await getReviewsByProduct(product._id);
       setReviews(updatedReviews);
       setNewReview({ rating: 0, comment: "" });
-      alert("Review submitted successfully!");
+      alert("✅ Review submitted successfully!");
     } catch (err) {
       console.error("❌ Failed to submit review:", err);
       alert("Failed to submit review. Try again.");
     }
   };
 
-  if (!product) return <div className="p-10 text-center">Loading product...</div>;
+  if (loading || !product)
+    return <div className="p-10 text-center text-gray-600">Loading product...</div>;
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
       {/* Product Info */}
       <div className="grid md:grid-cols-2 gap-8">
         <img
-          src={product.image}
+          src={fixImageURL(product.image)}
           alt={product.name}
           className="w-full h-96 object-cover rounded-lg shadow"
+          onError={(e) => (e.target.src = "/placeholder.jpg")}
         />
+
         <div>
           <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
           <p className="text-gray-600 mb-2">{product.category?.name}</p>
           <p className="text-red-600 text-2xl font-semibold mb-4">
-            ₹{product.price}
+            ₹{product.price?.toLocaleString()}
           </p>
-          <p className="text-gray-700 mb-4">{product.description}</p>
+          <p className="text-gray-700 mb-4 leading-relaxed">
+            {product.description}
+          </p>
 
-          <div className="flex gap-4 mb-6">
+          <div className="flex flex-wrap gap-4 mb-6">
             <button
               onClick={() => addToCart(product)}
               className="bg-red-600 text-white px-6 py-2 rounded hover:bg-red-700 transition"
@@ -98,6 +124,7 @@ export default function ProductDetail() {
       {/* Reviews Section */}
       <div className="mt-10">
         <h2 className="text-2xl font-bold mb-4">Customer Reviews</h2>
+
         {reviews.length === 0 ? (
           <p className="text-gray-500">No reviews yet.</p>
         ) : (
@@ -114,6 +141,7 @@ export default function ProductDetail() {
           </div>
         )}
 
+        {/* Add Review */}
         {user && (
           <form
             onSubmit={handleAddReview}
@@ -156,11 +184,15 @@ export default function ProductDetail() {
       {/* Related Products */}
       <div className="mt-10">
         <h2 className="text-2xl font-bold mb-4">Related Products</h2>
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {relatedProducts.map((p) => (
-            <ProductCard key={p._id} product={p} />
-          ))}
-        </div>
+        {relatedProducts.length === 0 ? (
+          <p className="text-gray-500">No related products found.</p>
+        ) : (
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {relatedProducts.map((p) => (
+              <ProductCard key={p._id} product={p} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

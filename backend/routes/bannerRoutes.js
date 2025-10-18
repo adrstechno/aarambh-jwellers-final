@@ -1,20 +1,35 @@
 import express from "express";
+import multer from "multer";
 import {
-  getBanners,
-  getBannerById,
   createBanner,
+  getBanners,
   updateBanner,
   deleteBanner,
+  reorderBanners,
 } from "../controllers/bannerController.js";
 
 const router = express.Router();
 
-router.get("/", getBanners);
-router.get("/:id", getBannerById);
+// 🧩 Multer setup
+const storage = multer.diskStorage({
+  destination: "uploads/",
+  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
+});
+const upload = multer({ storage });
 
-// later protect with admin middleware
-router.post("/", createBanner);
-router.put("/:id", updateBanner);
+// ✅ Order of routes matters! Define “/reorder” first
+router.put("/reorder", reorderBanners);
+
+// 🟢 Create Banner
+router.post("/", upload.single("image"), createBanner);
+
+// 🟡 Get All Banners
+router.get("/", getBanners);
+
+// 🟠 Update Banner
+router.put("/:id", upload.single("image"), updateBanner);
+
+// 🔴 Delete Banner
 router.delete("/:id", deleteBanner);
 
 export default router;

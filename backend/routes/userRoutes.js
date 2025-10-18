@@ -5,9 +5,9 @@ import {
   toggleUserRole,
   toggleUserStatus,
   getUserOrders,
-  getUserProfile,
-  updateUserPassword,
-  updateUserProfile,
+  getProfile,
+  changePassword,
+  updateProfile,
   makeAdmin,
   removeAdmin,
 } from "../controllers/userController.js";
@@ -41,12 +41,12 @@ router.get("/:userId/orders", getUserOrders);
 ============================ */
 
 // 🟢 Get profile (logged-in user)
-router.get("/profile", getUserProfile);
+router.get("/me", getProfile);
 
 // 🟢 Update profile
-router.put("/profile", updateUserProfile);
+router.put("/me", updateProfile);
 
 // 🟢 Change password
-router.put("/change-password", updateUserPassword);
+router.put("/change-password", changePassword);
 
 export default router;
