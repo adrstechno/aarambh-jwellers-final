@@ -143,5 +143,15 @@ export const deleteCategory = async (id) => {
   }
 };
 
+export const getActiveCategories = async () => {
+  try {
+    const { data } = await axios.get(`${API_BASE}/categories/active`);
+    return data;
+  } catch (err) {
+    console.error("❌ Error fetching categories:", err.response?.data || err);
+    throw err;
+  }
+};
+
 // ✅ Aliases for readability
 export const getCategories = getCategoriesWithCount;

@@ -8,7 +8,7 @@ export default function CategoryPage() {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [sortBy, setSortBy] = useState("default");
-  const [priceRange, setPriceRange] = useState([0, 20000]);
+  const [priceRange, setPriceRange] = useState([0, 2000000]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -103,7 +103,7 @@ export default function CategoryPage() {
                   <input
                     type="range"
                     min="0"
-                    max="20000"
+                    max="20000000"
                     value={priceRange[1]}
                     onChange={(e) =>
                       setPriceRange([priceRange[0], parseInt(e.target.value)])

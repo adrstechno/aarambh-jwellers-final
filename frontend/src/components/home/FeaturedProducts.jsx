@@ -8,7 +8,7 @@ export default function FeaturedProducts() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const categories = ["necklace", "rings", "bracelets"];
+  const categories = ["necklace", "rings", "bracelet", "earrings"];
 
   // 🟢 Fetch products when tab changes
   useEffect(() => {
@@ -46,7 +46,7 @@ export default function FeaturedProducts() {
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto">
             "Celebrate your moments with timeless designs, meticulously crafted
-            to perfection by Jina Fashion."
+            to perfection by Vednine Jwellers."
           </p>
         </div>
 

@@ -6,7 +6,7 @@ import {
   createCategory,
   getCategoriesWithCount,
   updateCategory,
-  deleteCategory,
+  deleteCategory,getActiveCategories,
 } from "../controllers/categoryController.js";
 
 const router = express.Router();
@@ -59,5 +59,6 @@ router.put("/:id", upload.single("image"), updateCategory);
 
 // 🔴 Delete Category
 router.delete("/:id", deleteCategory);
+router.get("/active", getActiveCategories);
 
 export default router;

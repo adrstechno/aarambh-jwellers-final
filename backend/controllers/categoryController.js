@@ -164,3 +164,18 @@ export const deleteCategory = async (req, res) => {
     res.status(500).json({ message: "Failed to delete category" });
   }
 };
+
+// 🟢 Get all active categories for navigation
+export const getActiveCategories = async (req, res) => {
+  try {
+    // top-level categories = parentCategory === null
+    const categories = await Category.find({ parentCategory: null })
+      .select("name slug")
+      .sort({ name: 1 });
+
+    res.status(200).json(categories);
+  } catch (error) {
+    console.error("❌ Error fetching categories:", error);
+    res.status(500).json({ message: "Failed to fetch categories" });
+  }
+};
