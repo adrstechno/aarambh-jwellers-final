@@ -117,3 +117,13 @@ export const deleteProduct = async (id) => {
     handleError("deleting product", error);
   }
 };
+
+export const searchProducts = async (query) => {
+  try {
+    const res = await axios.get(`${API_BASE}/products/search?q=${encodeURIComponent(query)}`);
+    return res.data;
+  } catch (err) {
+    console.error("❌ Error fetching search results:", err);
+    throw err;
+  }
+};

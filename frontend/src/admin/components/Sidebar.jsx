@@ -20,6 +20,9 @@ export default function Sidebar() {
         <Link to="/admin/users" className="block px-3 py-2 rounded hover:bg-gray-700">
           User Management
         </Link>
+        <Link to="admin/jewellery-section" className="block px-3 py-2 rounded hover:bg-gray-700">
+          Jewellery Section Management
+        </Link>
         <Link to="/admin/reviews" className="block px-3 py-2 rounded hover:bg-gray-700">
           Review Management
         </Link>

@@ -243,3 +243,29 @@ export const getProductBySlug = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch product details" });
   }
 };
+
+// 🟢 Search Products by name, description, or category
+export const searchProducts = async (req, res) => {
+  try {
+    const query = req.query.q?.trim() || "";
+
+    if (!query) {
+      return res.status(200).json([]); // No query → return empty list
+    }
+
+    const products = await Product.find({
+      $or: [
+        { name: { $regex: query, $options: "i" } },
+        { description: { $regex: query, $options: "i" } },
+        { "category.name": { $regex: query, $options: "i" } },
+      ],
+    })
+      .populate("category", "name slug image") // optional: populate category info
+      .limit(50); // safety limit
+
+    res.status(200).json(products);
+  } catch (err) {
+    console.error("❌ Error searching products:", err);
+    res.status(500).json({ message: "Failed to search products" });
+  }
+};

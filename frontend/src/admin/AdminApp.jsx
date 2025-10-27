@@ -14,7 +14,8 @@ import Reviews from "./pages/Reviews.jsx";
 import Discount from "./pages/Discount.jsx";
 import Gifts from "./pages/Gifts.jsx";
 import Refunds from "./pages/Refunds.jsx";
-import Returns from "./pages/Returns.jsx"
+import Returns from "./pages/Returns.jsx";
+import JewellerySection from "./pages/JewellerySection.jsx";
 
 export default function AdminApp() {
   return (
@@ -41,6 +42,7 @@ export default function AdminApp() {
                <Route path="/admin/gifts" element={<Gifts />} />
                <Route path="/admin/refunds" element={<Refunds />} />
                <Route path="/admin/returns" element={<Returns />} />
+                <Route path="/admin/jewellery-section" element={<JewellerySection />} />
             </Routes>
           </main>
         </div>

@@ -205,7 +205,7 @@ export default function Header() {
             </span>
           )}
         </button>
-
+ 
         {/* Total Price */}
         <span className="font-semibold text-gray-800">
           ₹{getTotalPrice().toLocaleString()}

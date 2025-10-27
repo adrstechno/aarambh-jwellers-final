@@ -8,7 +8,7 @@ import {
   getAllProducts,
   getProductsByCategory,
   getProductById,
-  getProductBySlug,
+  getProductBySlug,searchProducts
 } from "../controllers/productController.js";
 
 const router = express.Router();
@@ -39,6 +39,7 @@ const upload = multer({
 /* ==========================================
    🟢 PUBLIC ROUTES (for website frontend)
 ========================================== */
+router.get("/search", searchProducts);
 
 // ✅ Get all active products
 router.get("/", getAllProducts);
