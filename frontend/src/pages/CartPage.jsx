@@ -1,24 +1,25 @@
-import { useEffect, useState } from "react";
-import {
-  getCart,
-  removeFromCartAPI,
-  updateQuantityAPI,
-  clearCartAPI,
-} from "../api/cartApi";
+// src/pages/CartPage.jsx
+import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../context/AppContext";
 import { useNavigate } from "react-router-dom";
 
 export default function CartPage() {
-  const { user } = useApp();
-  const navigate = useNavigate();
-  const [cart, setCart] = useState({ items: [], total: 0 });
-  const [loading, setLoading] = useState(true);
+  const {
+    user,
+    cart: ctxCart, // array of items from context
+    updateCartQuantity,
+    removeFromCart,
+    clearCart,
+  } = useApp();
 
-  // ✅ Base URL for safe image paths
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+
+  // Base URL for safe image paths
   const BASE_URL =
     import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
 
-  // ✅ Normalize image URLs (handles /uploads/, uploads/, and full URLs)
+  // Normalize image URLs (handles /uploads/, uploads/, and full URLs)
   const fixImageURL = (image) => {
     if (!image) return "/placeholder.jpg";
     const clean = image.replace(/\\/g, "/");
@@ -28,84 +29,59 @@ export default function CartPage() {
     return image;
   };
 
-  // ✅ Load user cart on mount
-  useEffect(() => {
-    if (!user) return;
-    const fetchCart = async () => {
-      try {
-        setLoading(true);
-        const data = await getCart(user._id, user.token);
+  // derive normalized cart items for UI (memoized)
+  const cart = useMemo(() => {
+    const items = (ctxCart || []).map((i) => ({
+      ...i,
+      // in your context each item likely has shape { product: {...}, quantity, price }
+      product: {
+        ...i.product,
+        image: fixImageURL(i.product?.image),
+      },
+    }));
+    const total = items.reduce((s, it) => s + (it.price || 0) * (it.quantity || 0), 0);
+    return { items, total };
+  }, [ctxCart]);
 
-        // Normalize images for each product
-        const normalizedCart = {
-          ...data,
-          items: data.items?.map((i) => ({
-            ...i,
-            product: {
-              ...i.product,
-              image: fixImageURL(i.product?.image),
-            },
-          })) || [],
-        };
-
-        setCart(normalizedCart);
-      } catch (err) {
-        console.error("❌ Failed to load cart:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCart();
-  }, [user]);
-
-  // ✅ Quantity change handler
+  // helpers that call context actions and provide small local loading indicator
   const handleQuantityChange = async (productId, newQty) => {
     if (newQty <= 0) return;
     try {
-      const data = await updateQuantityAPI(user._id, productId, newQty, user.token);
-
-      // Normalize again after update
-      const normalized = {
-        ...data,
-        items: data.items.map((i) => ({
-          ...i,
-          product: { ...i.product, image: fixImageURL(i.product?.image) },
-        })),
-      };
-      setCart(normalized);
+      setLoading(true);
+      // context action should update global cart and header instantly
+      await updateCartQuantity(productId, newQty);
+      // no local setState required — cart comes from context
     } catch (err) {
       console.error("❌ Failed to update quantity:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // ✅ Remove single item
   const handleRemoveItem = async (productId) => {
     try {
-      const data = await removeFromCartAPI(user._id, productId, user.token);
-      const normalized = {
-        ...data,
-        items: data.items.map((i) => ({
-          ...i,
-          product: { ...i.product, image: fixImageURL(i.product?.image) },
-        })),
-      };
-      setCart(normalized);
+      setLoading(true);
+      await removeFromCart(productId);
+      // context updates; no local set needed
     } catch (err) {
       console.error("❌ Failed to remove item:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // ✅ Clear full cart
   const handleClearCart = async () => {
     try {
-      await clearCartAPI(user._id, user.token);
-      setCart({ items: [], total: 0 });
+      setLoading(true);
+      await clearCart();
     } catch (err) {
       console.error("❌ Failed to clear cart:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // 🟠 Not logged in
+  // Not logged in
   if (!user)
     return (
       <div className="min-h-screen flex flex-col justify-center items-center text-center">
@@ -119,15 +95,15 @@ export default function CartPage() {
       </div>
     );
 
-  // 🟡 Loading state
+  // Loading state (optional, show while update is in-flight)
   if (loading)
     return (
       <div className="text-center py-10 text-gray-600">
-        Loading your cart...
+        Updating cart...
       </div>
     );
 
-  // 🔴 Empty cart
+  // Empty cart
   if (!cart.items?.length)
     return (
       <div className="min-h-screen flex flex-col justify-center items-center text-center">
@@ -141,7 +117,7 @@ export default function CartPage() {
       </div>
     );
 
-  // ✅ Cart UI
+  // Cart UI
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       <h1 className="text-3xl font-bold mb-6">My Cart</h1>
@@ -155,7 +131,7 @@ export default function CartPage() {
           >
             <div className="flex items-center gap-4">
               <img
-                src={fixImageURL(item.product.image)}
+                src={item.product.image || "/placeholder.jpg"}
                 alt={item.product.name}
                 className="h-16 w-16 rounded object-cover border border-gray-200"
                 onError={(e) => (e.target.src = "/placeholder.jpg")}
@@ -165,7 +141,7 @@ export default function CartPage() {
                   {item.product.name}
                 </h3>
                 <p className="text-sm text-gray-500">
-                  ₹{item.price.toLocaleString()}
+                  ₹{(item.price || 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -176,7 +152,7 @@ export default function CartPage() {
                 min="1"
                 value={item.quantity}
                 onChange={(e) =>
-                  handleQuantityChange(item.product._id, parseInt(e.target.value))
+                  handleQuantityChange(item.product._id, parseInt(e.target.value, 10))
                 }
                 className="w-16 text-center border rounded-md focus:ring-2 focus:ring-red-500"
               />

@@ -4,9 +4,7 @@ import slugify from "slugify";
 import fs from "fs";
 import path from "path";
 
-/* ==========================================================
-   🧩 Helper: Fix Image Path (make it absolute)
-========================================================== */
+
 const fixImagePath = (imagePath) => {
   if (!imagePath) return null;
 
@@ -19,9 +17,7 @@ const fixImagePath = (imagePath) => {
     : `${base}/${cleanPath}`;
 };
 
-/* ==========================================================
-   🟢 Add New Product
-========================================================== */
+
 export const addProduct = async (req, res) => {
   try {
     const { name, category, price, stock, status, material, description } = req.body;
@@ -69,9 +65,7 @@ export const addProduct = async (req, res) => {
   }
 };
 
-/* ==========================================================
-   🟡 Get All Products (Admin)
-========================================================== */
+
 export const getProducts = async (req, res) => {
   try {
     const products = await Product.find()
@@ -91,9 +85,7 @@ export const getProducts = async (req, res) => {
   }
 };
 
-/* ==========================================================
-   🟠 Update Product (Admin)
-========================================================== */
+
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -145,9 +137,7 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-/* ==========================================================
-   🔴 Delete Product
-========================================================== */
+
 export const deleteProduct = async (req, res) => {
   try {
     const deleted = await Product.findByIdAndDelete(req.params.id);
@@ -165,9 +155,7 @@ export const deleteProduct = async (req, res) => {
   }
 };
 
-/* ==========================================================
-   🌐 Public Routes
-========================================================== */
+//public routes
 export const getAllProducts = async (req, res) => {
   try {
     const products = await Product.find({ status: "Active" })

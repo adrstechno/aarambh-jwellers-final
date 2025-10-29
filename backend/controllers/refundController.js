@@ -1,9 +1,6 @@
 import Refund from "../models/refund.js";
 import Order from "../models/order.js";
 
-/* =======================================================
-   🧩 Helper — Normalize Image URLs
-======================================================= */
 const fixImagePath = (image) => {
   if (!image) return null;
   const cleanPath = image.replace(/\\/g, "/"); // fix Windows backslashes
@@ -26,9 +23,7 @@ const normalizeRefundImages = (refunds) =>
       : null,
   }));
 
-/* =======================================================
-   👨‍💼 ADMIN CONTROLLERS
-======================================================= */
+//admin controllers
 
 // 🧾 Get all refund requests (Admin)
 export const getAllRefunds = async (req, res) => {
@@ -102,9 +97,8 @@ export const deleteRefund = async (req, res) => {
   }
 };
 
-/* =======================================================
-   🧍 USER CONTROLLERS
-======================================================= */
+//user controllers
+
 
 // 🟢 Create Refund Request (User)
 export const createRefundRequest = async (req, res) => {
@@ -142,7 +136,6 @@ export const createRefundRequest = async (req, res) => {
 };
 
 // 🟣 Get Refunds for the Logged-in User
-// 🟣 Get Refunds for the Logged-in User (temporary version)
 export const getUserRefunds = async (req, res) => {
   try {
     const userId = req.user?._id || req.query.userId;

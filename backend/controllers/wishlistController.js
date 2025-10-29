@@ -1,8 +1,6 @@
 import Wishlist from "../models/wishlist.js";
 
-/* ======================================================
-   🧠 Helper — Fix Image URLs for Products
-====================================================== */
+
 const fixImagePath = (image) => {
   if (!image) return null;
 
@@ -30,9 +28,6 @@ const normalizeWishlistImages = (wishlist) => {
   };
 };
 
-/* ======================================================
-   🟢 Get Wishlist
-====================================================== */
 export const getWishlist = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -47,9 +42,6 @@ export const getWishlist = async (req, res) => {
   }
 };
 
-/* ======================================================
-   🟡 Add Product to Wishlist
-====================================================== */
 export const addToWishlist = async (req, res) => {
   try {
     const { userId, productId } = req.body;
@@ -78,9 +70,7 @@ export const addToWishlist = async (req, res) => {
   }
 };
 
-/* ======================================================
-   🔴 Remove Product from Wishlist
-====================================================== */
+
 export const removeFromWishlist = async (req, res) => {
   try {
     const { userId, productId } = req.body;

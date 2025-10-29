@@ -3,27 +3,21 @@ import { useState } from "react";
 import { Heart, Eye, ShoppingCart } from "lucide-react";
 import { useApp } from "../../context/AppContext.jsx";
 import { useNavigate } from "react-router-dom";
-import {
-  addToWishlistAPI,
-  removeFromWishlistAPI,
-} from "../../api/wishlistApi.js";
-import { addToCartAPI } from "../../api/cartApi.js";
 
 export default function ProductCard({ product }) {
   const [isHovered, setIsHovered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(false);
 
-  const { user } = useApp();
+  // ✅ Use context functions
+  const { user, addToCart, addToWishlist, removeFromWishlist } = useApp();
   const navigate = useNavigate();
 
   const isSoldOut = product.stock === 0 || product.status === "Inactive";
 
-  // ✅ Unified image base URL
   const BASE_URL =
     import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
 
-  // ✅ Safe image handling
   const productImage =
     (Array.isArray(product.images) && product.images[0]) ||
     product.image ||
@@ -33,7 +27,9 @@ export default function ProductCard({ product }) {
     ? productImage
     : `${BASE_URL}${productImage}`;
 
-  // 🛒 Add to Cart
+  /* ======================================================
+     🛒 Add to Cart
+  ====================================================== */
   const handleAddToCart = async (e) => {
     e.stopPropagation();
     if (!user) return alert("Please login to add to cart.");
@@ -41,17 +37,17 @@ export default function ProductCard({ product }) {
 
     try {
       setIsLoading(true);
-      await addToCartAPI(user._id, product._id, 1, user.token);
-      alert("✅ Product added to cart!");
+      await addToCart(product, 1); // ✅ Context-based add
     } catch (err) {
       console.error("❌ Failed to add to cart:", err);
-      alert("Failed to add to cart. Try again!");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ❤️ Wishlist Toggle
+  /* ======================================================
+     ❤️ Wishlist Toggle
+  ====================================================== */
   const handleWishlistToggle = async (e) => {
     e.stopPropagation();
     if (!user) return alert("Please login to manage wishlist.");
@@ -59,13 +55,11 @@ export default function ProductCard({ product }) {
     try {
       setIsLoading(true);
       if (isInWishlist) {
-        await removeFromWishlistAPI(user._id, product._id, user.token);
+        await removeFromWishlist(product._id); // ✅ Context-based remove
         setIsInWishlist(false);
-        alert("💔 Removed from wishlist!");
       } else {
-        await addToWishlistAPI(user._id, product._id, user.token);
+        await addToWishlist(product); // ✅ Context-based add
         setIsInWishlist(true);
-        alert("❤️ Added to wishlist!");
       }
     } catch (err) {
       console.error("❌ Wishlist update failed:", err);
@@ -74,7 +68,6 @@ export default function ProductCard({ product }) {
     }
   };
 
-  // 👁 Quick View
   const handleQuickView = (e) => {
     e.stopPropagation();
     navigate(`/product/${product.slug}`);
@@ -84,6 +77,9 @@ export default function ProductCard({ product }) {
     navigate(`/product/${product.slug}`);
   };
 
+  /* ======================================================
+     🎨 UI
+  ====================================================== */
   return (
     <div
       className="bg-white rounded-lg shadow-md overflow-hidden group cursor-pointer will-change-transform"

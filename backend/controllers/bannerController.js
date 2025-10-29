@@ -2,9 +2,7 @@ import Banner from "../models/banner.js";
 import fs from "fs";
 import path from "path";
 
-/* =========================================================
-   🟢 Public: Get Active Banners (Homepage Carousel)
-========================================================= */
+
 export const getBanners = async (req, res) => {
   try {
     const banners = await Banner.find({ active: true }).sort({ order: 1 });
@@ -15,9 +13,6 @@ export const getBanners = async (req, res) => {
   }
 };
 
-/* =========================================================
-   🟡 Admin: Get All Banners (with sorting)
-========================================================= */
 export const getAllBanners = async (req, res) => {
   try {
     const banners = await Banner.find().sort({ order: 1, createdAt: -1 });
@@ -28,9 +23,6 @@ export const getAllBanners = async (req, res) => {
   }
 };
 
-/* =========================================================
-   🟠 Admin: Create Banner
-========================================================= */
 export const createBanner = async (req, res) => {
   try {
     const { title, subtitle, link, order, active } = req.body;
@@ -61,9 +53,6 @@ export const createBanner = async (req, res) => {
   }
 };
 
-/* =========================================================
-   🔵 Admin: Update Banner
-========================================================= */
 export const updateBanner = async (req, res) => {
   try {
     const { id } = req.params;
@@ -100,9 +89,6 @@ export const updateBanner = async (req, res) => {
   }
 };
 
-/* =========================================================
-   🔴 Admin: Delete Banner
-========================================================= */
 export const deleteBanner = async (req, res) => {
   try {
     const { id } = req.params;
@@ -127,9 +113,6 @@ export const deleteBanner = async (req, res) => {
   }
 };
 
-/* =========================================================
-   ⚪ Admin: Reorder Banners (Optional)
-========================================================= */
 // 🟡 Reorder Banners
 export const reorderBanners = async (req, res) => {
   try {
@@ -139,7 +122,6 @@ export const reorderBanners = async (req, res) => {
       return res.status(400).json({ message: "Invalid banners data" });
     }
 
-    // Bulk update all banners with new order
     const bulkOps = banners.map((b) => ({
       updateOne: {
         filter: { _id: b._id },

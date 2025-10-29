@@ -1,4 +1,3 @@
-// backend/routes/userRoutes.js
 import express from "express";
 import {
   getAllUsers,
@@ -12,41 +11,43 @@ import {
   removeAdmin,
 } from "../controllers/userController.js";
 
+import { protect, adminOnly } from "../middlewares/authMiddleware.js";
+
 const router = express.Router();
 
-/* ============================
-   👑 ADMIN ROUTES (temporarily public)
-============================ */
+/* =======================================================
+   👑 ADMIN ROUTES — PROTECTED WITH `adminOnly`
+======================================================= */
 
-// 🟢 Get all users (Temporarily public)
-router.get("/", getAllUsers);
+// 🟢 Get all users (Admin)
+router.get("/", protect, adminOnly, getAllUsers);
 
-// 🟢 Toggle user active/block status
-router.put("/:id/status", toggleUserStatus);
+// 🟢 Toggle user active/block status (Admin)
+router.put("/:id/status", protect, adminOnly, toggleUserStatus);
 
-// 🟢 Toggle user role (Customer/Admin)
-router.put("/:id/role", toggleUserRole);
+// 🟢 Toggle user role (Customer ↔ Admin)
+router.put("/:id/role", protect, adminOnly, toggleUserRole);
 
 // 🟢 Promote user to Admin
-router.put("/make-admin/:id", makeAdmin);
+router.put("/make-admin/:id", protect, adminOnly, makeAdmin);
 
 // 🟢 Revoke Admin privileges
-router.put("/remove-admin/:id", removeAdmin);
+router.put("/remove-admin/:id", protect, adminOnly, removeAdmin);
 
-// 🟢 Get all orders of a specific user
-router.get("/:userId/orders", getUserOrders);
+// 🟣 Fetch orders for specific user
+router.get("/:userId/orders", protect, adminOnly, getUserOrders);
 
-/* ============================
+/* =======================================================
    👤 AUTHENTICATED USER ROUTES
-============================ */
+======================================================= */
 
 // 🟢 Get profile (logged-in user)
-router.get("/me", getProfile);
+router.get("/me", protect, getProfile);
 
-// 🟢 Update profile
-router.put("/me", updateProfile);
+// 🟡 Update profile
+router.put("/me", protect, updateProfile);
 
-// 🟢 Change password
-router.put("/change-password", changePassword);
+// 🔒 Change password
+router.put("/change-password", protect, changePassword);
 
 export default router;

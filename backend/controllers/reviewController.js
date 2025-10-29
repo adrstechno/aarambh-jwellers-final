@@ -1,9 +1,7 @@
 import Review from "../models/review.js";
 import Product from "../models/product.js";
 
-/* ==========================================================
-   🟢 Get All Reviews (Admin)
-========================================================== */
+
 export const getAllReviews = async (req, res) => {
   try {
     const reviews = await Review.find()
@@ -17,9 +15,7 @@ export const getAllReviews = async (req, res) => {
   }
 };
 
-/* ==========================================================
-   🟡 Update Review Status
-========================================================== */
+
 export const updateReviewStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -45,9 +41,7 @@ export const updateReviewStatus = async (req, res) => {
   }
 };
 
-/* ==========================================================
-   🔴 Delete Review
-========================================================== */
+
 export const deleteReview = async (req, res) => {
   try {
     const deleted = await Review.findByIdAndDelete(req.params.id);
@@ -59,9 +53,7 @@ export const deleteReview = async (req, res) => {
   }
 };
 
-/* ==========================================================
-   🟣 Paginated Reviews (Admin)
-========================================================== */
+
 export const getPaginatedReviews = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -88,9 +80,7 @@ export const getPaginatedReviews = async (req, res) => {
   }
 };
 
-/* ==========================================================
-   ⭐ Top Rated Products
-========================================================== */
+
 export const getTopRatedProducts = async (req, res) => {
   try {
     const topRated = await Review.aggregate([
@@ -118,9 +108,7 @@ export const getTopRatedProducts = async (req, res) => {
   }
 };
 
-/* ==========================================================
-   🧩 Get Reviews by Product
-========================================================== */
+
 export const getReviewsByProduct = async (req, res) => {
   try {
     const { productId } = req.params;
@@ -135,9 +123,7 @@ export const getReviewsByProduct = async (req, res) => {
   }
 };
 
-/* ==========================================================
-   📝 Create Review (User)
-========================================================== */
+
 export const createReview = async (req, res) => {
   try {
     const { product, rating, comment, userId } = req.body;

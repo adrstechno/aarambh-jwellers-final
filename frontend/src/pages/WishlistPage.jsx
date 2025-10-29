@@ -1,19 +1,18 @@
-import { useEffect, useState } from "react";
+// src/pages/WishlistPage.jsx
+import { useEffect } from "react";
 import { Heart } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { useNavigate } from "react-router-dom";
 import ProductCard from "../components/products/ProductCard";
-import { getWishlist, removeFromWishlistAPI } from "../api/wishlistApi";
 
 export default function WishlistPage() {
-  const { user } = useApp();
-  const [wishlist, setWishlist] = useState([]);
+  const { user, wishlist, removeFromWishlist } = useApp();
   const navigate = useNavigate();
 
   const BASE_URL =
     import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
 
-  // ✅ Normalize image URLs
+  // Normalize image URLs (local helper, used when rendering product cards)
   const fixImageURL = (image) => {
     if (!image) return "/placeholder.jpg";
     const clean = image.replace(/\\/g, "/");
@@ -23,41 +22,7 @@ export default function WishlistPage() {
     return image;
   };
 
-  // ✅ Fetch wishlist from backend
-  useEffect(() => {
-    if (!user) return;
-    const fetchWishlist = async () => {
-      try {
-        const data = await getWishlist(user._id, user.token);
-        const normalized =
-          data?.products?.map((p) => ({
-            ...p.product,
-            image: fixImageURL(p.product?.image),
-          })) || [];
-        setWishlist(normalized);
-      } catch (err) {
-        console.error("❌ Failed to load wishlist:", err);
-      }
-    };
-    fetchWishlist();
-  }, [user]);
-
-  // ✅ Remove item from wishlist
-  const handleRemove = async (productId) => {
-    try {
-      const data = await removeFromWishlistAPI(user._id, productId, user.token);
-      const normalized =
-        data?.products?.map((p) => ({
-          ...p.product,
-          image: fixImageURL(p.product?.image),
-        })) || [];
-      setWishlist(normalized);
-    } catch (err) {
-      console.error("❌ Failed to remove item:", err);
-    }
-  };
-
-  // 🟡 Not logged in
+  // If not logged in
   if (!user)
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-center">
@@ -67,8 +32,8 @@ export default function WishlistPage() {
       </div>
     );
 
-  // 🔴 Empty wishlist
-  if (wishlist.length === 0)
+  // If wishlist is empty
+  if (!wishlist || wishlist.length === 0)
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -89,7 +54,16 @@ export default function WishlistPage() {
       </div>
     );
 
-  // ✅ Wishlist UI
+  // Remove handler uses context action so whole app updates instantly
+  const handleRemove = async (productId) => {
+    try {
+      await removeFromWishlist(productId);
+      // context updates the wishlist state; no local set needed
+    } catch (err) {
+      console.error("❌ Failed to remove item from wishlist:", err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -99,18 +73,26 @@ export default function WishlistPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {wishlist.map((product) => (
-            <div key={product._id} className="relative group">
-              <ProductCard product={product} />
-              <button
-                onClick={() => handleRemove(product._id)}
-                className="absolute top-2 right-2 bg-white rounded-full shadow p-1 hover:bg-red-100 transition"
-                title="Remove from Wishlist"
-              >
-                <Heart className="w-5 h-5 text-red-500 fill-red-500 group-hover:scale-110 transition-transform" />
-              </button>
-            </div>
-          ))}
+          {wishlist.map((product) => {
+            // ensure product has image normalized for ProductCard
+            const normalized = {
+              ...product,
+              image: fixImageURL(product.image),
+            };
+
+            return (
+              <div key={product._id} className="relative group">
+                <ProductCard product={normalized} />
+                <button
+                  onClick={() => handleRemove(product._id)}
+                  className="absolute top-2 right-2 bg-white rounded-full shadow p-1 hover:bg-red-100 transition"
+                  title="Remove from Wishlist"
+                >
+                  <Heart className="w-5 h-5 text-red-500 fill-red-500 group-hover:scale-110 transition-transform" />
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -1,8 +1,5 @@
 import Order from "../models/order.js";
 
-/* =======================================================
-   🧩 Helper: Fix Image URLs
-======================================================= */
 const fixImagePath = (image) => {
   if (!image) return null;
 
@@ -28,9 +25,7 @@ const normalizeOrderImages = (orders) => {
   }));
 };
 
-/* =======================================================
-   🧍 USER CONTROLLERS
-======================================================= */
+/* user controllers*/
 
 export const createOrder = async (req, res) => {
   try {
@@ -94,9 +89,7 @@ export const getUserOrders = async (req, res) => {
   }
 };
 
-/* =======================================================
-   👨‍💼 ADMIN CONTROLLERS
-======================================================= */
+/* ADMIN CONTROLLERS*/
 
 // 🟢 Get all orders for admin
 export const getAllOrders = async (req, res) => {

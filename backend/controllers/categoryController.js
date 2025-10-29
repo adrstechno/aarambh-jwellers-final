@@ -4,9 +4,7 @@ import slugify from "slugify";
 import fs from "fs";
 import path from "path";
 
-/* ============================================
-   🟢 Create Category
-============================================ */
+
 export const createCategory = async (req, res) => {
   try {
     const { name, parentCategory } = req.body;
@@ -23,7 +21,6 @@ export const createCategory = async (req, res) => {
       return res.status(400).json({ message: "Category already exists" });
     }
 
-    // 🖼️ Image path (optional)
     const imagePath = req.file ? `/uploads/${req.file.filename}` : "/placeholder.jpg";
 
     const category = new Category({
@@ -50,9 +47,7 @@ export const createCategory = async (req, res) => {
   }
 };
 
-/* ============================================
-   🟡 Get Categories with Product Count
-============================================ */
+
 export const getCategoriesWithCount = async (req, res) => {
   try {
     const categories = await Category.aggregate([
@@ -99,9 +94,6 @@ export const getCategoriesWithCount = async (req, res) => {
   }
 };
 
-/* ============================================
-   🟠 Update Category
-============================================ */
 export const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
@@ -138,9 +130,7 @@ export const updateCategory = async (req, res) => {
   }
 };
 
-/* ============================================
-   🔴 Delete Category (with image cleanup)
-============================================ */
+
 export const deleteCategory = async (req, res) => {
   try {
     const category = await Category.findById(req.params.id);
@@ -168,7 +158,6 @@ export const deleteCategory = async (req, res) => {
 // 🟢 Get all active categories for navigation
 export const getActiveCategories = async (req, res) => {
   try {
-    // top-level categories = parentCategory === null
     const categories = await Category.find({ parentCategory: null })
       .select("name slug")
       .sort({ name: 1 });

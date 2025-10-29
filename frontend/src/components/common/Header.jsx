@@ -15,145 +15,182 @@ import {
 import { useApp } from "../../context/AppContext";
 import { useNavigate } from "react-router-dom";
 import LoginModal from "./LoginModal";
-import { getUserProfile } from "../../api/userApi";
-import { getCart } from "../../api/cartApi";
-import { getWishlist } from "../../api/wishlistApi";
+import { searchProducts } from "../../api/productApi";
 
 export default function Header() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [profile, setProfile] = useState(null);
+
   const dropdownRef = useRef(null);
+  const searchRef = useRef(null);
+  const navigate = useNavigate();
 
   const {
-    cart,
+    user,
+    cart, // ✅ Added cart
     wishlist,
     getTotalItems,
     getTotalPrice,
     toggleLoginModal,
     isLoginModalOpen,
-    user,
     logoutUser,
+    isAdmin,
   } = useApp();
 
-  const navigate = useNavigate();
-
   const BASE_URL =
-    import.meta.env.VITE_API_BASE?.replace("/api", "") ||
-    "http://localhost:5000";
+    import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
 
-  // ✅ Close dropdown when clicking outside
+  /* ======================================================
+     🧩 Handle Outside Clicks (Dropdown & Search)
+  ====================================================== */
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target) &&
+        searchRef.current &&
+        !searchRef.current.contains(e.target)
+      ) {
         setIsUserMenuOpen(false);
+        setShowSuggestions(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ✅ Fetch live user profile & sync backend cart/wishlist
+  /* ======================================================
+     🔎 Live Search (Debounced)
+  ====================================================== */
   useEffect(() => {
-    if (!user?.token) return;
+    if (!searchQuery.trim()) {
+      setSuggestions([]);
+      return;
+    }
 
-    const fetchUserData = async () => {
+    const timer = setTimeout(async () => {
       try {
-        const data = await getUserProfile(user.token);
-        setProfile(data);
-
-        // 🛒 Fetch cart + wishlist
-        await Promise.all([
-          getCart(user._id, user.token),
-          getWishlist(user._id, user.token),
-        ]);
+        const data = await searchProducts(searchQuery);
+        setSuggestions(data.slice(0, 6));
+        setShowSuggestions(true);
       } catch (err) {
-        console.error("❌ Error loading user data:", err);
-        if (err.response?.status === 401) {
-          logoutUser();
-          navigate("/");
-        }
+        console.error("❌ Search failed:", err);
       }
-    };
+    }, 400);
 
-    fetchUserData();
-  }, [user?.token]);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  // ✅ Search functionality
+  /* ======================================================
+     🔍 Search Submit
+  ====================================================== */
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+      setShowSuggestions(false);
       setIsMobileMenuOpen(false);
     }
   };
 
-  // ✅ Navigation helper
+  /* ======================================================
+     🖼️ Image Fixer (for Suggestions)
+  ====================================================== */
+  const fixImageURL = (img) => {
+    if (!img) return "/placeholder.jpg";
+    const clean = img.replace(/\\/g, "/");
+    if (clean.startsWith("http")) return clean;
+    if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
+    if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
+    return img;
+  };
+
+  /* ======================================================
+     🧭 Navigation & Logout
+  ====================================================== */
   const handleNavigate = (path) => {
     navigate(path);
     setIsUserMenuOpen(false);
     setIsMobileMenuOpen(false);
   };
 
-  // ✅ Logout (with redirect)
-  const handleLogout = () => {
-    logoutUser();
+  const handleLogout = async () => {
+    await logoutUser();
     setIsUserMenuOpen(false);
     navigate("/");
   };
 
-  // 🧠 Render User Dropdown or Login Button
+  /* ======================================================
+     🧍 User Dropdown Section
+  ====================================================== */
   const renderUserSection = useCallback(() => {
     if (user) {
       return (
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-            className="flex items-center gap-2 text-gray-700 hover:text-red-600 font-semibold transition-colors"
+            className="flex items-center gap-2 text-gray-700 hover:text-red-600 font-medium transition-all"
           >
-            {/* 🧍 Profile Image */}
             <img
               src={
-                profile?.profileImage
-                  ? `${BASE_URL}${profile.profileImage}`
+                user.profileImage
+                  ? `${BASE_URL}${user.profileImage}`
                   : "https://cdn-icons-png.flaticon.com/512/1077/1077012.png"
               }
-              alt="User Avatar"
-              className="w-7 h-7 rounded-full border"
+              alt="User"
+              className="w-8 h-8 rounded-full border shadow-sm"
             />
             <span className="hidden md:inline">
-              Hi, {profile?.name?.split(" ")[0] || user.name || "User"}
+              Hi, {user.name?.split(" ")[0] || "User"}
             </span>
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown
+              className={`w-4 h-4 transition-transform ${
+                isUserMenuOpen ? "rotate-180" : ""
+              }`}
+            />
           </button>
 
-          {/* Dropdown */}
+          {/* Dropdown Menu */}
           {isUserMenuOpen && (
-            <div className="absolute right-0 mt-2 w-52 bg-white shadow-lg border rounded-lg z-50 animate-fadeIn">
-              <button
-                onClick={() => handleNavigate("/account")}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
-              >
-                <User size={16} className="text-gray-500" /> My Profile
-              </button>
-              <button
-                onClick={() => handleNavigate("/orders")}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
-              >
-                <Package2 size={16} className="text-gray-500" /> My Orders
-              </button>
-              <button
-                onClick={() => handleNavigate("/my-refunds")}
-                className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2 text-sm"
-              >
-                <RotateCcw size={16} className="text-gray-500" /> My Refunds
-              </button>
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl border shadow-xl overflow-hidden animate-fadeIn">
+              {isAdmin() ? (
+                <button
+                  onClick={() => handleNavigate("/admin")}
+                  className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-red-50"
+                >
+                  <Package2 size={16} className="mr-2 text-red-500" /> Admin Dashboard
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => handleNavigate("/account")}
+                    className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-red-50"
+                  >
+                    <User size={16} className="mr-2 text-red-500" /> My Profile
+                  </button>
+                  <button
+                    onClick={() => handleNavigate("/orders")}
+                    className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-red-50"
+                  >
+                    <Package2 size={16} className="mr-2 text-red-500" /> My Orders
+                  </button>
+                  <button
+                    onClick={() => handleNavigate("/my-refunds")}
+                    className="flex w-full px-4 py-2 text-sm text-gray-700 hover:bg-red-50"
+                  >
+                    <RotateCcw size={16} className="mr-2 text-red-500" /> My Refunds
+                  </button>
+                </>
+              )}
+
               <button
                 onClick={handleLogout}
-                className="w-full text-left px-4 py-2 hover:bg-red-50 flex items-center gap-2 text-sm text-red-600 border-t"
+                className="flex w-full px-4 py-2 text-sm text-red-600 hover:bg-red-100 border-t"
               >
-                <LogOut size={16} /> Logout
+                <LogOut size={16} className="mr-2" /> Logout
               </button>
             </div>
           )}
@@ -161,95 +198,137 @@ export default function Header() {
       );
     }
 
-    // 🟢 Not Logged In
+    // Not Logged In
     return (
       <button
         onClick={toggleLoginModal}
-        className="text-gray-700 hover:text-red-600 transition-colors flex items-center space-x-1"
-        aria-label="Login or Register"
+        className="text-gray-700 hover:text-red-600 flex items-center space-x-1 font-medium transition-all"
       >
         <User className="w-5 h-5" />
         <span className="hidden lg:inline">LOGIN / REGISTER</span>
       </button>
     );
-  }, [user, profile, toggleLoginModal, logoutUser, isUserMenuOpen]);
+  }, [user, isUserMenuOpen]);
 
-  // ❤️ Cart & Wishlist Buttons
+  /* ======================================================
+     🛍 Wishlist & Cart Section
+  ====================================================== */
   const renderCartWishlist = useCallback(
-    () => (
-      <div className="flex items-center space-x-6">
-        {/* Wishlist */}
-        <button
-          onClick={() => handleNavigate("/wishlist")}
-          className="relative text-gray-700 hover:text-red-600 transition-colors"
-          aria-label="Go to Wishlist"
-        >
-          <Heart className="w-6 h-6" />
-          {wishlist.length > 0 && (
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              {wishlist.length}
-            </span>
-          )}
-        </button>
+    () =>
+      !isAdmin() && (
+        <div className="flex items-center space-x-6">
+          {/* ❤️ Wishlist */}
+          <button
+            onClick={() => handleNavigate("/wishlist")}
+            className="relative text-gray-700 hover:text-red-600 transition-all"
+          >
+            <Heart className="w-6 h-6" />
+            {wishlist.length > 0 && (
+              <span className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-md">
+                {wishlist.length}
+              </span>
+            )}
+          </button>
 
-        {/* Cart */}
-        <button
-          onClick={() => handleNavigate("/cart")}
-          className="relative text-gray-700 hover:text-red-600 transition-colors"
-          aria-label="Go to Cart"
-        >
-          <ShoppingCart className="w-6 h-6" />
-          {getTotalItems() > 0 && (
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-              {getTotalItems()}
-            </span>
-          )}
-        </button>
- 
-        {/* Total Price */}
-        <span className="font-semibold text-gray-800">
-          ₹{getTotalPrice().toLocaleString()}
-        </span>
-      </div>
-    ),
-    [wishlist, getTotalItems, getTotalPrice]
+          {/* 🛒 Cart */}
+          <button
+            onClick={() => handleNavigate("/cart")}
+            className="relative text-gray-700 hover:text-red-600 transition-all"
+          >
+            <ShoppingCart className="w-6 h-6" />
+            {getTotalItems() > 0 && (
+              <span
+                key={getTotalItems()} // ✅ triggers small re-animation
+                className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-md animate-pulse"
+              >
+                {getTotalItems()}
+              </span>
+            )}
+          </button>
+
+          {/* 🏷 Total */}
+          <span className="font-semibold text-gray-800">
+            ₹{getTotalPrice().toLocaleString()}
+          </span>
+        </div>
+      ),
+    [wishlist, cart, getTotalItems, getTotalPrice] // ✅ added `cart` dependency
   );
 
+  /* ======================================================
+     🎨 Header UI
+  ====================================================== */
   return (
     <>
-      {/* 🔻 Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
+      <header className="bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <img
               src="/logo2.png"
               alt="Logo"
-              className="h-14 cursor-pointer"
-              onClick={() => handleNavigate("/")}
+              className="h-14 cursor-pointer hover:scale-105 transition-transform duration-300"
+              onClick={() => handleNavigate(isAdmin() ? "/admin" : "/")}
             />
 
-            {/* Search Bar */}
-            <div className="flex-1 max-w-lg mx-8 hidden md:block">
-              <form onSubmit={handleSearch} className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search for products"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
-                <button
-                  type="submit"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 hover:text-red-500 transition-colors"
-                  aria-label="Search Products"
-                >
-                  <Search className="w-5 h-5 text-gray-400" />
-                </button>
-              </form>
-            </div>
+            {/* Search Bar (Hidden for Admins) */}
+            {!isAdmin() && (
+              <div ref={searchRef} className="relative flex-1 max-w-lg mx-8 hidden md:block">
+                <form onSubmit={handleSearch}>
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Search for products..."
+                    className="w-full px-5 py-2 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm"
+                    onFocus={() => setShowSuggestions(suggestions.length > 0)}
+                  />
+                  <button
+                    type="submit"
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-red-500 transition"
+                  >
+                    <Search className="w-5 h-5" />
+                  </button>
+                </form>
 
-            {/* Desktop Navigation */}
+                {/* Suggestions */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-72 overflow-y-auto animate-fadeIn">
+                    {suggestions.map((product) => (
+                      <div
+                        key={product._id}
+                        onClick={() => {
+                          navigate(
+                            product.slug
+                              ? `/product/${product.slug}`
+                              : `/product/${product._id}`
+                          );
+                          setShowSuggestions(false);
+                          setSearchQuery("");
+                        }}
+                        className="flex items-center gap-3 px-3 py-2 hover:bg-red-50 cursor-pointer transition-all"
+                      >
+                        <img
+                          src={fixImageURL(product.image)}
+                          alt={product.name}
+                          className="w-10 h-10 rounded object-cover border"
+                        />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-800 line-clamp-1">
+                            {product.name}
+                          </p>
+                          <p className="text-xs text-red-600 font-semibold">
+                            ₹{product.price?.toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Desktop: User + Cart */}
             <div className="hidden md:flex items-center space-x-6">
               {renderUserSection()}
               {renderCartWishlist()}
@@ -257,45 +336,15 @@ export default function Header() {
 
             {/* Mobile Menu Button */}
             <button
-              className="md:hidden text-gray-700 hover:text-red-600 transition-colors"
+              className="md:hidden text-gray-700 hover:text-red-600"
               onClick={() => {
                 setIsMobileMenuOpen(!isMobileMenuOpen);
                 setIsUserMenuOpen(false);
               }}
-              aria-label="Toggle Mobile Menu"
             >
-              {isMobileMenuOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
+              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
-
-          {/* Mobile Menu */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden border-t border-gray-200 py-4 flex flex-col space-y-4">
-              <form onSubmit={handleSearch} className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search for products"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                />
-                <button
-                  type="submit"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                  aria-label="Search Products"
-                >
-                  <Search className="w-5 h-5 text-gray-400" />
-                </button>
-              </form>
-
-              {renderUserSection()}
-              {renderCartWishlist()}
-            </div>
-          )}
         </div>
       </header>
 

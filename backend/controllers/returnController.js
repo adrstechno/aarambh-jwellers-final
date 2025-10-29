@@ -1,9 +1,7 @@
 import Return from "../models/return.js";
 import Order from "../models/order.js";
 
-/* =======================================================
-   🧩 Helper — Normalize Image URLs
-======================================================= */
+
 const fixImagePath = (image) => {
   if (!image) return null;
   const cleanPath = image.replace(/\\/g, "/");
@@ -26,9 +24,7 @@ const normalizeReturnImages = (returns) =>
       : null,
   }));
 
-/* =======================================================
-   👨‍💼 ADMIN CONTROLLERS
-======================================================= */
+//admin controllers
 
 // 🟢 Get all return requests (Admin)
 export const getAllReturns = async (req, res) => {
@@ -94,9 +90,7 @@ export const deleteReturn = async (req, res) => {
   }
 };
 
-/* =======================================================
-   🧍 USER CONTROLLERS
-======================================================= */
+//user controllers
 
 // 🟢 Create return request (User)
 export const createReturnRequest = async (req, res) => {

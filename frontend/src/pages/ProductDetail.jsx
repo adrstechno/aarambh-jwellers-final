@@ -1,7 +1,11 @@
 // src/pages/ProductDetail.jsx
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getProductBySlug, getProductsByCategory } from "../api/productApi.js";
+import {
+  getProductBySlug,
+  getProductById,
+  getProductsByCategory,
+} from "../api/productApi.js";
 import { getReviewsByProduct, addReview } from "../api/reviewApi.js";
 import { useApp } from "../context/AppContext.jsx";
 import ProductCard from "../components/products/ProductCard.jsx";
@@ -19,22 +23,33 @@ export default function ProductDetail() {
   const BASE_URL =
     import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
 
-  // ✅ Helper: Fix image URL safely
   const fixImageURL = (image) => {
     if (!image) return "/placeholder.jpg";
-    const clean = image.replace(/\\/g, "/"); // Fix Windows slashes
+    const clean = image.replace(/\\/g, "/");
     if (clean.startsWith("http")) return clean;
     if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
     if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
     return image;
   };
 
-  // 🟢 Fetch product + related products + reviews
+  // 🟢 Fetch product by slug or ID
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const data = await getProductBySlug(slug);
+        let data;
+
+        // ✅ Check if the param looks like a Mongo ObjectId (24-char hex)
+        const isObjectId = /^[0-9a-fA-F]{24}$/.test(slug);
+
+        if (isObjectId) {
+          data = await getProductById(slug);
+        } else {
+          data = await getProductBySlug(slug);
+        }
+
+        if (!data) throw new Error("Product not found");
+
         const normalized = { ...data, image: fixImageURL(data.image) };
         setProduct(normalized);
 
@@ -47,6 +62,7 @@ export default function ProductDetail() {
         setReviews(revs);
       } catch (err) {
         console.error("❌ Error fetching product details:", err);
+        setProduct(null);
       } finally {
         setLoading(false);
       }
@@ -80,8 +96,11 @@ export default function ProductDetail() {
     }
   };
 
-  if (loading || !product)
+  if (loading)
     return <div className="p-10 text-center text-gray-600">Loading product...</div>;
+
+  if (!product)
+    return <div className="p-10 text-center text-gray-500">Product not found.</div>;
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
@@ -141,7 +160,6 @@ export default function ProductDetail() {
           </div>
         )}
 
-        {/* Add Review */}
         {user && (
           <form
             onSubmit={handleAddReview}

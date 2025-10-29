@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+// src/admin/AdminApp.jsx
+import { Routes, Route } from "react-router-dom";
 
 import Sidebar from "./components/Sidebar.jsx";
 import Header from "./components/Header.jsx";
@@ -19,34 +20,32 @@ import JewellerySection from "./pages/JewellerySection.jsx";
 
 export default function AdminApp() {
   return (
-    <Router>
-      <div className="flex min-h-screen bg-gray-100">
-        {/* Sidebar */}
-        <Sidebar />
+    <div className="flex min-h-screen bg-gray-100">
+      {/* Sidebar */}
+      <Sidebar />
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col">
-          <Header />
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col">
+        <Header />
 
-          <main className="p-6 flex-1 overflow-y-auto">
-            <Routes>
-              <Route path="/admin" element={<Dashboard />} />
-              <Route path="/admin/products" element={<Products />} />
-              <Route path="/admin/categories" element={<Categories />} />
-              <Route path="/admin/orders" element={<Orders />} />
-              <Route path="/admin/users" element={<Users />} />
-              <Route path="/admin/reviews" element={<Reviews />} />
-              <Route path="/admin/discount" element={<Discount />} />
-              <Route path="/admin/reports" element={<Reports />} />
-              <Route path="/admin/banners" element={<Banners />} />
-               <Route path="/admin/gifts" element={<Gifts />} />
-               <Route path="/admin/refunds" element={<Refunds />} />
-               <Route path="/admin/returns" element={<Returns />} />
-                <Route path="/admin/jewellery-section" element={<JewellerySection />} />
-            </Routes>
-          </main>
-        </div>
+        <main className="p-6 flex-1 overflow-y-auto">
+          <Routes>
+            <Route path="/admin" element={<Dashboard />} />
+            <Route path="/admin/products" element={<Products />} />
+            <Route path="/admin/categories" element={<Categories />} />
+            <Route path="/admin/orders" element={<Orders />} />
+            <Route path="/admin/users" element={<Users />} />
+            <Route path="/admin/reviews" element={<Reviews />} />
+            <Route path="/admin/discount" element={<Discount />} />
+            <Route path="/admin/reports" element={<Reports />} />
+            <Route path="/admin/banners" element={<Banners />} />
+            <Route path="/admin/gifts" element={<Gifts />} />
+            <Route path="/admin/refunds" element={<Refunds />} />
+            <Route path="/admin/returns" element={<Returns />} />
+            <Route path="/admin/jewellery-section" element={<JewellerySection />} />
+          </Routes>
+        </main>
       </div>
-    </Router>
+    </div>
   );
 }

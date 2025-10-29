@@ -44,11 +44,13 @@ router.get("/search", searchProducts);
 // ✅ Get all active products
 router.get("/", getAllProducts);
 
+// ✅ Get product by slug (must come before :id)
+router.get("/slug/:slug", getProductBySlug);
+
 // ✅ Get products by category slug
 router.get("/category/:category", getProductsByCategory);
 
-// ✅ Get product by slug (must come before :id)
-router.get("/slug/:slug", getProductBySlug);
+
 
 // ✅ Get product by ID
 router.get("/:id", getProductById);

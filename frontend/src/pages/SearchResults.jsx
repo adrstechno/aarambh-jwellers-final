@@ -10,12 +10,27 @@ export default function SearchResults() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const BASE_URL =
+    import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
+
+  // ✅ Fix image URLs safely
+  const fixImageURL = (img) => {
+    if (!img) return "/placeholder.jpg";
+    const clean = img.replace(/\\/g, "/");
+    if (clean.startsWith("http")) return clean;
+    if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
+    if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
+    return img;
+  };
+
+  // ✅ Extract query from URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const q = params.get("q") || "";
     setQuery(q);
   }, [location.search]);
 
+  // ✅ Fetch results whenever query changes
   useEffect(() => {
     if (!query.trim()) return;
 
@@ -23,7 +38,12 @@ export default function SearchResults() {
       try {
         setLoading(true);
         const data = await searchProducts(query);
-        setResults(data);
+
+        // Normalize image paths
+        const normalized = Array.isArray(data)
+          ? data.map((p) => ({ ...p, image: fixImageURL(p.image) }))
+          : [];
+        setResults(normalized);
       } catch (err) {
         console.error("❌ Error fetching search results:", err);
       } finally {
@@ -50,23 +70,28 @@ export default function SearchResults() {
           {results.map((product) => (
             <div
               key={product._id}
-              onClick={() => navigate(`/product/${product._id}`)}
+              onClick={() =>
+                navigate(
+                  product.slug
+                    ? `/product/${product.slug}` // ✅ Prefer slug-based navigation
+                    : `/product/${product._id}` // fallback if slug missing
+                )
+              }
               className="bg-white border rounded-lg shadow hover:shadow-lg transition cursor-pointer"
             >
               <img
-                src={
-                  product.image?.startsWith("http")
-                    ? product.image
-                    : `http://localhost:5000${product.image}`
-                }
+                src={fixImageURL(product.image)}
                 alt={product.name}
                 className="w-full h-48 object-cover rounded-t-lg"
+                onError={(e) => (e.target.src = "/placeholder.jpg")}
               />
               <div className="p-4 text-center">
                 <h3 className="text-sm font-semibold text-gray-800 mb-1">
                   {product.name}
                 </h3>
-                <p className="text-red-600 font-medium">₹{product.price}</p>
+                <p className="text-red-600 font-medium">
+                  ₹{product.price?.toLocaleString()}
+                </p>
               </div>
             </div>
           ))}

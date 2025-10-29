@@ -1,8 +1,6 @@
 import Gift from "../models/gift.js";
 
-/* =====================================================
-   🟢 Add Gift (Admin)
-===================================================== */
+
 export const createGift = async (req, res) => {
   try {
     const { name, code, description, conditionType, conditionValue, stock, status } = req.body;
@@ -34,9 +32,7 @@ export const createGift = async (req, res) => {
   }
 };
 
-/* =====================================================
-   🟡 Get All Gifts (Admin + User)
-===================================================== */
+
 export const getAllGifts = async (req, res) => {
   try {
     const { status } = req.query; // optional query ?status=Active
@@ -62,9 +58,7 @@ export const getAllGifts = async (req, res) => {
   }
 };
 
-/* =====================================================
-   🟢 Get Single Gift by Code (User)
-===================================================== */
+
 export const getGiftByCode = async (req, res) => {
   try {
     const { code } = req.params;
@@ -92,9 +86,7 @@ export const getGiftByCode = async (req, res) => {
   }
 };
 
-/* =====================================================
-   🟠 Update Gift (Admin)
-===================================================== */
+
 export const updateGift = async (req, res) => {
   try {
     const { id } = req.params;
@@ -117,9 +109,7 @@ export const updateGift = async (req, res) => {
   }
 };
 
-/* =====================================================
-   🔴 Delete Gift (Admin)
-===================================================== */
+
 export const deleteGift = async (req, res) => {
   try {
     const gift = await Gift.findByIdAndDelete(req.params.id);
@@ -133,9 +123,6 @@ export const deleteGift = async (req, res) => {
   }
 };
 
-/* =====================================================
-   🔁 Toggle Gift Status (Admin)
-===================================================== */
 export const toggleGiftStatus = async (req, res) => {
   try {
     const gift = await Gift.findById(req.params.id);
