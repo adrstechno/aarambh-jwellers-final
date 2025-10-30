@@ -33,9 +33,22 @@ const app = express();
 ======================================================= */
 
 // ✅ CORS Configuration
+const allowedOrigins = [
+  process.env.FRONTEND_URL, // ✅ from Render environment variable
+  "http://localhost:5173",  // ✅ for local dev
+];
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173", // your frontend
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // allow tools like Postman
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        console.warn(`❌ CORS blocked request from origin: ${origin}`);
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
