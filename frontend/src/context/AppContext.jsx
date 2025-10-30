@@ -288,20 +288,31 @@ export function AppProvider({ children }) {
   };
 
   const logoutUser = async () => {
-    try {
-      await logoutAPI();
-    } catch {
-      /* ignore */
-    } finally {
-      setUser(null);
-      setCart([]);
-      setWishlist([]);
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
-      toast.success("Logged out 👋");
-      navigate("/");
-    }
-  };
+  try {
+    await logoutAPI();
+  } catch {
+    /* ignore server logout error */
+  } finally {
+    // ✅ Immediately clear all app state
+    setUser(null);
+    setCart([]);
+    setWishlist([]);
+
+    // ✅ Clear persistent storage
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+
+    toast.success("Logged out 👋");
+
+    // ✅ Navigate to user home
+    navigate("/");
+
+    // ✅ Ensure UI re-renders instantly across routes
+    setTimeout(() => {
+      window.location.reload(); // 👈 only reloads once to reset admin/user root
+    }, 200);
+  }
+};
 
   /* =====================================================
      🧩 PROVIDER VALUE

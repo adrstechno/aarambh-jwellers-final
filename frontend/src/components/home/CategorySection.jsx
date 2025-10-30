@@ -11,21 +11,36 @@ export default function CategorySection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const BASE_URL =
+    import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
+
+  // 🧩 Normalize image URLs (Cloudinary + Local)
+  const fixImageURL = (img) => {
+    if (!img) return "/placeholder.jpg";
+    const clean = img.replace(/\\/g, "/");
+    if (clean.startsWith("http")) return clean; // ✅ Cloudinary or external
+    if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
+    if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
+    return "/placeholder.jpg";
+  };
+
   // 🔹 Fetch categories from backend
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const data = await getCategories();
-        if (Array.isArray(data)) {
-          setCategories(data);
-        } else if (data?.categories) {
-          // in case API returns { categories: [...] }
-          setCategories(data.categories);
-        } else {
-          console.warn("Unexpected category API response:", data);
-          setCategories([]);
-        }
+        const categoryArray = Array.isArray(data)
+          ? data
+          : data?.categories || [];
+
+        // ✅ Normalize image URLs
+        const normalized = categoryArray.map((c) => ({
+          ...c,
+          image: fixImageURL(c.image),
+        }));
+
+        setCategories(normalized);
       } catch (err) {
         console.error("❌ Failed to load categories:", err);
         setError("Unable to load categories. Please try again later.");
@@ -142,8 +157,7 @@ export default function CategorySection() {
                 {/* Image */}
                 <div className="aspect-square relative rounded-xl overflow-hidden shadow-md">
                   <motion.img
-                   src={`${import.meta.env.VITE_API_BASE?.replace('/api', '') || "http://localhost:5000"}${category.image}`}
-
+                    src={fixImageURL(category.image)}
                     alt={category.name}
                     className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-300 group-hover:scale-105"
                     onError={(e) => (e.target.src = "/placeholder.jpg")}
@@ -152,9 +166,7 @@ export default function CategorySection() {
                 </div>
 
                 {/* Category Title */}
-                <motion.h3
-                  className="mt-3 text-center text-sm font-medium text-gray-800 truncate group-hover:text-red-600 transition-colors"
-                >
+                <motion.h3 className="mt-3 text-center text-sm font-medium text-gray-800 truncate group-hover:text-red-600 transition-colors">
                   {category.name}
                 </motion.h3>
               </motion.div>

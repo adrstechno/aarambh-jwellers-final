@@ -1,10 +1,13 @@
 import Category from "../models/category.js";
 import Product from "../models/product.js";
 import slugify from "slugify";
+import cloudinary from "../config/cloudinary.js";
 import fs from "fs";
 import path from "path";
 
-
+/* ===========================================================
+   🟢 CREATE CATEGORY (with Cloudinary upload)
+=========================================================== */
 export const createCategory = async (req, res) => {
   try {
     const { name, parentCategory } = req.body;
@@ -13,7 +16,7 @@ export const createCategory = async (req, res) => {
       return res.status(400).json({ message: "Category name is required" });
     }
 
-    // 🔎 Check for duplicates (case-insensitive)
+    // 🔎 Check for duplicates
     const existing = await Category.findOne({
       name: { $regex: new RegExp(`^${name}$`, "i") },
     });
@@ -21,13 +24,25 @@ export const createCategory = async (req, res) => {
       return res.status(400).json({ message: "Category already exists" });
     }
 
-    const imagePath = req.file ? `/uploads/${req.file.filename}` : "/placeholder.jpg";
+    let imageUrl = "/placeholder.jpg";
+
+    // ✅ Upload to Cloudinary if file exists
+    if (req.file?.path) {
+      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+        folder: "aarambh-jwellers/categories",
+        transformation: [{ width: 600, height: 600, crop: "limit" }],
+      });
+      imageUrl = uploadResult.secure_url;
+
+      // Remove temp file
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    }
 
     const category = new Category({
       name: name.trim(),
       slug: slugify(name, { lower: true }),
       parentCategory: parentCategory || null,
-      image: imagePath,
+      image: imageUrl, // ✅ Cloudinary URL
     });
 
     await category.save();
@@ -47,7 +62,9 @@ export const createCategory = async (req, res) => {
   }
 };
 
-
+/* ===========================================================
+   🟢 GET CATEGORIES WITH PRODUCT COUNT
+=========================================================== */
 export const getCategoriesWithCount = async (req, res) => {
   try {
     const categories = await Category.aggregate([
@@ -86,7 +103,6 @@ export const getCategoriesWithCount = async (req, res) => {
       },
     ]);
 
-    // ✅ Always return consistent structure
     res.status(200).json({ categories });
   } catch (error) {
     console.error("❌ Error fetching categories:", error);
@@ -94,6 +110,9 @@ export const getCategoriesWithCount = async (req, res) => {
   }
 };
 
+/* ===========================================================
+   🟡 UPDATE CATEGORY (with Cloudinary support)
+=========================================================== */
 export const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
@@ -108,8 +127,14 @@ export const updateCategory = async (req, res) => {
       updateData.parentCategory = parentCategory || null;
     }
 
-    if (req.file) {
-      updateData.image = `/uploads/${req.file.filename}`;
+    // ✅ Upload new image if provided
+    if (req.file?.path) {
+      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+        folder: "aarambh-jwellers/categories",
+        transformation: [{ width: 600, height: 600, crop: "limit" }],
+      });
+      updateData.image = uploadResult.secure_url;
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     }
 
     const updated = await Category.findByIdAndUpdate(id, updateData, {
@@ -130,21 +155,19 @@ export const updateCategory = async (req, res) => {
   }
 };
 
-
+/* ===========================================================
+   🗑️ DELETE CATEGORY (optional Cloudinary removal)
+=========================================================== */
 export const deleteCategory = async (req, res) => {
   try {
     const category = await Category.findById(req.params.id);
     if (!category)
       return res.status(404).json({ message: "Category not found" });
 
-    // 🧹 Delete image if exists (excluding placeholder)
-    if (category.image && !category.image.includes("placeholder")) {
-      const imagePath = path.join(process.cwd(), category.image);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-        console.log(`🗑️ Deleted image: ${imagePath}`);
-      }
-    }
+    // ❗ Optional: Delete from Cloudinary (if you store public_id)
+    // Example:
+    // const publicId = category.image.split("/").pop().split(".")[0];
+    // await cloudinary.uploader.destroy(`aarambh-jwellers/categories/${publicId}`);
 
     await Category.findByIdAndDelete(req.params.id);
 
@@ -155,11 +178,13 @@ export const deleteCategory = async (req, res) => {
   }
 };
 
-// 🟢 Get all active categories for navigation
+/* ===========================================================
+   🌐 GET ACTIVE CATEGORIES (for navigation)
+=========================================================== */
 export const getActiveCategories = async (req, res) => {
   try {
     const categories = await Category.find({ parentCategory: null })
-      .select("name slug")
+      .select("name slug image")
       .sort({ name: 1 });
 
     res.status(200).json(categories);

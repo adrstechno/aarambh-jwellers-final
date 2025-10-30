@@ -3,7 +3,9 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import path from "path";
+
+// ✅ Import Cloudinary config (initialize it once globally)
+import "./config/cloudinary.js";
 
 // ✅ Import routes
 import categoryRoutes from "./routes/categoryRoutes.js";
@@ -33,8 +35,8 @@ const app = express();
 // ✅ CORS Configuration
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173", // your Vite frontend
-    credentials: true, // allows sending cookies
+    origin: process.env.FRONTEND_URL || "http://localhost:5173", // your frontend
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   })
 );
@@ -43,11 +45,11 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// ✅ Cookie Parser (for token auth)
+// ✅ Cookie Parser
 app.use(cookieParser());
 
-// ✅ Static files (uploads)
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+// 🚫 REMOVED: Local static uploads folder (no longer needed)
+// app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 /* =======================================================
    🚀 API Routes
@@ -73,10 +75,18 @@ app.use("/api/jewellery-section", jewellerySectionRoutes);
    ⚠️ Global Error Handler
 ======================================================= */
 app.use((err, req, res, next) => {
-  console.error("❌ Global Error:", err.stack);
-  res.status(500).json({
+  console.error("❌ Global Error:", err?.stack || err);
+
+  // capture useful info
+  const statusCode = err.status || 500;
+  const message =
+    err?.message ||
+    (typeof err === "string" ? err : "Internal Server Error");
+
+  res.status(statusCode).json({
     success: false,
-    message: err.message || "Internal Server Error",
+    error: message,
+    details: process.env.NODE_ENV === "development" ? err : undefined,
   });
 });
 
@@ -87,7 +97,7 @@ mongoose
   .connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 10000, // 10s timeout
+    serverSelectionTimeoutMS: 10000,
   })
   .then(() => console.log("✅ MongoDB Atlas Connected"))
   .catch((err) => {

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 // src/pages/CartPage.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "../context/AppContext";
@@ -15,42 +16,54 @@ export default function CartPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
-  // Base URL for safe image paths
+  /* ==========================================================
+     🧩 Safe Image URL Resolver (Cloudinary + Local)
+  ========================================================== */
   const BASE_URL =
     import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
 
-  // Normalize image URLs (handles /uploads/, uploads/, and full URLs)
-  const fixImageURL = (image) => {
-    if (!image) return "/placeholder.jpg";
-    const clean = image.replace(/\\/g, "/");
+  const fixImageURL = (img) => {
+    if (!img) return "/placeholder.jpg";
+
+    const clean = img.replace(/\\/g, "/");
+
+    // ✅ Cloudinary or external URLs
     if (clean.startsWith("http")) return clean;
+
+    // 🟡 Local uploads fallback (old images)
     if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
     if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
-    return image;
+
+    // 🔴 Default placeholder
+    return "/placeholder.jpg";
   };
 
-  // derive normalized cart items for UI (memoized)
+  /* ==========================================================
+     🛒 Prepare cart with normalized image URLs
+  ========================================================== */
   const cart = useMemo(() => {
     const items = (ctxCart || []).map((i) => ({
       ...i,
-      // in your context each item likely has shape { product: {...}, quantity, price }
       product: {
         ...i.product,
         image: fixImageURL(i.product?.image),
       },
     }));
-    const total = items.reduce((s, it) => s + (it.price || 0) * (it.quantity || 0), 0);
+    const total = items.reduce(
+      (sum, item) => sum + (item.price || 0) * (item.quantity || 0),
+      0
+    );
     return { items, total };
   }, [ctxCart]);
 
-  // helpers that call context actions and provide small local loading indicator
+  /* ==========================================================
+     ⚙️ Quantity & Cart Actions
+  ========================================================== */
   const handleQuantityChange = async (productId, newQty) => {
     if (newQty <= 0) return;
     try {
       setLoading(true);
-      // context action should update global cart and header instantly
       await updateCartQuantity(productId, newQty);
-      // no local setState required — cart comes from context
     } catch (err) {
       console.error("❌ Failed to update quantity:", err);
     } finally {
@@ -62,7 +75,6 @@ export default function CartPage() {
     try {
       setLoading(true);
       await removeFromCart(productId);
-      // context updates; no local set needed
     } catch (err) {
       console.error("❌ Failed to remove item:", err);
     } finally {
@@ -81,7 +93,9 @@ export default function CartPage() {
     }
   };
 
-  // Not logged in
+  /* ==========================================================
+     🔒 Not Logged In
+  ========================================================== */
   if (!user)
     return (
       <div className="min-h-screen flex flex-col justify-center items-center text-center">
@@ -95,7 +109,9 @@ export default function CartPage() {
       </div>
     );
 
-  // Loading state (optional, show while update is in-flight)
+  /* ==========================================================
+     ⏳ Loading State
+  ========================================================== */
   if (loading)
     return (
       <div className="text-center py-10 text-gray-600">
@@ -103,7 +119,9 @@ export default function CartPage() {
       </div>
     );
 
-  // Empty cart
+  /* ==========================================================
+     🛍 Empty Cart
+  ========================================================== */
   if (!cart.items?.length)
     return (
       <div className="min-h-screen flex flex-col justify-center items-center text-center">
@@ -117,7 +135,9 @@ export default function CartPage() {
       </div>
     );
 
-  // Cart UI
+  /* ==========================================================
+     🧾 Cart UI
+  ========================================================== */
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       <h1 className="text-3xl font-bold mb-6">My Cart</h1>
@@ -131,7 +151,7 @@ export default function CartPage() {
           >
             <div className="flex items-center gap-4">
               <img
-                src={item.product.image || "/placeholder.jpg"}
+                src={item.product.image}
                 alt={item.product.name}
                 className="h-16 w-16 rounded object-cover border border-gray-200"
                 onError={(e) => (e.target.src = "/placeholder.jpg")}

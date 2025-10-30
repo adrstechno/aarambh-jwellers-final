@@ -15,17 +15,34 @@ export default function ProductCard({ product }) {
 
   const isSoldOut = product.stock === 0 || product.status === "Inactive";
 
+  /* ======================================================
+     🧩 Safe Image URL Resolver (supports Cloudinary + Local)
+  ====================================================== */
   const BASE_URL =
     import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
+
+  const fixImageURL = (img) => {
+    if (!img) return "/placeholder.jpg";
+
+    const clean = img.replace(/\\/g, "/");
+
+    // ✅ Cloudinary or external URL
+    if (clean.startsWith("http")) return clean;
+
+    // ✅ Local uploads fallback
+    if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
+    if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
+
+    // 🔴 Fallback placeholder
+    return "/placeholder.jpg";
+  };
 
   const productImage =
     (Array.isArray(product.images) && product.images[0]) ||
     product.image ||
     "/placeholder.jpg";
 
-  const imageSrc = productImage.startsWith("http")
-    ? productImage
-    : `${BASE_URL}${productImage}`;
+  const imageSrc = fixImageURL(productImage);
 
   /* ======================================================
      🛒 Add to Cart
@@ -55,10 +72,10 @@ export default function ProductCard({ product }) {
     try {
       setIsLoading(true);
       if (isInWishlist) {
-        await removeFromWishlist(product._id); // ✅ Context-based remove
+        await removeFromWishlist(product._id);
         setIsInWishlist(false);
       } else {
-        await addToWishlist(product); // ✅ Context-based add
+        await addToWishlist(product);
         setIsInWishlist(true);
       }
     } catch (err) {

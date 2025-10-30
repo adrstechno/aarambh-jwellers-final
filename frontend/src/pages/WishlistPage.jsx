@@ -1,5 +1,4 @@
 // src/pages/WishlistPage.jsx
-import { useEffect } from "react";
 import { Heart } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import { useNavigate } from "react-router-dom";
@@ -9,20 +8,31 @@ export default function WishlistPage() {
   const { user, wishlist, removeFromWishlist } = useApp();
   const navigate = useNavigate();
 
+  /* =======================================================
+     🧩 Safe Image URL Resolver (Cloudinary + Local Support)
+  ======================================================= */
   const BASE_URL =
     import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
 
-  // Normalize image URLs (local helper, used when rendering product cards)
-  const fixImageURL = (image) => {
-    if (!image) return "/placeholder.jpg";
-    const clean = image.replace(/\\/g, "/");
+  const fixImageURL = (img) => {
+    if (!img) return "/placeholder.jpg";
+
+    const clean = img.replace(/\\/g, "/");
+
+    // 🟢 Cloudinary / external URLs
     if (clean.startsWith("http")) return clean;
+
+    // 🟡 Local fallback (for older uploads)
     if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
     if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
-    return image;
+
+    // 🔴 Default placeholder
+    return "/placeholder.jpg";
   };
 
-  // If not logged in
+  /* =======================================================
+     🧭 Auth Check
+  ======================================================= */
   if (!user)
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-center">
@@ -32,7 +42,9 @@ export default function WishlistPage() {
       </div>
     );
 
-  // If wishlist is empty
+  /* =======================================================
+     🛍 Empty Wishlist
+  ======================================================= */
   if (!wishlist || wishlist.length === 0)
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -54,16 +66,21 @@ export default function WishlistPage() {
       </div>
     );
 
-  // Remove handler uses context action so whole app updates instantly
+  /* =======================================================
+     ❌ Remove Wishlist Item
+  ======================================================= */
   const handleRemove = async (productId) => {
     try {
       await removeFromWishlist(productId);
-      // context updates the wishlist state; no local set needed
+      // Context automatically updates the wishlist state
     } catch (err) {
       console.error("❌ Failed to remove item from wishlist:", err);
     }
   };
 
+  /* =======================================================
+     🎨 Wishlist UI
+  ======================================================= */
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -74,7 +91,6 @@ export default function WishlistPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {wishlist.map((product) => {
-            // ensure product has image normalized for ProductCard
             const normalized = {
               ...product,
               image: fixImageURL(product.image),

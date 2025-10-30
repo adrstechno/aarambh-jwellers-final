@@ -10,24 +10,39 @@ export default function JewellerySection() {
   const BASE_URL =
     import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
 
+  // 🧩 Helper to fix image URLs for Cloudinary & local uploads
+  const fixImageURL = (img, fallback) => {
+    if (!img) return fallback;
+    const clean = img.replace(/\\/g, "/");
+
+    // ✅ Cloudinary or external images
+    if (clean.startsWith("http")) return clean;
+
+    // 🟡 Local uploads fallback
+    if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
+    if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
+
+    return fallback;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const data = await getJewellerySection();
-        // Normalize image paths
+
+        // ✅ Normalize both images
         const normalized = {
           ...data,
-          mainImage: data.mainImage
-            ? data.mainImage.startsWith("http")
-              ? data.mainImage
-              : `${BASE_URL}${data.mainImage}`
-            : "https://images.pexels.com/photos/3641059/pexels-photo-3641059.jpeg",
-          modelImage: data.modelImage
-            ? data.modelImage.startsWith("http")
-              ? data.modelImage
-              : `${BASE_URL}${data.modelImage}`
-            : "https://cdn.pixabay.com/photo/2023/05/23/09/23/pearl-8012322_1280.jpg",
+          mainImage: fixImageURL(
+            data.mainImage,
+            "https://images.pexels.com/photos/3641059/pexels-photo-3641059.jpeg"
+          ),
+          modelImage: fixImageURL(
+            data.modelImage,
+            "https://cdn.pixabay.com/photo/2023/05/23/09/23/pearl-8012322_1280.jpg"
+          ),
         };
+
         setSection(normalized);
       } catch (err) {
         console.error("❌ Failed to load jewellery section:", err);
@@ -92,7 +107,7 @@ export default function JewellerySection() {
           </h2>
           <p className="text-gray-600 leading-relaxed mb-6">
             {section.description ||
-              `"At Jina Fashion, we bring you an enchanting collection of jewelry
+              `"At Vednine Jewellers, we bring you an enchanting collection of jewelry
             that blends timeless elegance with modern artistry, crafted to make
             every moment unforgettable and every outfit extraordinary."`}
           </p>

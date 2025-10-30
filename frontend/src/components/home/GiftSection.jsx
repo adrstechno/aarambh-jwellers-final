@@ -12,24 +12,37 @@ export default function GiftSection() {
   const BASE_URL =
     import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
 
+  /* ===========================================================
+     🧩 Helper: Normalize Image URLs (Cloudinary + Local)
+  =========================================================== */
+  const fixImageURL = (img) => {
+    if (!img) return "/placeholder.jpg";
+    const clean = img.replace(/\\/g, "/");
+
+    // ✅ Cloudinary-hosted or external images
+    if (clean.startsWith("http")) return clean;
+
+    // 🟡 Local fallback for old uploads
+    if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
+    if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
+
+    return "/placeholder.jpg";
+  };
+
+  /* ===========================================================
+     🟢 Fetch Gifts
+  =========================================================== */
   useEffect(() => {
     const fetchGifts = async () => {
       try {
         const data = await getAllGifts();
 
-        // ✅ Normalize URLs properly
+        // ✅ Filter only active and normalize all images
         const normalized = data
           .filter((g) => g.status === "Active")
           .map((g) => ({
             ...g,
-            image:
-              g.image?.startsWith("http")
-                ? g.image
-                : g.image?.startsWith("/uploads/")
-                ? `${BASE_URL}${g.image}`
-                : g.image
-                ? `${BASE_URL}/uploads/${g.image}`
-                : "/placeholder.jpg",
+            image: fixImageURL(g.image),
           }));
 
         setGiftList(normalized);
@@ -40,6 +53,9 @@ export default function GiftSection() {
     fetchGifts();
   }, []);
 
+  /* ===========================================================
+     🎨 UI Rendering
+  =========================================================== */
   return (
     <section className="py-20 bg-gradient-to-br from-gray-50 to-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -79,7 +95,7 @@ export default function GiftSection() {
                 >
                   <div className="relative overflow-hidden">
                     <motion.img
-                      src={gift.image || "/placeholder.jpg"}
+                      src={fixImageURL(gift.image)}
                       alt={gift.name}
                       className="w-full h-40 sm:h-32 object-cover"
                       whileHover={{ scale: 1.1 }}

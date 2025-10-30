@@ -10,21 +10,46 @@ export default function FeaturedProducts() {
 
   const categories = ["necklace", "rings", "bracelet", "earrings"];
 
-  // 🟢 Fetch products when tab changes
+  /* ===========================================================
+     🧩 Helper to Normalize Image URLs (Cloudinary + Local)
+  =========================================================== */
+  const BASE_URL =
+    import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
+
+  const fixImageURL = (img) => {
+    if (!img) return "/placeholder.jpg";
+    const clean = img.replace(/\\/g, "/");
+
+    // ✅ Cloudinary-hosted or external URLs
+    if (clean.startsWith("http")) return clean;
+
+    // 🟡 Local /uploads fallback for older products
+    if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
+    if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
+
+    return "/placeholder.jpg";
+  };
+
+  /* ===========================================================
+     🟢 Fetch Products on Category Change
+  =========================================================== */
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
         const data = await getProductsByCategory(activeTab);
 
-        // Ensure product array is consistent
-        if (Array.isArray(data)) {
-          setProducts(data);
-        } else if (data?.products) {
-          setProducts(data.products);
-        } else {
-          setProducts([]);
-        }
+        const productList = Array.isArray(data)
+          ? data
+          : data?.products || [];
+
+        // ✅ Normalize image URLs
+        const normalized = productList.map((p) => ({
+          ...p,
+          image: fixImageURL(p.image),
+        }));
+
+        setProducts(normalized);
       } catch (err) {
         console.error("❌ Failed to fetch products:", err);
         setProducts([]);
@@ -32,9 +57,13 @@ export default function FeaturedProducts() {
         setLoading(false);
       }
     };
+
     fetchProducts();
   }, [activeTab]);
 
+  /* ===========================================================
+     🎨 UI Rendering
+  =========================================================== */
   return (
     <section className="py-16 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

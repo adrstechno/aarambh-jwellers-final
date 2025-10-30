@@ -1,6 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/no-unescaped-entities */
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // ✅ for redirect
 import {
   Plus,
   Edit,
@@ -23,6 +24,8 @@ import { getReviewsByProduct } from "../../api/reviewApi";
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
 export default function Products() {
+  const navigate = useNavigate(); // ✅ Redirect hook
+
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [showForm, setShowForm] = useState(false);
@@ -50,27 +53,28 @@ export default function Products() {
     setTimeout(() => setToast({ type: "", message: "" }), 2500);
   };
 
-  // 🔹 Fetch categories & products
+  // ✅ Fetch products + categories
+  const fetchData = async () => {
+    try {
+      const [cats, prods] = await Promise.all([
+        getCategories(),
+        getAllProducts(),
+      ]);
+      setCategories(cats);
+      setProducts(prods);
+    } catch (err) {
+      console.error("Error loading data:", err);
+      showToast("error", "Failed to load data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [cats, prods] = await Promise.all([
-          getCategories(),
-          getAllProducts(),
-        ]);
-        setCategories(cats);
-        setProducts(prods);
-      } catch (err) {
-        console.error("Error loading data:", err);
-        showToast("error", "Failed to load data.");
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchData();
   }, []);
 
-  // 🔹 Image upload validation
+  // ✅ Image validation
   const handleImageUpload = (e, setFn, product) => {
     const file = e.target.files[0];
     if (file) {
@@ -93,7 +97,7 @@ export default function Products() {
     }
   };
 
-  // 🔹 Add new product
+  // ✅ Add Product
   const handleAddProduct = async (e) => {
     e.preventDefault();
     if (!newProduct.name || !newProduct.category) {
@@ -115,9 +119,15 @@ export default function Products() {
         formData.append("image", newProduct.image.file);
 
       const data = await addProduct(formData);
-      setProducts((prev) => [...prev, data.product]);
       showToast("success", "Product added successfully!");
-      setShowForm(false);
+
+      // ✅ Close modal & refresh data
+      setTimeout(async () => {
+        setShowForm(false);
+        await fetchData();
+        navigate("/admin/products"); // ✅ redirect
+      }, 1000);
+
       setNewProduct({
         name: "",
         category: "",
@@ -134,7 +144,7 @@ export default function Products() {
     }
   };
 
-  // 🔹 Update product
+  // ✅ Update Product
   const handleEditProductSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -145,18 +155,21 @@ export default function Products() {
       };
 
       const updated = await updateProduct(editProduct._id, payload);
-      setProducts((prev) =>
-        prev.map((p) => (p._id === updated.product._id ? updated.product : p))
-      );
-      setEditProduct(null);
       showToast("success", "Product updated successfully!");
+
+      // ✅ Refresh + redirect
+      setTimeout(async () => {
+        setEditProduct(null);
+        await fetchData();
+        navigate("/admin/products"); // ✅ redirect
+      }, 1000);
     } catch (err) {
       console.error("Failed to update product:", err);
       showToast("error", "Failed to update product.");
     }
   };
 
-  // 🔹 Delete product
+  // ✅ Delete Product
   const confirmDelete = async () => {
     if (!deleteProductData) return;
     try {
@@ -173,7 +186,7 @@ export default function Products() {
     }
   };
 
-  // 🔹 Toggle product status
+  // ✅ Toggle Product Status
   const toggleStatus = async (id) => {
     const product = products.find((p) => p._id === id);
     if (!product) return;
@@ -197,7 +210,7 @@ export default function Products() {
     }
   };
 
-  // 🔹 Fetch product reviews
+  // ✅ Fetch Reviews
   const viewProductReviews = async (productId) => {
     try {
       const data = await getReviewsByProduct(productId);
@@ -208,7 +221,7 @@ export default function Products() {
     }
   };
 
-  // 🔹 Filter products
+  // ✅ Filtered Products
   const filteredProducts =
     filter === "All" ? products : products.filter((p) => p.status === filter);
 

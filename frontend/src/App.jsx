@@ -11,7 +11,7 @@ import CategorySection from "./components/home/CategorySection.jsx";
 import GiftSection from "./components/home/GiftSection.jsx";
 import FeaturedProducts from "./components/home/FeaturedProducts.jsx";
 import JewellerySection from "./components/home/JewellerySection.jsx";
-import DiscountSection from "./components/home/DiscountSection.jsx";
+// import DiscountSection from "./components/home/DiscountSection.jsx";
 import Footer from "./components/common/Footer.jsx";
 
 // 🧭 Common Components
@@ -39,7 +39,7 @@ function HomePage() {
       <CategorySection />
       <GiftSection />
       <FeaturedProducts />
-      <DiscountSection />
+      {/* <DiscountSection /> */}
       <JewellerySection />
       <Footer />
     </>

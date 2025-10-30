@@ -11,12 +11,41 @@ export default function CategoryPage() {
   const [priceRange, setPriceRange] = useState([0, 2000000]);
   const [loading, setLoading] = useState(true);
 
+  /* =======================================================
+     🧩 Safe Image URL Resolver (Cloudinary + Local)
+  ======================================================= */
+  const BASE_URL =
+    import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
+
+  const fixImageURL = (img) => {
+    if (!img) return "/placeholder.jpg";
+
+    const clean = img.replace(/\\/g, "/");
+
+    // ✅ Cloudinary / external URLs
+    if (clean.startsWith("http")) return clean;
+
+    // 🟡 Local uploads fallback (legacy data)
+    if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
+    if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
+
+    return "/placeholder.jpg";
+  };
+
+  /* =======================================================
+     🧾 Fetch Category Products
+  ======================================================= */
   useEffect(() => {
     const fetchCategoryProducts = async () => {
       setLoading(true);
       try {
         const data = await getProductsByCategory(category.toLowerCase());
-        setProducts(data);
+        // normalize product image URLs for both local + cloudinary
+        const normalized = data.map((p) => ({
+          ...p,
+          image: fixImageURL(p.image),
+        }));
+        setProducts(normalized);
       } catch (err) {
         console.error("❌ Error fetching category products:", err);
       } finally {
@@ -27,13 +56,15 @@ export default function CategoryPage() {
     fetchCategoryProducts();
   }, [category]);
 
+  /* =======================================================
+     🔍 Apply Filters & Sorting
+  ======================================================= */
   useEffect(() => {
     let filtered = products.filter(
       (product) =>
         product.price >= priceRange[0] && product.price <= priceRange[1]
     );
 
-    // Sorting
     switch (sortBy) {
       case "price-low":
         filtered.sort((a, b) => a.price - b.price);
@@ -51,6 +82,9 @@ export default function CategoryPage() {
     setFilteredProducts(filtered);
   }, [products, sortBy, priceRange]);
 
+  /* =======================================================
+     🎨 UI
+  ======================================================= */
   if (loading)
     return (
       <div className="text-center py-20 text-gray-500">

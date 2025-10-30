@@ -1,12 +1,16 @@
 import JewellerySection from "../models/jewellerySection.js";
+import cloudinary from "../config/cloudinary.js";
+import fs from "fs";
 
-// 🟢 Get active section (for frontend)
+/* ======================================================
+   🟢 Public: Get Jewellery Section
+====================================================== */
 export const getJewellerySection = async (req, res) => {
   try {
     const section = await JewellerySection.findOne().sort({ createdAt: -1 });
 
-    // 🟢 Return an empty object instead of 404 so frontend loads gracefully
     if (!section) {
+      // Return defaults if no section exists
       return res.status(200).json({
         title: "",
         subtitle: "",
@@ -29,20 +33,39 @@ export const getJewellerySection = async (req, res) => {
   }
 };
 
-
-// 🟡 Admin: create/update section
+/* ======================================================
+   🟡 Admin: Create/Update (Upsert) Jewellery Section
+====================================================== */
 export const upsertJewellerySection = async (req, res) => {
   try {
     const data = req.body;
-    const imagePaths = {};
-    if (req.files?.mainImage)
-      imagePaths.mainImage = `/uploads/${req.files.mainImage[0].filename}`;
-    if (req.files?.modelImage)
-      imagePaths.modelImage = `/uploads/${req.files.modelImage[0].filename}`;
+    const imageUrls = {};
 
+    // ✅ Upload images to Cloudinary if provided
+    if (req.files?.mainImage?.[0]) {
+      const uploadMain = await cloudinary.uploader.upload(req.files.mainImage[0].path, {
+        folder: "aarambh-jwellers/jewellery-section",
+        transformation: [{ width: 1200, height: 800, crop: "limit" }],
+      });
+      imageUrls.mainImage = uploadMain.secure_url;
+      if (fs.existsSync(req.files.mainImage[0].path))
+        fs.unlinkSync(req.files.mainImage[0].path);
+    }
+
+    if (req.files?.modelImage?.[0]) {
+      const uploadModel = await cloudinary.uploader.upload(req.files.modelImage[0].path, {
+        folder: "aarambh-jwellers/jewellery-section",
+        transformation: [{ width: 1200, height: 800, crop: "limit" }],
+      });
+      imageUrls.modelImage = uploadModel.secure_url;
+      if (fs.existsSync(req.files.modelImage[0].path))
+        fs.unlinkSync(req.files.modelImage[0].path);
+    }
+
+    // ✅ Update or create new section
     const updated = await JewellerySection.findOneAndUpdate(
       {},
-      { ...data, ...imagePaths },
+      { ...data, ...imageUrls },
       { new: true, upsert: true }
     );
 

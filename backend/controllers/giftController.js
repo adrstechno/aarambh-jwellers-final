@@ -1,6 +1,10 @@
 import Gift from "../models/gift.js";
+import cloudinary from "../config/cloudinary.js";
+import fs from "fs";
 
-
+/* ==========================================================
+   🟢 Create Gift (Upload image to Cloudinary)
+========================================================== */
 export const createGift = async (req, res) => {
   try {
     const { name, code, description, conditionType, conditionValue, stock, status } = req.body;
@@ -12,7 +16,20 @@ export const createGift = async (req, res) => {
     if (existing)
       return res.status(400).json({ message: "Gift code already exists" });
 
-    const imagePath = req.file ? `/uploads/${req.file.filename}` : "";
+    let imageUrl = "";
+
+    // ✅ Upload to Cloudinary if file provided
+    if (req.file?.path) {
+      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+        folder: "aarambh-jwellers/gifts",
+        transformation: [{ width: 800, height: 800, crop: "limit" }],
+      });
+
+      imageUrl = uploadResult.secure_url;
+
+      // remove temp file
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    }
 
     const gift = await Gift.create({
       name,
@@ -22,7 +39,7 @@ export const createGift = async (req, res) => {
       conditionValue,
       stock,
       status,
-      image: imagePath,
+      image: imageUrl,
     });
 
     res.status(201).json({ message: "✅ Gift created successfully", gift });
@@ -32,68 +49,61 @@ export const createGift = async (req, res) => {
   }
 };
 
-
+/* ==========================================================
+   🟡 Get All Gifts
+========================================================== */
 export const getAllGifts = async (req, res) => {
   try {
-    const { status } = req.query; // optional query ?status=Active
+    const { status } = req.query;
 
     const filter = status ? { status } : {};
     const gifts = await Gift.find(filter).sort({ createdAt: -1 });
 
-    // ✅ Normalize image URLs
-    const BASE_URL = process.env.BASE_URL || "http://localhost:5000";
-    const normalized = gifts.map((g) => ({
-      ...g._doc,
-      image: g.image
-        ? g.image.startsWith("http")
-          ? g.image
-          : `${BASE_URL}${g.image}`
-        : `${BASE_URL}/placeholder.jpg`,
-    }));
-
-    res.status(200).json(normalized);
+    res.status(200).json(gifts);
   } catch (error) {
     console.error("❌ Error fetching gifts:", error);
     res.status(500).json({ message: "Failed to fetch gifts" });
   }
 };
 
-
+/* ==========================================================
+   🟢 Get Gift by Code
+========================================================== */
 export const getGiftByCode = async (req, res) => {
   try {
     const { code } = req.params;
     if (!code) return res.status(400).json({ message: "Gift code is required" });
 
     const gift = await Gift.findOne({ code: code.toUpperCase(), status: "Active" });
-
     if (!gift)
       return res.status(404).json({ message: "Gift not found or inactive" });
 
-    const BASE_URL = process.env.BASE_URL || "http://localhost:5000";
-    const normalized = {
-      ...gift._doc,
-      image: gift.image
-        ? gift.image.startsWith("http")
-          ? gift.image
-          : `${BASE_URL}${gift.image}`
-        : `${BASE_URL}/placeholder.jpg`,
-    };
-
-    res.status(200).json(normalized);
+    res.status(200).json(gift);
   } catch (error) {
     console.error("❌ Error fetching gift by code:", error);
     res.status(500).json({ message: "Failed to fetch gift details" });
   }
 };
 
-
+/* ==========================================================
+   🟠 Update Gift (with optional Cloudinary upload)
+========================================================== */
 export const updateGift = async (req, res) => {
   try {
     const { id } = req.params;
-    const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
-
     const updateData = { ...req.body };
-    if (imagePath) updateData.image = imagePath;
+
+    // ✅ Upload new image if provided
+    if (req.file?.path) {
+      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+        folder: "aarambh-jwellers/gifts",
+        transformation: [{ width: 800, height: 800, crop: "limit" }],
+      });
+
+      updateData.image = uploadResult.secure_url;
+
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    }
 
     const gift = await Gift.findByIdAndUpdate(id, updateData, {
       new: true,
@@ -109,7 +119,9 @@ export const updateGift = async (req, res) => {
   }
 };
 
-
+/* ==========================================================
+   🔴 Delete Gift
+========================================================== */
 export const deleteGift = async (req, res) => {
   try {
     const gift = await Gift.findByIdAndDelete(req.params.id);
@@ -123,6 +135,9 @@ export const deleteGift = async (req, res) => {
   }
 };
 
+/* ==========================================================
+   🔁 Toggle Gift Status
+========================================================== */
 export const toggleGiftStatus = async (req, res) => {
   try {
     const gift = await Gift.findById(req.params.id);

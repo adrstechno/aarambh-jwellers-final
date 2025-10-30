@@ -1,35 +1,32 @@
 import express from "express";
-import multer from "multer";
 import {
   createBanner,
   getBanners,
+  getAllBanners,
   updateBanner,
   deleteBanner,
   reorderBanners,
 } from "../controllers/bannerController.js";
+import upload from "../middlewares/uploadMiddleware.js"; // ✅ shared Cloudinary upload middleware
 
 const router = express.Router();
 
-// 🧩 Multer setup
-const storage = multer.diskStorage({
-  destination: "uploads/",
-  filename: (req, file, cb) => cb(null, Date.now() + "-" + file.originalname),
-});
-const upload = multer({ storage });
-
-// ✅ Order of routes matters! Define “/reorder” first
-router.put("/reorder", reorderBanners);
-
-// 🟢 Create Banner
-router.post("/", upload.single("image"), createBanner);
-
-// 🟡 Get All Banners
+// ✅ Get All Active Banners (Frontend)
 router.get("/", getBanners);
 
-// 🟠 Update Banner
+// ✅ Get All Banners (Admin)
+router.get("/all", getAllBanners);
+
+// ✅ Create Banner (Uploads to Cloudinary)
+router.post("/", upload.single("image"), createBanner);
+
+// ✅ Update Banner (Optional image replacement)
 router.put("/:id", upload.single("image"), updateBanner);
 
-// 🔴 Delete Banner
+// ✅ Delete Banner
 router.delete("/:id", deleteBanner);
+
+// ✅ Reorder Banners
+router.put("/reorder", reorderBanners);
 
 export default router;

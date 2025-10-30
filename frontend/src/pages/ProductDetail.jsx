@@ -20,44 +20,53 @@ export default function ProductDetail() {
   const [newReview, setNewReview] = useState({ rating: 0, comment: "" });
   const [loading, setLoading] = useState(true);
 
+  /* ==========================================================
+     🧩 Safe Image URL Resolver (supports Cloudinary + Local)
+  ========================================================== */
   const BASE_URL =
     import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
 
-  const fixImageURL = (image) => {
-    if (!image) return "/placeholder.jpg";
-    const clean = image.replace(/\\/g, "/");
+  const fixImageURL = (img) => {
+    if (!img) return "/placeholder.jpg";
+
+    const clean = img.replace(/\\/g, "/");
+
+    // 🟢 Cloudinary or external image (already absolute)
     if (clean.startsWith("http")) return clean;
+
+    // 🟡 Local uploads fallback
     if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
     if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
-    return image;
+
+    // 🔴 Fallback placeholder
+    return "/placeholder.jpg";
   };
 
-  // 🟢 Fetch product by slug or ID
+  /* ==========================================================
+     🟢 Fetch product details by slug or ID
+  ========================================================== */
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         let data;
 
-        // ✅ Check if the param looks like a Mongo ObjectId (24-char hex)
+        // ✅ Detect if slug is ObjectId
         const isObjectId = /^[0-9a-fA-F]{24}$/.test(slug);
-
-        if (isObjectId) {
-          data = await getProductById(slug);
-        } else {
-          data = await getProductBySlug(slug);
-        }
+        data = isObjectId ? await getProductById(slug) : await getProductBySlug(slug);
 
         if (!data) throw new Error("Product not found");
 
         const normalized = { ...data, image: fixImageURL(data.image) };
         setProduct(normalized);
 
+        // ✅ Load related products
         if (data.category?.slug) {
           const related = await getProductsByCategory(data.category.slug);
           setRelatedProducts(related.filter((p) => p._id !== data._id));
         }
 
+        // ✅ Load reviews
         const revs = await getReviewsByProduct(data._id);
         setReviews(revs);
       } catch (err) {
@@ -67,10 +76,13 @@ export default function ProductDetail() {
         setLoading(false);
       }
     };
+
     fetchData();
   }, [slug]);
 
-  // ✍️ Add new review
+  /* ==========================================================
+     ✍️ Add Review
+  ========================================================== */
   const handleAddReview = async (e) => {
     e.preventDefault();
     if (!user) return alert("Please login to add a review.");
@@ -96,12 +108,18 @@ export default function ProductDetail() {
     }
   };
 
+  /* ==========================================================
+     ⏳ States
+  ========================================================== */
   if (loading)
     return <div className="p-10 text-center text-gray-600">Loading product...</div>;
 
   if (!product)
     return <div className="p-10 text-center text-gray-500">Product not found.</div>;
 
+  /* ==========================================================
+     🎨 Product Page UI
+  ========================================================== */
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
       {/* Product Info */}

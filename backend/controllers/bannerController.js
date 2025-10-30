@@ -1,8 +1,10 @@
 import Banner from "../models/banner.js";
+import cloudinary from "../config/cloudinary.js";
 import fs from "fs";
-import path from "path";
 
-
+/* ===========================================================
+   🟢 Get Active Banners (for Frontend)
+=========================================================== */
 export const getBanners = async (req, res) => {
   try {
     const banners = await Banner.find({ active: true }).sort({ order: 1 });
@@ -13,6 +15,9 @@ export const getBanners = async (req, res) => {
   }
 };
 
+/* ===========================================================
+   🟡 Get All Banners (for Admin)
+=========================================================== */
 export const getAllBanners = async (req, res) => {
   try {
     const banners = await Banner.find().sort({ order: 1, createdAt: -1 });
@@ -23,6 +28,9 @@ export const getAllBanners = async (req, res) => {
   }
 };
 
+/* ===========================================================
+   🟢 Create Banner (Uploads to Cloudinary)
+=========================================================== */
 export const createBanner = async (req, res) => {
   try {
     const { title, subtitle, link, order, active } = req.body;
@@ -31,28 +39,42 @@ export const createBanner = async (req, res) => {
       return res.status(400).json({ message: "Title is required" });
     }
 
-    const imagePath = req.file ? `/uploads/${req.file.filename}` : "";
-    if (!imagePath) {
+    if (!req.file?.path) {
       return res.status(400).json({ message: "Banner image is required" });
     }
+
+    // ✅ Upload image to Cloudinary
+    const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+      folder: "aarambh-jwellers/banners",
+      transformation: [{ width: 1920, height: 1080, crop: "limit" }],
+    });
+
+    // ✅ Remove temporary local file
+    if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
 
     const banner = new Banner({
       title,
       subtitle,
-      image: imagePath,
+      image: uploadResult.secure_url, // ✅ Cloudinary URL
       link: link || "/",
       order: order || 0,
       active: active !== undefined ? active : true,
     });
 
     await banner.save();
-    res.status(201).json({ message: "✅ Banner created successfully", banner });
+    res.status(201).json({
+      message: "✅ Banner created successfully",
+      banner,
+    });
   } catch (error) {
     console.error("❌ Error creating banner:", error);
     res.status(500).json({ message: "Failed to create banner" });
   }
 };
 
+/* ===========================================================
+   🟡 Update Banner (with Cloudinary support)
+=========================================================== */
 export const updateBanner = async (req, res) => {
   try {
     const { id } = req.params;
@@ -63,13 +85,15 @@ export const updateBanner = async (req, res) => {
       return res.status(404).json({ message: "Banner not found" });
     }
 
-    // Replace image if uploaded
-    if (req.file) {
-      const oldImagePath = path.join(process.cwd(), banner.image);
-      if (fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath);
-      }
-      banner.image = `/uploads/${req.file.filename}`;
+    // ✅ Upload new image if provided
+    if (req.file?.path) {
+      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+        folder: "aarambh-jwellers/banners",
+        transformation: [{ width: 1920, height: 1080, crop: "limit" }],
+      });
+
+      banner.image = uploadResult.secure_url;
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     }
 
     banner.title = title || banner.title;
@@ -82,13 +106,19 @@ export const updateBanner = async (req, res) => {
         : banner.active;
 
     const updated = await banner.save();
-    res.status(200).json({ message: "✅ Banner updated successfully", banner: updated });
+    res.status(200).json({
+      message: "✅ Banner updated successfully",
+      banner: updated,
+    });
   } catch (error) {
     console.error("❌ Error updating banner:", error);
     res.status(500).json({ message: "Failed to update banner" });
   }
 };
 
+/* ===========================================================
+   🔴 Delete Banner
+=========================================================== */
 export const deleteBanner = async (req, res) => {
   try {
     const { id } = req.params;
@@ -97,13 +127,9 @@ export const deleteBanner = async (req, res) => {
       return res.status(404).json({ message: "Banner not found" });
     }
 
-    // Delete associated image
-    if (banner.image) {
-      const imagePath = path.join(process.cwd(), banner.image);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
-    }
+    // ❗ Optional: remove from Cloudinary if you stored public_id
+    // const publicId = banner.image.split("/").pop().split(".")[0];
+    // await cloudinary.uploader.destroy(`aarambh-jwellers/banners/${publicId}`);
 
     await Banner.findByIdAndDelete(id);
     res.status(200).json({ message: "🗑️ Banner deleted successfully" });
@@ -113,7 +139,9 @@ export const deleteBanner = async (req, res) => {
   }
 };
 
-// 🟡 Reorder Banners
+/* ===========================================================
+   🔁 Reorder Banners
+=========================================================== */
 export const reorderBanners = async (req, res) => {
   try {
     const { banners } = req.body;
@@ -129,15 +157,10 @@ export const reorderBanners = async (req, res) => {
       },
     }));
 
-    await import("../models/banner.js").then(({ default: Banner }) =>
-      Banner.bulkWrite(bulkOps)
-    );
-
+    await Banner.bulkWrite(bulkOps);
     res.status(200).json({ message: "✅ Banners reordered successfully" });
   } catch (error) {
     console.error("❌ Error reordering banners:", error);
     res.status(500).json({ message: "Failed to reorder banners" });
   }
 };
-
-
