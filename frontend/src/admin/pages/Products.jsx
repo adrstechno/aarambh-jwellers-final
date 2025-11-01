@@ -1,7 +1,7 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/no-unescaped-entities */
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom"; // ✅ for redirect
+import { useNavigate } from "react-router-dom";
 import {
   Plus,
   Edit,
@@ -24,7 +24,7 @@ import { getReviewsByProduct } from "../../api/reviewApi";
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
 export default function Products() {
-  const navigate = useNavigate(); // ✅ Redirect hook
+  const navigate = useNavigate();
 
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
@@ -44,7 +44,9 @@ export default function Products() {
     price: "",
     stock: "",
     status: "Active",
-    image: null,
+    description: "",
+    materials: [{ type: "", weight: "" }],
+    images: [],
   });
 
   // ✅ Toast helper
@@ -53,13 +55,10 @@ export default function Products() {
     setTimeout(() => setToast({ type: "", message: "" }), 2500);
   };
 
-  // ✅ Fetch products + categories
+  // ✅ Fetch categories + products
   const fetchData = async () => {
     try {
-      const [cats, prods] = await Promise.all([
-        getCategories(),
-        getAllProducts(),
-      ]);
+      const [cats, prods] = await Promise.all([getCategories(), getAllProducts()]);
       setCategories(cats);
       setProducts(prods);
     } catch (err) {
@@ -74,27 +73,41 @@ export default function Products() {
     fetchData();
   }, []);
 
-  // ✅ Image validation
+  // ✅ Image upload handler (multi-file)
   const handleImageUpload = (e, setFn, product) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        setImageError("Only image files are allowed.");
-        return;
-      }
-      if (file.size > 2 * 1024 * 1024) {
-        setImageError("Image size must not exceed 2MB.");
-        return;
-      }
-      setImageError("");
-      setFn({
-        ...product,
-        image: {
-          file,
-          preview: URL.createObjectURL(file),
-        },
-      });
-    }
+    const files = Array.from(e.target.files);
+    const validFiles = files.filter((f) => f.type.startsWith("image/"));
+    const previews = validFiles.map((file) => ({
+      file,
+      preview: URL.createObjectURL(file),
+    }));
+    setFn({ ...product, images: [...(product.images || []), ...previews] });
+  };
+
+  const removeImage = (index, setFn, product) => {
+    const updated = [...product.images];
+    updated.splice(index, 1);
+    setFn({ ...product, images: updated });
+  };
+
+  // ✅ Material helpers
+  const addMaterial = (setFn, product) => {
+    setFn({
+      ...product,
+      materials: [...(product.materials || []), { type: "", weight: "" }],
+    });
+  };
+
+  const updateMaterial = (index, field, value, setFn, product) => {
+    const updated = [...product.materials];
+    updated[index][field] = value;
+    setFn({ ...product, materials: updated });
+  };
+
+  const removeMaterial = (index, setFn, product) => {
+    const updated = [...product.materials];
+    updated.splice(index, 1);
+    setFn({ ...product, materials: updated });
   };
 
   // ✅ Add Product
@@ -112,20 +125,18 @@ export default function Products() {
       formData.append("price", newProduct.price);
       formData.append("stock", newProduct.stock);
       formData.append("status", newProduct.status);
-      if (newProduct.material) formData.append("material", newProduct.material);
-      if (newProduct.description)
-        formData.append("description", newProduct.description);
-      if (newProduct.image?.file)
-        formData.append("image", newProduct.image.file);
+      formData.append("description", newProduct.description);
+      formData.append("materials", JSON.stringify(newProduct.materials || []));
 
-      const data = await addProduct(formData);
+      newProduct.images.forEach((img) => formData.append("images", img.file));
+
+      await addProduct(formData);
       showToast("success", "Product added successfully!");
 
-      // ✅ Close modal & refresh data
       setTimeout(async () => {
         setShowForm(false);
         await fetchData();
-        navigate("/admin/products"); // ✅ redirect
+        navigate("/admin/products");
       }, 1000);
 
       setNewProduct({
@@ -133,10 +144,10 @@ export default function Products() {
         category: "",
         price: "",
         stock: "",
-        material: "",
         description: "",
+        materials: [{ type: "", weight: "" }],
         status: "Active",
-        image: null,
+        images: [],
       });
     } catch (err) {
       console.error("❌ Failed to add product:", err);
@@ -148,23 +159,31 @@ export default function Products() {
   const handleEditProductSubmit = async (e) => {
     e.preventDefault();
     try {
-      const payload = {
-        ...editProduct,
-        category: editProduct.category?._id || editProduct.category,
-        image: editProduct.image?.file || null,
-      };
+      const formData = new FormData();
+      formData.append("name", editProduct.name);
+      formData.append("category", editProduct.category?._id || editProduct.category);
+      formData.append("price", editProduct.price);
+      formData.append("stock", editProduct.stock);
+      formData.append("status", editProduct.status);
+      formData.append("description", editProduct.description);
+      formData.append("materials", JSON.stringify(editProduct.materials || []));
 
-      const updated = await updateProduct(editProduct._id, payload);
+      if (editProduct.images && editProduct.images.length > 0) {
+        editProduct.images.forEach((img) => {
+          if (img.file) formData.append("images", img.file);
+        });
+      }
+
+      await updateProduct(editProduct._id, formData);
       showToast("success", "Product updated successfully!");
 
-      // ✅ Refresh + redirect
       setTimeout(async () => {
         setEditProduct(null);
         await fetchData();
-        navigate("/admin/products"); // ✅ redirect
+        navigate("/admin/products");
       }, 1000);
     } catch (err) {
-      console.error("Failed to update product:", err);
+      console.error("❌ Failed to update product:", err);
       showToast("error", "Failed to update product.");
     }
   };
@@ -174,9 +193,7 @@ export default function Products() {
     if (!deleteProductData) return;
     try {
       await deleteProduct(deleteProductData._id);
-      setProducts((prev) =>
-        prev.filter((p) => p._id !== deleteProductData._id)
-      );
+      setProducts((prev) => prev.filter((p) => p._id !== deleteProductData._id));
       showToast("success", "Product deleted successfully!");
     } catch (err) {
       console.error("Failed to delete product:", err);
@@ -186,64 +203,51 @@ export default function Products() {
     }
   };
 
-  // ✅ Toggle Product Status
+  // ✅ Toggle Status
   const toggleStatus = async (id) => {
     const product = products.find((p) => p._id === id);
     if (!product) return;
     const newStatus = product.status === "Active" ? "Inactive" : "Active";
     try {
-      const payload = {
-        status: newStatus,
-        category: product.category?._id || product.category,
-      };
-      const updated = await updateProduct(id, payload);
-      setProducts((prev) =>
-        prev.map((p) => (p._id === updated.product._id ? updated.product : p))
-      );
-      showToast(
-        "success",
-        `Product status changed to ${newStatus.toLowerCase()}`
-      );
+      const payload = new FormData();
+      payload.append("status", newStatus);
+      payload.append("category", product.category?._id || product.category);
+      await updateProduct(id, payload);
+      showToast("success", `Product status changed to ${newStatus.toLowerCase()}`);
+      fetchData();
     } catch (err) {
       console.error("Failed to update status:", err);
       showToast("error", "Failed to update status.");
     }
   };
 
-  // ✅ Fetch Reviews
+  // ✅ Reviews
   const viewProductReviews = async (productId) => {
     try {
       const data = await getReviewsByProduct(productId);
       setSelectedProduct(productId);
       setReviews(data);
-    } catch (err) {
+    } catch {
       showToast("error", "Failed to load product reviews.");
     }
   };
 
-  // ✅ Filtered Products
+  // ✅ Filter
   const filteredProducts =
     filter === "All" ? products : products.filter((p) => p.status === filter);
 
-  if (loading)
-    return (
-      <div className="p-6 text-center text-gray-600">Loading products...</div>
-    );
+  if (loading) return <div className="p-6 text-center text-gray-600">Loading products...</div>;
 
   return (
     <div className="p-6 relative">
-      {/* ✅ Toast */}
+       {/* Toast */}
       {toast.message && (
         <div
           className={`fixed top-5 right-5 px-4 py-2 rounded-lg shadow-lg text-white flex items-center gap-2 z-50 ${
             toast.type === "success" ? "bg-green-600" : "bg-red-600"
           }`}
         >
-          {toast.type === "success" ? (
-            <CheckCircle size={18} />
-          ) : (
-            <AlertCircle size={18} />
-          )}
+          {toast.type === "success" ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
           <span>{toast.message}</span>
         </div>
       )}
@@ -362,16 +366,49 @@ export default function Products() {
                 required
               />
 
-              {/* Material */}
-              <input
-                type="text"
-                placeholder="Material (e.g., Gold, Silver, Diamond)"
-                value={newProduct.material}
-                onChange={(e) =>
-                  setNewProduct({ ...newProduct, material: e.target.value })
-                }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
-              />
+             {/* 🧱 Materials Section */}
+<div className="border p-3 rounded-lg">
+  <div className="flex justify-between mb-2">
+    <h3 className="font-semibold">Materials</h3>
+    <button
+      type="button"
+      onClick={() => addMaterial(setNewProduct, newProduct)}
+      className="text-sm text-blue-600"
+    >
+      + Add
+    </button>
+  </div>
+
+  {newProduct.materials.map((mat, i) => (
+    <div key={i} className="grid grid-cols-3 gap-2 mb-2">
+      <input
+        type="text"
+        placeholder="Type"
+        value={mat.type}
+        onChange={(e) =>
+          updateMaterial(i, "type", e.target.value, setNewProduct, newProduct)
+        }
+        className="px-2 py-1 border rounded"
+      />
+      <input
+        type="number"
+        placeholder="Weight (g)"
+        value={mat.weight}
+        onChange={(e) =>
+          updateMaterial(i, "weight", e.target.value, setNewProduct, newProduct)
+        }
+        className="px-2 py-1 border rounded"
+      />
+      <button
+        type="button"
+        onClick={() => removeMaterial(i, setNewProduct, newProduct)}
+        className="text-red-600 hover:text-red-800"
+      >
+        ✕
+      </button>
+    </div>
+  ))}
+</div>
 
               {/* Description */}
               <textarea
@@ -396,31 +433,39 @@ export default function Products() {
                 <option value="Inactive">Inactive</option>
               </select>
 
-              {/* Image Upload */}
-              <div className="flex flex-col gap-2">
-                <label className="font-medium text-gray-700 flex items-center gap-2">
-                  <ImageIcon size={18} /> Product Image
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) =>
-                    handleImageUpload(e, setNewProduct, newProduct)
-                  }
-                  className="px-2 py-1 border rounded-lg"
-                  required
-                />
-                {imageError && (
-                  <p className="text-red-500 text-sm">{imageError}</p>
-                )}
-                {newProduct.image && (
-                  <img
-                    src={newProduct.image.preview}
-                    alt="Preview"
-                    className="h-20 w-20 object-cover rounded mt-2"
-                  />
-                )}
-              </div>
+              {/* 🖼️ Multiple Image Upload */}
+<div className="border p-3 rounded-lg">
+  <label className="font-medium flex items-center gap-2 mb-2">
+    <ImageIcon size={18} /> Product Images
+  </label>
+  <input
+    type="file"
+    accept="image/*"
+    multiple
+    onChange={(e) => handleImageUpload(e, setNewProduct, newProduct)}
+    className="px-2 py-1 border rounded"
+  />
+
+  {/* Previews */}
+  <div className="flex flex-wrap gap-3 mt-3">
+    {newProduct.images.map((img, i) => (
+      <div key={i} className="relative">
+        <img
+          src={img.preview}
+          alt="Preview"
+          className="h-20 w-20 rounded object-cover border"
+        />
+        <button
+          type="button"
+          onClick={() => removeImage(i, setNewProduct, newProduct)}
+          className="absolute top-0 right-0 bg-black/60 text-white text-xs p-1 rounded-bl"
+        >
+          ✕
+        </button>
+      </div>
+    ))}
+  </div>
+</div>
 
               {/* Submit Button */}
               <button
@@ -436,7 +481,7 @@ export default function Products() {
 
       {/* 🧾 Products Table */}
       <div className="overflow-x-auto bg-white rounded-xl shadow">
-        <table className="min-w-full table-auto">
+         <table className="min-w-full table-auto">
           <thead className="bg-gray-100 text-gray-600 uppercase text-sm">
             <tr>
               <th className="py-3 px-6 text-left">Image</th>
@@ -452,40 +497,20 @@ export default function Products() {
             {filteredProducts.map((prod) => (
               <tr
                 key={prod._id}
-                className={`border-b hover:bg-gray-50 ${
-                  prod.stock < 5 ? "bg-red-50" : ""
-                }`}
+                className={`border-b hover:bg-gray-50 ${prod.stock < 5 ? "bg-red-50" : ""}`}
               >
                 <td className="py-3 px-6">
-                  {prod.image ? (
-                    <img
-                      src={
-                        prod.image?.startsWith("http")
-                          ? prod.image
-                          : `${import.meta.env.VITE_API_BASE.replace(
-                              "/api",
-                              ""
-                            )}${prod.image}`
-                      }
-                      onError={(e) => (e.target.src = "/placeholder.jpg")}
-                      alt={prod.name}
-                      className="h-12 w-12 object-cover rounded"
-                    />
-                  ) : (
-                    <span className="text-gray-400 italic">No image</span>
-                  )}
+                  <img
+                    src={prod.images?.[0] || prod.image || "/placeholder.jpg"}
+                    alt={prod.name}
+                    className="h-12 w-12 object-cover rounded"
+                    onError={(e) => (e.target.src = "/placeholder.jpg")}
+                  />
                 </td>
                 <td className="py-3 px-6 font-medium">{prod.name}</td>
-                <td className="py-3 px-6">
-                  {prod.category?.name || "Uncategorized"}
-                </td>
+                <td className="py-3 px-6">{prod.category?.name || "Uncategorized"}</td>
                 <td className="py-3 px-6">₹{prod.price}</td>
-                <td className="py-3 px-6">
-                  {prod.stock}
-                  {prod.stock < 5 && (
-                    <span className="ml-2 text-xs text-red-600">(Low)</span>
-                  )}
-                </td>
+                <td className="py-3 px-6">{prod.stock}</td>
                 <td className="py-3 px-6">
                   <button
                     onClick={() => toggleStatus(prod._id)}
@@ -523,6 +548,7 @@ export default function Products() {
           </tbody>
         </table>
 
+
         {filteredProducts.length === 0 && (
           <div className="text-center py-6 text-gray-500">
             No products found.
@@ -543,134 +569,174 @@ export default function Products() {
             <h2 className="text-xl font-semibold mb-4">Edit Product</h2>
 
             <form onSubmit={handleEditProductSubmit} className="grid gap-4">
-              {/* Product Name */}
-              <input
-                type="text"
-                placeholder="Product Name"
-                value={editProduct.name || ""}
-                onChange={(e) =>
-                  setEditProduct({ ...editProduct, name: e.target.value })
-                }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
-                required
-              />
+  {/* Product Name */}
+  <input
+    type="text"
+    placeholder="Product Name"
+    value={editProduct.name || ""}
+    onChange={(e) =>
+      setEditProduct({ ...editProduct, name: e.target.value })
+    }
+    className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+    required
+  />
 
-              {/* Category */}
-              <select
-                value={editProduct.category?._id || editProduct.category}
-                onChange={(e) =>
-                  setEditProduct({ ...editProduct, category: e.target.value })
-                }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
-                required
-              >
-                <option value="">Select Category</option>
-                {categories.map((cat) => (
-                  <option key={cat._id} value={cat._id}>
-                    {cat.name}
-                  </option>
-                ))}
-              </select>
+  {/* Category */}
+  <select
+    value={editProduct.category?._id || editProduct.category}
+    onChange={(e) =>
+      setEditProduct({ ...editProduct, category: e.target.value })
+    }
+    className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+    required
+  >
+    <option value="">Select Category</option>
+    {categories.map((cat) => (
+      <option key={cat._id} value={cat._id}>
+        {cat.name}
+      </option>
+    ))}
+  </select>
 
-              {/* Price */}
-              <input
-                type="number"
-                placeholder="Price"
-                value={editProduct.price || ""}
-                onChange={(e) =>
-                  setEditProduct({ ...editProduct, price: e.target.value })
-                }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
-                required
-              />
+  {/* Price + Stock */}
+  <div className="grid grid-cols-2 gap-3">
+    <input
+      type="number"
+      placeholder="Price"
+      value={editProduct.price || ""}
+      onChange={(e) =>
+        setEditProduct({ ...editProduct, price: e.target.value })
+      }
+      className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+      required
+    />
+    <input
+      type="number"
+      placeholder="Stock Quantity"
+      value={editProduct.stock || ""}
+      onChange={(e) =>
+        setEditProduct({ ...editProduct, stock: e.target.value })
+      }
+      className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+      required
+    />
+  </div>
 
-              {/* Stock */}
-              <input
-                type="number"
-                placeholder="Stock Quantity"
-                value={editProduct.stock || ""}
-                onChange={(e) =>
-                  setEditProduct({ ...editProduct, stock: e.target.value })
-                }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
-                required
-              />
+  {/* 🧱 Materials Section */}
+  <div className="border p-3 rounded-lg">
+    <div className="flex justify-between mb-2">
+      <h3 className="font-semibold">Materials</h3>
+      <button
+        type="button"
+        onClick={() => addMaterial(setEditProduct, editProduct)}
+        className="text-sm text-blue-600"
+      >
+        + Add
+      </button>
+    </div>
 
-              {/* Material */}
-              <input
-                type="text"
-                placeholder="Material (e.g., Gold, Silver, Diamond)"
-                value={editProduct.material || ""}
-                onChange={(e) =>
-                  setEditProduct({ ...editProduct, material: e.target.value })
-                }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
-              />
+    {(editProduct.materials || []).map((mat, i) => (
+      <div key={i} className="grid grid-cols-3 gap-2 mb-2">
+        <input
+          type="text"
+          placeholder="Type"
+          value={mat.type}
+          onChange={(e) =>
+            updateMaterial(i, "type", e.target.value, setEditProduct, editProduct)
+          }
+          className="px-2 py-1 border rounded"
+        />
+        <input
+          type="number"
+          placeholder="Weight (g)"
+          value={mat.weight}
+          onChange={(e) =>
+            updateMaterial(i, "weight", e.target.value, setEditProduct, editProduct)
+          }
+          className="px-2 py-1 border rounded"
+        />
+        <button
+          type="button"
+          onClick={() => removeMaterial(i, setEditProduct, editProduct)}
+          className="text-red-600 hover:text-red-800"
+        >
+          ✕
+        </button>
+      </div>
+    ))}
+  </div>
 
-              {/* Description */}
-              <textarea
-                placeholder="Enter product description..."
-                value={editProduct.description || ""}
-                onChange={(e) =>
-                  setEditProduct({
-                    ...editProduct,
-                    description: e.target.value,
-                  })
-                }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
-                rows={3}
-              />
+  {/* Description */}
+  <textarea
+    placeholder="Enter product description..."
+    value={editProduct.description || ""}
+    onChange={(e) =>
+      setEditProduct({ ...editProduct, description: e.target.value })
+    }
+    className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+    rows={3}
+  />
 
-              {/* Status */}
-              <select
-                value={editProduct.status}
-                onChange={(e) =>
-                  setEditProduct({ ...editProduct, status: e.target.value })
-                }
-                className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
-              >
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
+  {/* Status */}
+  <select
+    value={editProduct.status}
+    onChange={(e) =>
+      setEditProduct({ ...editProduct, status: e.target.value })
+    }
+    className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+  >
+    <option value="Active">Active</option>
+    <option value="Inactive">Inactive</option>
+  </select>
 
-              {/* Image Upload */}
-              <div className="flex flex-col gap-2">
-                <label className="font-medium text-gray-700 flex items-center gap-2">
-                  <ImageIcon size={18} /> Product Image
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) =>
-                    handleImageUpload(e, setEditProduct, editProduct)
-                  }
-                  className="px-2 py-1 border rounded-lg"
-                />
-                {imageError && (
-                  <p className="text-red-500 text-sm">{imageError}</p>
-                )}
-                {editProduct.image && (
-                  <img
-                    src={
-                      editProduct.image.preview
-                        ? editProduct.image.preview
-                        : `${API_BASE}${editProduct.image}`
-                    }
-                    onError={(e) => (e.target.src = "/placeholder.jpg")}
-                    alt="Preview"
-                    className="h-20 w-20 object-cover rounded mt-2"
-                  />
-                )}
-              </div>
+  {/* 🖼️ Multiple Image Upload */}
+  <div className="border p-3 rounded-lg">
+    <label className="font-medium flex items-center gap-2 mb-2">
+      <ImageIcon size={18} /> Product Images
+    </label>
+    <input
+      type="file"
+      accept="image/*"
+      multiple
+      onChange={(e) => handleImageUpload(e, setEditProduct, editProduct)}
+      className="px-2 py-1 border rounded"
+    />
 
-              {/* Save Button */}
-              <button
-                type="submit"
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
-              >
-                Update Product
-              </button>
-            </form>
+    {/* Image Previews */}
+    <div className="flex flex-wrap gap-3 mt-3">
+      {(editProduct.images || []).map((img, i) => (
+        <div key={i} className="relative">
+          <img
+            src={
+              img.preview
+                ? img.preview
+                : img.startsWith?.("http")
+                ? img
+                : `${API_BASE}${img}`
+            }
+            alt="Preview"
+            className="h-20 w-20 rounded object-cover border"
+          />
+          <button
+            type="button"
+            onClick={() => removeImage(i, setEditProduct, editProduct)}
+            className="absolute top-0 right-0 bg-black/60 text-white text-xs p-1 rounded-bl"
+          >
+            ✕
+          </button>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  {/* Save Button */}
+  <button
+    type="submit"
+    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition"
+  >
+    Update Product
+  </button>
+</form>
           </div>
         </div>
       )}

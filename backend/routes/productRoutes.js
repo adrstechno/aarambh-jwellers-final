@@ -11,7 +11,7 @@ import {
   getProducts,
 } from "../controllers/productController.js";
 
-import upload from "../middlewares/uploadMiddleware.js"; // ✅ Use shared Cloudinary middleware
+import { uploadMultiple } from "../middlewares/uploadMiddleware.js";
 
 const router = express.Router();
 
@@ -22,14 +22,22 @@ router.get("/search", searchProducts);
 router.get("/", getAllProducts);
 router.get("/slug/:slug", getProductBySlug);
 router.get("/category/:category", getProductsByCategory);
-router.get("/:id", getProductById);
 
 /* ==========================================
-   🔵 Admin Routes (Cloudinary Uploads)
+   🔵 Admin Routes (with Cloudinary Uploads)
 ========================================== */
 router.get("/admin/list", getProducts);
-router.post("/", upload.single("image"), addProduct);     // ✅ Upload to Cloudinary
-router.put("/:id", upload.single("image"), updateProduct); // ✅ Update + reupload
+
+// ✅ Add product — multiple images
+router.post("/", uploadMultiple, addProduct);
+
+// ✅ Update product — multiple images
+router.put("/:id", uploadMultiple, updateProduct);
+
+// ✅ Delete product
 router.delete("/:id", deleteProduct);
+
+// ✅ Get product by ID (keep last)
+router.get("/:id", getProductById);
 
 export default router;

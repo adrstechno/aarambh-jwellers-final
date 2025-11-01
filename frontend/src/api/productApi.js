@@ -107,7 +107,8 @@ export const searchProducts = async (query) => {
 export const addProduct = async (productData) => {
   try {
     const { data } = await axios.post(`${API_BASE}/products`, productData, {
-      headers: { "Content-Type": "multipart/form-data" },
+      // ❌ Don't manually set Content-Type; axios sets it automatically for FormData
+      transformRequest: [(data) => data],
     });
     return normalizeProductImages(data.product || data);
   } catch (error) {
@@ -119,13 +120,14 @@ export const addProduct = async (productData) => {
 export const updateProduct = async (id, productData) => {
   try {
     const { data } = await axios.put(`${API_BASE}/products/${id}`, productData, {
-      headers: { "Content-Type": "multipart/form-data" },
+      transformRequest: [(data) => data],
     });
     return normalizeProductImages(data.product || data);
   } catch (error) {
     handleError("updating product", error);
   }
 };
+
 
 // ✅ Delete product (Admin)
 export const deleteProduct = async (id) => {

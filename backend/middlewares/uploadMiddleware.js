@@ -6,8 +6,8 @@ import cloudinary from "../config/cloudinary.js";
 const storage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => ({
-    folder: "vednine-jwellers", // 🗂 Folder name in Cloudinary
-    resource_type: "auto", // ✅ Auto-detects image/video/raw (important for avif, heic, etc.)
+    folder: "vednine-jwellers/products", // 🗂 Organized Cloudinary folder
+    resource_type: "auto", // Supports all image formats
     allowed_formats: [
       "jpg",
       "jpeg",
@@ -18,18 +18,21 @@ const storage = new CloudinaryStorage({
       "svg",
       "tiff",
       "bmp",
-    ], // ✅ Supports all common formats
+    ],
     public_id: `${Date.now()}-${file.originalname
       .split(".")[0]
-      .replace(/\s+/g, "_")}`, // Clean file name
-    transformation: [{ width: 800, height: 800, crop: "limit" }], // Optional resize
+      .replace(/\s+/g, "_")}`,
+    transformation: [{ width: 800, height: 800, crop: "limit" }], // Optimize image
   }),
 });
 
 // ✅ Initialize Multer with Cloudinary storage
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max size (you can increase this)
+  limits: { fileSize: 10 * 1024 * 1024 }, // Max 10MB
 });
 
+// ✅ Export ready-to-use middlewares
+export const uploadSingle = upload.single("image"); // Single image (for banner, category, etc.)
+export const uploadMultiple = upload.array("images", 10); // Multiple images (for product gallery)
 export default upload;

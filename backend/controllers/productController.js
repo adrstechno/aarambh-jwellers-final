@@ -1,11 +1,12 @@
 import Product from "../models/product.js";
 import Category from "../models/category.js";
 import slugify from "slugify";
-import cloudinary from "../config/cloudinary.js"; // ✅ new
+import cloudinary from "../config/cloudinary.js";
 import fs from "fs";
-import path from "path";
 
-// ✅ Helper to clean URLs
+/* ===========================================================
+   🧩 Helper: Fix image URLs
+=========================================================== */
 const fixImagePath = (imagePath) => {
   if (!imagePath) return null;
   const cleanPath = imagePath.replace(/\\/g, "/");
@@ -15,39 +16,71 @@ const fixImagePath = (imagePath) => {
 };
 
 /* ===========================================================
-   🟢 ADD PRODUCT (with Cloudinary upload)
+   🟢 ADD PRODUCT (Multiple Images + Materials)
 =========================================================== */
 export const addProduct = async (req, res) => {
+  console.log("\n\n===================== 🟢 ADD PRODUCT REQUEST =====================");
   try {
-    const { name, category, price, stock, status, material, description } = req.body;
+    console.log("🧾 req.body:", req.body);
+    console.log("🖼️ req.files:", req.files);
 
+    const { name, category, price, stock, status, materials, description } = req.body;
+
+    // 🧱 Validation
     if (!name || !category || !price || stock === undefined) {
+      console.warn("⚠️ Missing required fields.");
       return res.status(400).json({ message: "All required fields must be filled" });
     }
 
+    // ✅ Validate Category
+    console.log("🔍 Checking category...");
     const categoryExists = await Category.findById(category);
     if (!categoryExists) {
+      console.error("❌ Invalid category ID:", category);
       return res.status(400).json({ message: "Invalid category ID" });
     }
 
-    let imageUrl = "";
-
-    // ✅ Upload to Cloudinary if file exists
-    if (req.file?.path) {
-      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
-        folder: "aarambh-jwellers",
-        transformation: [{ width: 800, height: 800, crop: "limit" }],
-      });
-      imageUrl = uploadResult.secure_url;
-
-      // remove local temp file if exists
-      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+    // ✅ Parse materials JSON (if stringified)
+    console.log("🧪 Parsing materials...");
+    let materialArray = [];
+    if (materials) {
+      try {
+        materialArray =
+          typeof materials === "string" ? JSON.parse(materials) : materials;
+        console.log("✅ Parsed materials:", materialArray);
+      } catch (e) {
+        console.error("❌ Material JSON parse failed:", e.message);
+        return res.status(400).json({ message: "Invalid materials JSON format" });
+      }
     }
 
+    // ✅ Upload multiple images
+    console.log("📤 Uploading images to Cloudinary...");
+    let imageUrls = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        try {
+          const upload = await cloudinary.uploader.upload(file.path, {
+            folder: "aarambh-jwellers/products",
+            transformation: [{ width: 800, height: 800, crop: "limit" }],
+          });
+          imageUrls.push(upload.secure_url);
+          console.log("✅ Uploaded:", upload.secure_url);
+          if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+        } catch (err) {
+          console.error("❌ Cloudinary upload failed:", err.message);
+        }
+      }
+    } else {
+      console.warn("⚠️ No image files received.");
+    }
+
+    // ✅ Generate slug safely
     let slug = slugify(name, { lower: true });
     const existingSlug = await Product.findOne({ slug });
     if (existingSlug) slug = `${slug}-${Date.now()}`;
 
+    console.log("🧱 Creating product in database...");
     const newProduct = new Product({
       name: name.trim(),
       slug,
@@ -55,28 +88,137 @@ export const addProduct = async (req, res) => {
       price: parseFloat(price),
       stock: parseInt(stock),
       status: status || "Active",
-      material: material?.trim() || "",
+      materials: materialArray,
+      images: imageUrls,
+      image: imageUrls[0] || "",
       description: description?.trim() || "",
-      image: imageUrl || "", // ✅ Cloudinary URL stored
     });
 
     await newProduct.save();
+    console.log("✅ Product saved successfully:", newProduct._id);
 
     const populated = await Product.findById(newProduct._id).populate("category", "name");
-    populated.image = fixImagePath(populated.image);
 
+    console.log("✅ Product creation complete");
     res.status(201).json({
       message: "✅ Product added successfully",
       product: populated,
     });
   } catch (error) {
-    console.error("❌ Error adding product:", error);
-    res.status(500).json({ message: "Server error while adding product" });
+    console.error("❌ ADD PRODUCT ERROR:", error);
+    res.status(500).json({
+      message: "Server error while adding product",
+      error: error.message,
+      stack: error.stack,
+    });
+  }
+};
+/* ===========================================================
+   🟡 UPDATE PRODUCT (Multiple Images + Materials)
+=========================================================== */
+
+export const updateProduct = async (req, res) => {
+  console.log("\n\n===================== 🟡 UPDATE PRODUCT REQUEST =====================");
+  try {
+    console.log("🧾 req.body:", req.body);
+    console.log("🖼️ req.files:", req.files);
+
+    const { id } = req.params;
+    let { name, category, price, stock, status, materials, description } = req.body;
+
+    // ✅ Ensure product exists
+    const product = await Product.findById(id);
+    if (!product) {
+      console.error("❌ Product not found with ID:", id);
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    // ✅ Parse category safely
+    try {
+      if (typeof category === "string" && category.includes("{")) {
+        const parsed = JSON.parse(category);
+        category = parsed._id || category;
+      } else if (typeof category === "object" && category?._id) {
+        category = category._id;
+      }
+    } catch (err) {
+      console.warn("⚠️ Could not parse category JSON:", category);
+    }
+
+    // ✅ Parse materials
+    console.log("🧪 Parsing materials...");
+    let materialArray = [];
+    if (materials) {
+      try {
+        materialArray =
+          typeof materials === "string" ? JSON.parse(materials) : materials;
+        console.log("✅ Parsed materials:", materialArray);
+      } catch (e) {
+        console.error("❌ Invalid materials JSON during update:", e.message);
+      }
+    }
+
+    // ✅ Build update data
+    const updateData = {};
+    if (name) {
+      updateData.name = name.trim();
+      updateData.slug = slugify(name, { lower: true });
+    }
+    if (category) updateData.category = category;
+    if (description !== undefined) updateData.description = description.trim();
+    if (price !== undefined) updateData.price = parseFloat(price);
+    if (stock !== undefined) updateData.stock = parseInt(stock);
+    if (status) updateData.status = status;
+    if (materialArray.length > 0) updateData.materials = materialArray;
+
+    // ✅ Upload new images if provided
+    if (req.files && req.files.length > 0) {
+      console.log("📤 Uploading new images to Cloudinary...");
+      const newImages = [];
+      for (const file of req.files) {
+        try {
+          const upload = await cloudinary.uploader.upload(file.path, {
+            folder: "aarambh-jwellers/products",
+            transformation: [{ width: 800, height: 800, crop: "limit" }],
+          });
+          newImages.push(upload.secure_url);
+          console.log("✅ Uploaded new image:", upload.secure_url);
+          if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+        } catch (err) {
+          console.error("❌ Cloudinary upload failed during update:", err.message);
+        }
+      }
+
+      updateData.images = [...(product.images || []), ...newImages];
+      updateData.image = updateData.images[0] || "";
+    } else {
+      console.log("ℹ️ No new images uploaded, keeping existing ones.");
+    }
+
+    console.log("🧱 Updating product in database...");
+    const updated = await Product.findByIdAndUpdate(id, updateData, { new: true }).populate(
+      "category",
+      "name"
+    );
+
+    console.log("✅ Product updated successfully:", updated._id);
+
+    res.json({
+      message: "✅ Product updated successfully",
+      product: updated,
+    });
+  } catch (error) {
+    console.error("❌ UPDATE PRODUCT ERROR:", error);
+    res.status(500).json({
+      message: "Server error while updating product",
+      error: error.message,
+      stack: error.stack,
+    });
   }
 };
 
 /* ===========================================================
-   🟢 GET ALL PRODUCTS (admin)
+   🟢 GET ALL PRODUCTS (Admin)
 =========================================================== */
 export const getProducts = async (req, res) => {
   try {
@@ -87,68 +229,13 @@ export const getProducts = async (req, res) => {
     const fixedProducts = products.map((p) => ({
       ...p._doc,
       image: fixImagePath(p.image),
+      images: p.images?.map((img) => fixImagePath(img)) || [],
     }));
 
     res.json(fixedProducts);
   } catch (error) {
     console.error("❌ Error fetching products:", error);
     res.status(500).json({ message: "Failed to fetch products" });
-  }
-};
-
-/* ===========================================================
-   🟡 UPDATE PRODUCT (with Cloudinary support)
-=========================================================== */
-export const updateProduct = async (req, res) => {
-  try {
-    const { id } = req.params;
-    let { name, category, price, stock, status, material, description } = req.body;
-
-    try {
-      if (typeof category === "string" && category.includes("{")) {
-        const parsed = JSON.parse(category);
-        category = parsed._id || category;
-      } else if (typeof category === "object" && category?._id) {
-        category = category._id;
-      }
-    } catch (err) {
-      console.warn("⚠️ Could not parse category:", category);
-    }
-
-    const updateData = {};
-    if (name) {
-      updateData.name = name.trim();
-      updateData.slug = slugify(name, { lower: true });
-    }
-    if (category) updateData.category = category;
-    if (material !== undefined) updateData.material = material.trim();
-    if (description !== undefined) updateData.description = description.trim();
-    if (price !== undefined) updateData.price = parseFloat(price);
-    if (stock !== undefined) updateData.stock = parseInt(stock);
-    if (status) updateData.status = status;
-
-    // ✅ Upload new image if provided
-    if (req.file?.path) {
-      const uploadResult = await cloudinary.uploader.upload(req.file.path, {
-        folder: "aarambh-jwellers",
-        transformation: [{ width: 800, height: 800, crop: "limit" }],
-      });
-      updateData.image = uploadResult.secure_url;
-      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
-    }
-
-    const oldProduct = await Product.findById(id);
-    if (!oldProduct) return res.status(404).json({ message: "Product not found" });
-
-    const updated = await Product.findByIdAndUpdate(id, updateData, { new: true })
-      .populate("category", "name");
-
-    updated.image = fixImagePath(updated.image);
-
-    res.json({ message: "✅ Product updated successfully", product: updated });
-  } catch (error) {
-    console.error("❌ Error updating product:", error);
-    res.status(500).json({ message: "Failed to update product" });
   }
 };
 
@@ -160,10 +247,6 @@ export const deleteProduct = async (req, res) => {
     const deleted = await Product.findByIdAndDelete(req.params.id);
     if (!deleted) return res.status(404).json({ message: "Product not found" });
 
-    // (Optional) delete from Cloudinary if needed
-    // You can store Cloudinary public_id when uploading, and use:
-    // await cloudinary.uploader.destroy(deleted.public_id);
-
     res.json({ message: "🗑️ Product deleted successfully" });
   } catch (error) {
     console.error("❌ Error deleting product:", error);
@@ -172,7 +255,7 @@ export const deleteProduct = async (req, res) => {
 };
 
 /* ===========================================================
-   🌐 PUBLIC ROUTES
+   🌐 PUBLIC ROUTES (Frontend)
 =========================================================== */
 export const getAllProducts = async (req, res) => {
   try {
@@ -183,6 +266,7 @@ export const getAllProducts = async (req, res) => {
     const fixedProducts = products.map((p) => ({
       ...p._doc,
       image: fixImagePath(p.image),
+      images: p.images?.map((img) => fixImagePath(img)) || [],
     }));
 
     res.status(200).json(fixedProducts);
@@ -196,7 +280,8 @@ export const getProductsByCategory = async (req, res) => {
   try {
     const { category } = req.params;
     const foundCategory = await Category.findOne({ slug: category.toLowerCase() });
-    if (!foundCategory) return res.status(404).json({ message: "Category not found" });
+    if (!foundCategory)
+      return res.status(404).json({ message: "Category not found" });
 
     const products = await Product.find({
       category: foundCategory._id,
@@ -208,6 +293,7 @@ export const getProductsByCategory = async (req, res) => {
     const fixedProducts = products.map((p) => ({
       ...p._doc,
       image: fixImagePath(p.image),
+      images: p.images?.map((img) => fixImagePath(img)) || [],
     }));
 
     res.status(200).json(fixedProducts);
@@ -222,7 +308,9 @@ export const getProductById = async (req, res) => {
     const product = await Product.findById(req.params.id).populate("category", "name");
     if (!product) return res.status(404).json({ message: "Product not found" });
 
+    product.images = product.images?.map((img) => fixImagePath(img)) || [];
     product.image = fixImagePath(product.image);
+
     res.status(200).json(product);
   } catch (error) {
     console.error("❌ Error fetching product by ID:", error);
@@ -232,11 +320,15 @@ export const getProductById = async (req, res) => {
 
 export const getProductBySlug = async (req, res) => {
   try {
-    const product = await Product.findOne({ slug: req.params.slug })
-      .populate("category", "name slug");
+    const product = await Product.findOne({ slug: req.params.slug }).populate(
+      "category",
+      "name slug"
+    );
     if (!product) return res.status(404).json({ message: "Product not found" });
 
+    product.images = product.images?.map((img) => fixImagePath(img)) || [];
     product.image = fixImagePath(product.image);
+
     res.status(200).json(product);
   } catch (err) {
     console.error("❌ Error fetching product by slug:", err);
@@ -253,7 +345,6 @@ export const searchProducts = async (req, res) => {
       $or: [
         { name: { $regex: query, $options: "i" } },
         { description: { $regex: query, $options: "i" } },
-        { "category.name": { $regex: query, $options: "i" } },
       ],
     })
       .populate("category", "name slug image")

@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Heart, Eye, ShoppingCart } from "lucide-react";
 import { useApp } from "../../context/AppContext.jsx";
 import { useNavigate } from "react-router-dom";
@@ -8,41 +8,50 @@ export default function ProductCard({ product }) {
   const [isHovered, setIsHovered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // ✅ Use context functions
   const { user, addToCart, addToWishlist, removeFromWishlist } = useApp();
   const navigate = useNavigate();
 
   const isSoldOut = product.stock === 0 || product.status === "Inactive";
 
   /* ======================================================
-     🧩 Safe Image URL Resolver (supports Cloudinary + Local)
+     🧩 Image URL Normalizer (Cloudinary + Local Support)
   ====================================================== */
   const BASE_URL =
     import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
 
   const fixImageURL = (img) => {
     if (!img) return "/placeholder.jpg";
-
     const clean = img.replace(/\\/g, "/");
-
-    // ✅ Cloudinary or external URL
     if (clean.startsWith("http")) return clean;
-
-    // ✅ Local uploads fallback
     if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
     if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
-
-    // 🔴 Fallback placeholder
     return "/placeholder.jpg";
   };
 
-  const productImage =
-    (Array.isArray(product.images) && product.images[0]) ||
-    product.image ||
-    "/placeholder.jpg";
+  // 🖼 Handle multiple images (Cloudinary or local)
+  const productImages =
+    Array.isArray(product.images) && product.images.length > 0
+      ? product.images.map((img) => fixImageURL(img))
+      : [fixImageURL(product.image || "/placeholder.jpg")];
 
-  const imageSrc = fixImageURL(productImage);
+  /* ======================================================
+     🎞 Auto Image Slideshow (every 3 seconds)
+  ====================================================== */
+  useEffect(() => {
+    if (productImages.length <= 1) return; // Skip if only one image
+
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) =>
+        prev === productImages.length - 1 ? 0 : prev + 1
+      );
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [productImages.length]);
+
+  const currentImage = productImages[currentImageIndex];
 
   /* ======================================================
      🛒 Add to Cart
@@ -54,7 +63,7 @@ export default function ProductCard({ product }) {
 
     try {
       setIsLoading(true);
-      await addToCart(product, 1); // ✅ Context-based add
+      await addToCart(product, 1);
     } catch (err) {
       console.error("❌ Failed to add to cart:", err);
     } finally {
@@ -114,9 +123,9 @@ export default function ProductCard({ product }) {
       {/* 🖼 Product Image */}
       <div className="relative overflow-hidden">
         <img
-          src={imageSrc}
+          src={currentImage}
           alt={product.name}
-          className="w-full h-64 object-cover rounded-lg transition-transform duration-300 hover:scale-105"
+          className="w-full h-64 object-cover rounded-lg transition-transform duration-700 ease-in-out hover:scale-105"
           onError={(e) => (e.target.src = "/placeholder.jpg")}
         />
 
@@ -199,6 +208,13 @@ export default function ProductCard({ product }) {
         >
           {product.name}
         </h3>
+
+        {/* 💎 Materials display (if available) */}
+        {Array.isArray(product.materials) && product.materials.length > 0 && (
+          <p className="text-sm text-gray-500 mb-2">
+            {product.materials.map((m) => `${m.type} (${m.weight}g)`).join(", ")}
+          </p>
+        )}
 
         <div className="flex items-center space-x-2 mb-4">
           <span className="text-xl font-bold text-gray-900">
