@@ -1,4 +1,5 @@
 // src/admin/AdminApp.jsx
+import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 
 import Sidebar from "./components/Sidebar.jsx";
@@ -17,18 +18,27 @@ import Gifts from "./pages/Gifts.jsx";
 import Refunds from "./pages/Refunds.jsx";
 import Returns from "./pages/Returns.jsx";
 import JewellerySection from "./pages/JewellerySection.jsx";
+import AdminProfile from "./pages/AdminProfile.jsx";
 
 export default function AdminApp() {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col">
-        <Header />
+      <div className="flex-1 flex flex-col transition-all duration-300">
+        {/* Header */}
+        <Header onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
 
-        <main className="p-6 flex-1 overflow-y-auto">
+        {/* Main content with padding for fixed header */}
+        <main
+          className={`p-6 flex-1 overflow-y-auto transition-all duration-300 
+          ${isSidebarOpen ? "md:ml-64" : "md:ml-64"} 
+          bg-gray-50 min-h-screen mt-16`}
+        >
           <Routes>
             <Route path="/admin" element={<Dashboard />} />
             <Route path="/admin/products" element={<Products />} />
@@ -43,6 +53,8 @@ export default function AdminApp() {
             <Route path="/admin/refunds" element={<Refunds />} />
             <Route path="/admin/returns" element={<Returns />} />
             <Route path="/admin/jewellery-section" element={<JewellerySection />} />
+            <Route path="/admin/profile" element={<AdminProfile />} />
+
           </Routes>
         </main>
       </div>

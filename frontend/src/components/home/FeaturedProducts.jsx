@@ -1,19 +1,17 @@
+/* eslint-disable react/no-unknown-property */
 /* eslint-disable react/no-unescaped-entities */
 import { useState, useEffect } from "react";
 import ProductCard from "../products/ProductCard";
 import { getProductsByCategory } from "../../api/productApi";
 
 export default function FeaturedProducts() {
-  const [activeTab, setActiveTab] = useState("necklace");
+  const [activeTab, setActiveTab] = useState("rings");
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [autoSwitch, setAutoSwitch] = useState(true); // ✅ Auto rotate categories
+  const [autoSwitch, setAutoSwitch] = useState(true);
 
-  const categories = ["necklace", "rings", "bracelet", "earrings"];
+  const categories = ["rings", "bracelet", "earrings"];
 
-  /* ===========================================================
-     🧩 Helper to Normalize Image URLs (Cloudinary + Local)
-  =========================================================== */
   const BASE_URL =
     import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
 
@@ -27,20 +25,16 @@ export default function FeaturedProducts() {
   };
 
   /* ===========================================================
-     🟢 Fetch Products on Category Change
+     Fetch Products
   =========================================================== */
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
         const data = await getProductsByCategory(activeTab);
+        const productList = Array.isArray(data) ? data : data?.products || [];
 
-        const productList = Array.isArray(data)
-          ? data
-          : data?.products || [];
-
-        // ✅ Normalize image URLs (support multiple images)
-        const normalized = productList.map((p) => ({
+        const normalized = productList.slice(0, 8).map((p) => ({
           ...p,
           image:
             Array.isArray(p.images) && p.images.length > 0
@@ -50,7 +44,7 @@ export default function FeaturedProducts() {
 
         setProducts(normalized);
       } catch (err) {
-        console.error("❌ Failed to fetch products:", err);
+        console.error("Failed to fetch products:", err);
         setProducts([]);
       } finally {
         setLoading(false);
@@ -61,7 +55,7 @@ export default function FeaturedProducts() {
   }, [activeTab]);
 
   /* ===========================================================
-     🔄 Auto-switch Tabs every 5 seconds
+     Auto-switch Tabs
   =========================================================== */
   useEffect(() => {
     if (!autoSwitch) return;
@@ -76,30 +70,48 @@ export default function FeaturedProducts() {
   }, [autoSwitch]);
 
   /* ===========================================================
-     🎨 UI Rendering
+     Loading Skeleton
   =========================================================== */
+  const LoadingSkeleton = () => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
+      {[...Array(8)].map((_, i) => (
+        <div
+          key={i}
+          className="bg-white rounded-xl shadow-sm overflow-hidden animate-pulse"
+        >
+          <div className="h-48 sm:h-56 bg-gray-200"></div>
+          <div className="p-3 sm:p-4 space-y-2">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <section
-      className="py-16 bg-gray-50 relative overflow-hidden"
-      onMouseEnter={() => setAutoSwitch(false)} // ⏸ pause on hover
-      onMouseLeave={() => setAutoSwitch(true)} // ▶️ resume
+      className="py-12 sm:py-16 bg-gradient-to-b from-amber-50 to-white overflow-hidden"
+      onMouseEnter={() => setAutoSwitch(false)}
+      onMouseLeave={() => setAutoSwitch(true)}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 transition-all duration-700">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="text-center mb-12">
-          <p className="text-lg text-gray-600 italic mb-4">Eternal Elegance</p>
-          <h2 className="text-3xl font-bold text-gray-900 mb-6 tracking-wide">
+        <div className="text-center mb-10 sm:mb-12">
+          <p className="text-sm sm:text-lg text-amber-700 font-medium tracking-widest uppercase mb-2">
+            Eternal Elegance
+          </p>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3">
             FEATURED PRODUCTS
           </h2>
-          <p className="text-gray-600 max-w-2xl mx-auto">
-            "Celebrate your moments with timeless designs, meticulously crafted
-            to perfection by Vednine Jwellers."
+          <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
+            "Celebrate your moments with timeless designs, meticulously crafted to perfection by Vednine Jwellers."
           </p>
         </div>
 
-        {/* Tabs */}
-        <div className="flex justify-center mb-12">
-          <div className="bg-white rounded-lg shadow-sm p-1 flex flex-wrap justify-center">
+        {/* Tabs - Mobile Scroll, Desktop Inline */}
+        <div className="mb-10 sm:mb-12 overflow-x-auto scrollbar-hide">
+          <div className="flex justify-center gap-2 sm:gap-3 min-w-max sm:min-w-0">
             {categories.map((tab) => (
               <button
                 key={tab}
@@ -107,55 +119,79 @@ export default function FeaturedProducts() {
                   setActiveTab(tab);
                   setAutoSwitch(false);
                 }}
-                className={`px-8 py-3 text-sm font-medium rounded-md transition-all duration-300 ${
-                  activeTab === tab
-                    ? "bg-amber-400 text-gray-900 shadow-md scale-105"
-                    : "text-gray-700 hover:text-amber-600 hover:bg-amber-50"
-                }`}
+                className={`
+                  relative px-5 sm:px-8 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold uppercase tracking-wider
+                  rounded-full transition-all duration-300 whitespace-nowrap
+                  ${activeTab === tab
+                    ? "bg-gradient-to-r from-amber-400 to-amber-500 text-white shadow-lg scale-105"
+                    : "bg-white text-gray-700 hover:text-amber-600 hover:bg-amber-50 border border-gray-200"
+                  }
+                `}
               >
-                {tab.toUpperCase()}
+                {tab}
+                {activeTab === tab && (
+                  <span className="absolute inset-0 rounded-full animate-ping bg-amber-400 opacity-30"></span>
+                )}
               </button>
             ))}
           </div>
         </div>
 
         {/* Product Grid */}
-        {loading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {Array.from({ length: 4 }).map((_, i) => (
+        <div className="relative">
+          {loading ? (
+            <LoadingSkeleton />
+          ) : products.length === 0 ? (
+            <div className="text-center py-16">
+              <p className="text-gray-500 text-lg">
+                No products found for <span className="font-medium capitalize">"{activeTab}"</span>.
+              </p>
+            </div>
+          ) : (
+            <div
+              key={activeTab}
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6 animate-in fade-in slide-in-from-bottom duration-500"
+            >
+              {products.map((product, index) => (
+                <div
+                  key={product._id}
+                  className="transform transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <ProductCard product={product} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Auto-rotate indicator */}
+        {autoSwitch && !loading && products.length > 0 && (
+          <div className="flex justify-center mt-8 gap-1">
+            {categories.map((_, i) => (
               <div
                 key={i}
-                className="h-64 bg-gray-200 rounded-lg animate-pulse"
-              ></div>
-            ))}
-          </div>
-        ) : products.length === 0 ? (
-          <p className="text-center text-gray-500">
-            No products found for "{activeTab}".
-          </p>
-        ) : (
-          <div
-            key={activeTab} // Forces re-render animation on tab switch
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 animate-fadeIn"
-          >
-            {products.map((product) => (
-              <ProductCard key={product._id} product={product} />
+                className={`h-1.5 w-8 rounded-full transition-all duration-300 ${
+                  i === categories.indexOf(activeTab)
+                    ? "bg-amber-500 w-12"
+                    : "bg-gray-300"
+                }`}
+              />
             ))}
           </div>
         )}
       </div>
+
+      {/* Custom Scrollbar Hide */}
+      <style jsx>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </section>
   );
 }
-
-/* ===========================================================
-   ✨ Smooth Fade Animation (Tailwind)
-   Add this in your global CSS if not already defined:
-   .animate-fadeIn {
-     animation: fadeIn 0.7s ease-in-out;
-   }
-   @keyframes fadeIn {
-     from { opacity: 0; transform: translateY(10px); }
-     to { opacity: 1; transform: translateY(0); }
-   }
-=========================================================== */

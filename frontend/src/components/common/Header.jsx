@@ -11,6 +11,7 @@ import {
   Package2,
   RotateCcw,
   LogOut,
+  Home,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { useNavigate } from "react-router-dom";
@@ -31,7 +32,6 @@ export default function Header() {
 
   const {
     user,
-    cart,
     wishlist,
     getTotalItems,
     getTotalPrice,
@@ -114,8 +114,14 @@ export default function Header() {
   };
 
   /* ======================================================
-     Navigation & Logout
+     Navigation
   ====================================================== */
+  const goHome = () => {
+    navigate(isAdmin() ? "/admin" : "/");
+    setIsMobileMenuOpen(false);
+    setIsUserMenuOpen(false);
+  };
+
   const handleNavigate = (path) => {
     navigate(path);
     setIsUserMenuOpen(false);
@@ -130,7 +136,7 @@ export default function Header() {
   };
 
   /* ======================================================
-     User Section (Desktop + Mobile)
+     User Section
   ====================================================== */
   const renderUserSection = useCallback(() => {
     if (user) {
@@ -138,7 +144,7 @@ export default function Header() {
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-            className="flex items-center gap-2 text-gray-700 hover:text-red-600 font-medium transition-all"
+            className="flex items-center gap-2 text-gray-700 hover:text-red-600 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded-lg px-2 py-1"
           >
             <img
               src={
@@ -147,7 +153,7 @@ export default function Header() {
                   : "https://cdn-icons-png.flaticon.com/512/1077/1077012.png"
               }
               alt="User"
-              className="w-8 h-8 rounded-full border shadow-sm object-cover"
+              className="w-8 h-8 rounded-full border-2 border-gray-200 shadow-sm object-cover"
             />
             <span className="hidden sm:inline">
               Hi, {user.name?.split(" ")[0] || "User"}
@@ -161,41 +167,46 @@ export default function Header() {
 
           {/* Dropdown */}
           {isUserMenuOpen && (
-            <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl border shadow-xl overflow-hidden z-50 animate-fadeIn">
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl border border-gray-200 shadow-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
               {isAdmin() ? (
                 <button
                   onClick={() => handleNavigate("/admin")}
-                  className="flex w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 transition"
+                  className="flex w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 transition-colors group"
                 >
-                  <Package2 size={16} className="mr-2 text-red-500" /> Admin Dashboard
+                  <Package2 size={16} className="mr-2 text-red-500 group-hover:scale-110 transition-transform" />
+                  Admin Dashboard
                 </button>
               ) : (
                 <>
                   <button
                     onClick={() => handleNavigate("/account")}
-                    className="flex w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 transition"
+                    className="flex w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 transition-colors group"
                   >
-                    <User size={16} className="mr-2 text-red-500" /> My Profile
+                    <User size={16} className="mr-2 text-red-500 group-hover:scale-110 transition-transform" />
+                    My Profile
                   </button>
                   <button
                     onClick={() => handleNavigate("/orders")}
-                    className="flex w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 transition"
+                    className="flex w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 transition-colors group"
                   >
-                    <Package2 size={16} className="mr-2 text-red-500" /> My Orders
+                    <Package2 size={16} className="mr-2 text-red-500 group-hover:scale-110 transition-transform" />
+                    My Orders
                   </button>
                   <button
                     onClick={() => handleNavigate("/my-refunds")}
-                    className="flex w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 transition"
+                    className="flex w-full px-4 py-3 text-sm text-gray-700 hover:bg-red-50 transition-colors group"
                   >
-                    <RotateCcw size={16} className="mr-2 text-red-500" /> My Refunds
+                    <RotateCcw size={16} className="mr-2 text-red-500 group-hover:scale-110 transition-transform" />
+                    My Refunds
                   </button>
                 </>
               )}
               <button
                 onClick={handleLogout}
-                className="flex w-full px-4 py-3 text-sm text-red-600 hover:bg-red-100 border-t transition"
+                className="flex w-full px-4 py-3 text-sm text-red-600 hover:bg-red-100 border-t transition-colors group"
               >
-                <LogOut size={16} className="mr-2" /> Logout
+                <LogOut size={16} className="mr-2 group-hover:scale-110 transition-transform" />
+                Logout
               </button>
             </div>
           )}
@@ -206,7 +217,7 @@ export default function Header() {
     return (
       <button
         onClick={toggleLoginModal}
-        className="text-gray-700 hover:text-red-600 flex items-center space-x-1 font-medium transition-all"
+        className="text-gray-700 hover:text-red-600 flex items-center gap-1.5 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded-lg px-2 py-1"
       >
         <User className="w-5 h-5" />
         <span className="hidden sm:inline">Login / Register</span>
@@ -224,11 +235,11 @@ export default function Header() {
       <div className="flex items-center gap-4 sm:gap-6">
         <button
           onClick={() => handleNavigate("/wishlist")}
-          className="relative text-gray-700 hover:text-red-600 transition-all"
+          className="relative text-gray-700 hover:text-red-600 transition-all group"
         >
-          <Heart className="w-6 h-6" />
+          <Heart className="w-6 h-6 group-hover:fill-red-600 transition-all" />
           {wishlist.length > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-red-500 to-pink-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-md text-[10px] font-bold">
+            <span className="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-red-500 to-pink-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-md text-[10px] font-bold animate-pulse">
               {wishlist.length}
             </span>
           )}
@@ -236,14 +247,11 @@ export default function Header() {
 
         <button
           onClick={() => handleNavigate("/cart")}
-          className="relative text-gray-700 hover:text-red-600 transition-all"
+          className="relative text-gray-700 hover:text-red-600 transition-all group"
         >
-          <ShoppingCart className="w-6 h-6" />
+          <ShoppingCart className="w-6 h-6 group-hover:fill-red-600 transition-all" />
           {getTotalItems() > 0 && (
-            <span
-              key={getTotalItems()}
-              className="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-red-500 to-pink-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-md animate-pulse text-[10px] font-bold"
-            >
+            <span className="absolute -top-1.5 -right-1.5 bg-gradient-to-r from-red-500 to-pink-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center shadow-md animate-pulse text-[10px] font-bold">
               {getTotalItems()}
             </span>
           )}
@@ -262,22 +270,23 @@ export default function Header() {
       <header className="bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className="flex items-center">
+            {/* Logo + Home Button */}
+            <div className="flex items-center gap-3 sm:gap-4">
               <img
                 src="/logo2.png"
                 alt="Logo"
                 className="h-12 sm:h-14 cursor-pointer hover:scale-105 transition-transform duration-300"
-                onClick={() => handleNavigate(isAdmin() ? "/admin" : "/")}
+                onClick={goHome}
               />
-              {!isAdmin() && (
-                <button
-                  onClick={() => handleNavigate("/")}
-                  className="ml-3 sm:ml-4 text-gray-700 font-medium hover:text-red-600 transition text-sm sm:text-base hidden xs:inline"
-                >
-                  Home
-                </button>
-              )}
+              {/* Home Button – Always Visible */}
+              <button
+                onClick={goHome}
+                className="flex items-center gap-1.5 text-gray-700 hover:text-red-600 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded-lg px-2 py-1"
+                aria-label="Go to Home"
+              >
+                <Home className="w-5 h-5" />
+                <span className="hidden sm:inline">Home</span>
+              </button>
             </div>
 
             {/* Desktop Search */}
@@ -289,7 +298,7 @@ export default function Header() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search products..."
-                    className="w-full px-5 py-2 pr-12 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm"
+                    className="w-full px-5 py-2.5 pr-12 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm transition-all"
                     onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                   />
                   <button
@@ -315,12 +324,12 @@ export default function Header() {
                           setShowSuggestions(false);
                           setSearchQuery("");
                         }}
-                        className="flex items-center gap-3 px-3 py-2 hover:bg-red-50 cursor-pointer transition-all"
+                        className="flex items-center gap-3 px-3 py-2 hover:bg-red-50 cursor-pointer transition-all group"
                       >
                         <img
                           src={fixImageURL(product.image)}
                           alt={product.name}
-                          className="w-10 h-10 rounded object-cover border"
+                          className="w-10 h-10 rounded object-cover border group-hover:scale-105 transition-transform"
                         />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium text-gray-800 truncate">
@@ -338,22 +347,23 @@ export default function Header() {
             )}
 
             {/* Desktop: User + Cart */}
-            <div className="hidden md:flex items-center space-x-6">
+            <div className="hidden md:flex items-center gap-6">
               {renderUserSection()}
               {renderCartWishlist()}
             </div>
 
-            {/* Mobile Menu Button */}
+            {/* Mobile Menu Toggle */}
             <button
-              className="md:hidden text-gray-700 hover:text-red-600 z-10"
+              className="md:hidden text-gray-700 hover:text-red-600 z-10 p-1"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle menu"
             >
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Search Bar (Always Visible Below Header) */}
+        {/* Mobile Search Bar */}
         {!isAdmin() && (
           <div className="md:hidden border-t border-gray-200 bg-white px-4 py-3 sticky top-16 z-40">
             <form onSubmit={handleSearch} ref={mobileSearchRef} className="relative">
@@ -362,7 +372,7 @@ export default function Header() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search products..."
-                className="w-full px-4 py-2.5 pr-12 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="w-full px-4 py-2.5 pr-12 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition-all"
                 onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
               />
               <button
@@ -448,6 +458,15 @@ export default function Header() {
           </div>
 
           <div className="p-4 space-y-1">
+            {/* Home at Top */}
+            <button
+              onClick={goHome}
+              className="w-full text-left px-4 py-3 rounded-lg hover:bg-red-50 flex items-center gap-3 text-gray-700 font-medium"
+            >
+              <Home size={18} className="text-red-500" />
+              Home
+            </button>
+
             {user ? (
               <>
                 {isAdmin() ? (
@@ -504,7 +523,7 @@ export default function Header() {
             )}
           </div>
 
-          {/* Cart & Wishlist in Mobile Menu */}
+          {/* Cart & Wishlist */}
           {!isAdmin() && (
             <div className="border-t p-4 space-y-4">
               <div className="flex justify-between items-center">
