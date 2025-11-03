@@ -23,23 +23,32 @@ export const toggleUserRole = async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    user.role = user.role === "Admin" ? "Customer" : "Admin";
-    const updatedUser = await user.save();
+    // ✅ Toggle role safely with lowercase
+    const currentRole = user.role?.toLowerCase();
+    user.role = currentRole === "admin" ? "customer" : "admin";
+
+    await user.save();
 
     res.status(200).json({
-      success: true,
-      message: `User role changed to ${updatedUser.role}`,
-      updatedUser,
+      message:
+        user.role === "admin"
+          ? `${user.name} promoted to Admin`
+          : `${user.name} demoted to Customer`,
+      updatedUser: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role.charAt(0).toUpperCase() + user.role.slice(1),
+        status: user.status.charAt(0).toUpperCase() + user.status.slice(1),
+      },
     });
   } catch (error) {
-    console.error("❌ Error updating role:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to update user role",
-      error: error.message,
-    });
+    console.error("❌ Error toggling user role:", error);
+    res.status(500).json({ message: "Failed to toggle user role" });
   }
 };
+
 
 // 🔴 Toggle Active ↔ Blocked Status
 export const toggleUserStatus = async (req, res) => {
@@ -47,13 +56,26 @@ export const toggleUserStatus = async (req, res) => {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    user.status = user.status === "Active" ? "Blocked" : "Active";
-    const updatedUser = await user.save();
+    // ✅ Toggle between active <-> blocked (case-insensitive)
+    const currentStatus = user.status?.toLowerCase();
+    user.status = currentStatus === "active" ? "blocked" : "active";
+
+    await user.save();
 
     res.status(200).json({
       success: true,
-      message: `User status changed to ${updatedUser.status}`,
-      updatedUser,
+      message:
+        user.status === "active"
+          ? `${user.name} has been unblocked`
+          : `${user.name} has been blocked`,
+      updatedUser: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role.charAt(0).toUpperCase() + user.role.slice(1),
+        status: user.status.charAt(0).toUpperCase() + user.status.slice(1),
+      },
     });
   } catch (error) {
     console.error("❌ Error updating status:", error);
@@ -64,6 +86,7 @@ export const toggleUserStatus = async (req, res) => {
     });
   }
 };
+
 
 // 🟣 Fetch orders for specific user (Admin)
 export const getUserOrders = async (req, res) => {

@@ -24,6 +24,7 @@ import dashboardRoutes from "./routes/dashboardRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import bannerRoutes from "./routes/bannerRoutes.js";
 import jewellerySectionRoutes from "./routes/jewellerySectionRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 dotenv.config();
 const app = express();
@@ -83,7 +84,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/banners", bannerRoutes);
 app.use("/api/jewellery-section", jewellerySectionRoutes);
-
+app.use("/api/admin", adminRoutes);
 /* =======================================================
    ⚠️ Global Error Handler
 ======================================================= */

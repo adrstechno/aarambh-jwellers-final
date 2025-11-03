@@ -96,24 +96,30 @@ export default function Users() {
     }
   };
 
-  // ✅ Toggle Block / Unblock
-  const handleToggleBlock = async (id) => {
-    try {
-      const res = await toggleUserStatus(id); // ⬅️ auto token
-      if (res?.updatedUser) {
-        setUsers((prev) =>
-          prev.map((u) => (u._id === id ? res.updatedUser : u))
-        );
-        showToast("success", "User status updated!");
-      } else {
-        showToast("error", "Unexpected server response.");
-      }
-      setActionUser(null);
-    } catch (err) {
-      console.error("Failed to update status:", err);
-      showToast("error", "Failed to update user status.");
+ // ✅ Toggle Block / Unblock
+const handleToggleBlock = async (id) => {
+  try {
+    const res = await toggleUserStatus(id); // ⬅️ auto token handled in API
+
+    if (res?.updatedUser) {
+      // ✅ Update user list instantly
+      setUsers((prev) =>
+        prev.map((u) => (u._id === id ? res.updatedUser : u))
+      );
+
+      // ✅ Show backend message for better clarity
+      showToast("success", res.message || "User status updated successfully!");
+    } else {
+      showToast("error", "Unexpected response from server.");
     }
-  };
+
+    setActionUser(null);
+  } catch (err) {
+    console.error("❌ Failed to update user status:", err);
+    showToast("error", err.message || "Failed to update user status.");
+  }
+};
+
 
   // ✅ Export All Users to CSV
   const exportAllUsersCSV = () => {
@@ -294,15 +300,15 @@ export default function Users() {
                       </span>
                     </td>
                     <td className="py-3 px-6">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          user.status === "Active"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
-                      >
-                        {user.status}
-                      </span>
+                     <span
+  className={`px-2 py-1 rounded-full text-xs font-semibold ${
+    user.status?.toLowerCase() === "active"
+      ? "bg-green-100 text-green-700"
+      : "bg-red-100 text-red-700"
+  }`}
+>
+  {user.status?.charAt(0).toUpperCase() + user.status?.slice(1)}
+</span>
                     </td>
                     <td className="py-3 px-6 text-sm text-gray-600">
                       {stats.total} orders<br />
@@ -341,32 +347,33 @@ export default function Users() {
     </button>
 
     {/* Toggle Role */}
-    <button
-      onClick={() => handleToggleAdmin(user._id)}
-      className="w-full text-left px-4 py-2 hover:bg-purple-50 flex items-center gap-2 text-sm transition-colors"
-    >
-      <Shield
-        className={`w-4 h-4 ${
-          user.role === "Admin" ? "text-purple-600" : "text-purple-500"
-        }`}
-      />
-      <span className="text-gray-700">
-        {user.role === "Admin" ? "Remove Admin" : "Make Admin"}
-      </span>
-    </button>
+   <button
+  onClick={() => handleToggleAdmin(user._id)}
+  className="w-full text-left px-4 py-2 hover:bg-purple-50 flex items-center gap-2 text-sm transition-colors"
+>
+  <Shield
+    className={`w-4 h-4 ${
+      user.role === "Admin" ? "text-purple-600" : "text-purple-500"
+    }`}
+  />
+  <span className="text-gray-700">
+    {user.role === "Admin" ? "Remove Admin" : "Make Admin"}
+  </span>
+</button>
+
 
     {/* Toggle Block / Unblock */}
     <button
       onClick={() => handleToggleBlock(user._id)}
       className={`w-full text-left px-4 py-2 flex items-center gap-2 text-sm transition-colors ${
-        user.status === "Active"
+        user.status === "active"
           ? "hover:bg-red-50 text-red-600"
           : "hover:bg-green-50 text-green-600"
       }`}
     >
       <Ban className="w-4 h-4" />
       <span>
-        {user.status === "Active" ? "Block User" : "Unblock User"}
+        {user.status === "active" ? "Block User" : "Unblock User"}
       </span>
     </button>
   </div>

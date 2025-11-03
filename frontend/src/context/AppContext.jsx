@@ -336,6 +336,7 @@ export function AppProvider({ children }) {
 
         // Auth
         user,
+        setUser,
         handleLogin,
         handleRegister,
         logoutUser,

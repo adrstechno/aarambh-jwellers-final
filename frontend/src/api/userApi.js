@@ -3,6 +3,7 @@ import axios from "axios";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
 const USER_API = `${API_BASE}/users`;
+const ADMIN_API = `${API_BASE}/admin`;
 
 /* ===========================================================
    🧠 Helper Functions
@@ -14,7 +15,7 @@ const getAuthHeader = (token) => {
   return finalToken ? { Authorization: `Bearer ${finalToken}` } : {};
 };
 
-// ✅ Consistent error handler
+// ✅ Centralized Error Handler
 const handleError = (action, error) => {
   console.error(`❌ Error ${action}:`, error.response?.data || error.message);
   throw new Error(error.response?.data?.message || `Failed to ${action}`);
@@ -23,6 +24,33 @@ const handleError = (action, error) => {
 /* ===========================================================
    👑 ADMIN ROUTES  (Protected)
 =========================================================== */
+
+// 🟢 Get logged-in admin profile
+export const getAdminProfile = async (token) => {
+  try {
+    const { data } = await axios.get(`${ADMIN_API}/profile`, {
+      headers: getAuthHeader(token),
+    });
+    return data;
+  } catch (error) {
+    handleError("fetching admin profile", error);
+  }
+};
+
+// 🟠 Update admin profile (name, phone, image, password)
+export const updateAdminProfile = async (formData, token) => {
+  try {
+    const { data } = await axios.put(`${ADMIN_API}/update-profile`, formData, {
+      headers: {
+        ...getAuthHeader(token),
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return data;
+  } catch (error) {
+    handleError("updating admin profile", error);
+  }
+};
 
 // 🟢 Get all users
 export const getAllUsers = async (token) => {
@@ -120,7 +148,7 @@ export const getUserProfile = async (token) => {
   }
 };
 
-// ✅ Update profile
+// ✅ Update user profile
 export const updateUserProfile = async (profile, token) => {
   try {
     const { data } = await axios.put(`${USER_API}/me`, profile, {
