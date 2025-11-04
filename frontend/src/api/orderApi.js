@@ -82,3 +82,25 @@ export const getUserOrders = async (token, userId) => {
     throw error;
   }
 };
+
+/* ==========================================================
+   🚫 USER: Cancel Order
+   ========================================================== */
+export const cancelUserOrder = async (orderId, token) => {
+  try {
+    if (!orderId) throw new Error("Missing orderId in cancelUserOrder");
+
+    const { data } = await axios.put(
+      `${ORDER_API}/${orderId}/cancel`,
+      {}, // no body required
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      }
+    );
+
+    return data;
+  } catch (error) {
+    console.error("❌ Error cancelling order:", error.response?.data || error);
+    throw error;
+  }
+};

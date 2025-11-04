@@ -118,12 +118,14 @@ export default function Footer() {
               <p className="text-gray-700 mb-8 leading-relaxed text-base">
                 Crafting timeless elegance since 1985. We specialize in creating high-quality jewelry pieces that celebrate life's most precious moments with unparalleled craftsmanship.
               </p>
-
+              <p className="text-gray-700 mb-8 leading-relaxed text-base">
+                BIS : HM/C-8290519424
+              </p>
               <div className="space-y-4 mb-8">
                 {[
-                  { Icon: Phone, text: "+91 98765 43210" },
-                  { Icon: Mail, text: "support@jewels.com" },
-                  { Icon: MapPin, text: "123 Fashion Avenue, Mumbai, India 400001" },
+                  { Icon: Phone, text: "888-916-0-925" },
+                  { Icon: Mail, text: "vednine925@gmail.com" },
+                  { Icon: MapPin, text: "Vijay Nagar, Indore" },
                 ].map(({ Icon, text }, i) => (
                   <motion.div
                     key={i}
@@ -262,15 +264,15 @@ export default function Footer() {
             <div className="space-y-3 pt-4 text-sm">
               <div className="flex items-center text-gray-700">
                 <Phone className="w-4 h-4 mr-3 text-red-600" />
-                +91 98765 43210
+                888-916-0-925
               </div>
               <div className="flex items-center text-gray-700">
                 <Mail className="w-4 h-4 mr-3 text-red-600" />
-                support@jewels.com
+                vednine925@gmail.com
               </div>
               <div className="flex items-start text-gray-700">
                 <MapPin className="w-4 h-4 mr-3 text-red-600 mt-0.5 flex-shrink-0" />
-                123 Fashion Avenue, Mumbai, India 400001
+              Vijay Nagar, Indore, India 
               </div>
             </div>
           </div>

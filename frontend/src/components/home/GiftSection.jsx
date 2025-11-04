@@ -150,15 +150,6 @@ export default function GiftSection() {
             </p>
           )}
         </div>
-
-        {/* Banner */}
-        <div className="text-center mt-16">
-          <img
-            src="https://jinafashion.com/wp-content/uploads/2025/08/rakhi-Ba.webp"
-            className="mt-8 mx-auto rounded-lg shadow-lg"
-            alt="Rakhi"
-          />
-        </div>
       </div>
     </section>
   );

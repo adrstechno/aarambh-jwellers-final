@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import { CheckCircle, AlertCircle, Save } from "lucide-react";
 import { useApp } from "../context/AppContext";
