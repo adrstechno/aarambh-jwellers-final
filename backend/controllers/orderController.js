@@ -221,3 +221,41 @@ export const deleteOrder = async (req, res) => {
       .json({ success: false, message: "Failed to delete order" });
   }
 };
+
+// 🟥 Cancel Order (User)
+export const cancelUserOrder = async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const userId = req.user?._id; // ✅ ensure authenticated user
+
+    if (!userId)
+      return res.status(401).json({ message: "Not authorized. Please log in." });
+
+    const order = await Order.findById(orderId);
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    // ✅ Ensure user owns this order
+    if (order.user.toString() !== userId.toString()) {
+      return res.status(403).json({ message: "You can only cancel your own orders" });
+    }
+
+    // ✅ Only pending orders can be cancelled
+    if (order.status !== "Pending") {
+      return res
+        .status(400)
+        .json({ message: "Only pending orders can be cancelled" });
+    }
+
+    order.status = "Cancelled";
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "✅ Order cancelled successfully",
+      order,
+    });
+  } catch (error) {
+    console.error("❌ Cancel order error:", error);
+    res.status(500).json({ message: "Failed to cancel order" });
+  }
+};

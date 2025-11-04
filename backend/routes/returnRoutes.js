@@ -6,17 +6,21 @@ import {
   createReturnRequest,
   getUserReturns,
 } from "../controllers/returnController.js";
-
+import { protect, adminOnly } from "../middlewares/authMiddleware.js"; // ✅ Import middleware
 
 const router = express.Router();
 
-// 👨‍💼 Admin Routes
-router.get("/", getAllReturns);
-router.put("/:id/status", updateReturnStatus);
-router.delete("/:id",deleteReturn);
+/* ============================================================
+   👤 USER ROUTES (Protected)
+============================================================ */
+router.post("/request", protect, createReturnRequest); // ✅ User must be logged in
+router.get("/my-returns", protect, getUserReturns);
 
-// 👤 User Routes
-router.post("/request",createReturnRequest);
-router.get("/my-returns", getUserReturns);
+/* ============================================================
+   👨‍💼 ADMIN ROUTES (Protected + Admin Only)
+============================================================ */
+router.get("/", protect, adminOnly, getAllReturns);
+router.put("/:id/status", protect, adminOnly, updateReturnStatus);
+router.delete("/:id", protect, adminOnly, deleteReturn);
 
 export default router;

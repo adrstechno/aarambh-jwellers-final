@@ -8,34 +8,28 @@ import {
   getOrderById,
   updateOrderStatus,
   deleteOrder,
+  cancelUserOrder,
 } from "../controllers/orderController.js";
-// import { protect, adminOnly } from "../middlewares/authMiddleware.js";
+import { protect, adminOnly } from "../middlewares/authMiddleware.js"; // ✅ Un-commented
 
 const router = express.Router();
 
 /* ============================
    🧍 USER ROUTES
 ============================ */
-router.post("/", createOrder);
-router.get("/my-orders", getUserOrders);
+router.post("/", protect, createOrder);
+router.get("/my-orders", protect, getUserOrders);
+router.put("/:id/cancel", protect, cancelUserOrder); // ✅ Added protect + cancel route
 
 /* ============================
    👨‍💼 ADMIN ROUTES
-   Put more specific admin routes BEFORE the dynamic :id route
+   Put specific admin routes BEFORE the dynamic :id
 ============================ */
-// explicit admin listing (frontend calls /admin)
-router.get("/admin", getAllOrders);
-
-// also keep root GET/ for backward compatibility if needed
-router.get("/", getAllOrders);
-
-// orders for a specific user (admin)
-router.get("/user/:userId", getOrdersByUser);
-
-// get single order by id (must come after /user/:userId and /admin)
-router.get("/:id", getOrderById);
-
-router.put("/:id/status", updateOrderStatus);
-router.delete("/:id", deleteOrder);
+router.get("/admin", protect, adminOnly, getAllOrders); // ✅ Secure for admin
+router.get("/", protect, adminOnly, getAllOrders);
+router.get("/user/:userId", protect, adminOnly, getOrdersByUser);
+router.put("/:id/status", protect, adminOnly, updateOrderStatus);
+router.delete("/:id", protect, adminOnly, deleteOrder);
+router.get("/:id", protect, getOrderById); // user can view their own order
 
 export default router;
