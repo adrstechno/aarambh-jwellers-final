@@ -104,8 +104,8 @@ export default function Sidebar({ isOpen, setIsOpen }) {
               <NavItem to="/admin/categories" icon={Tag}>
                 Category Management
               </NavItem>
-              <NavItem to="/admin/jewellery-section" icon={Gem}>
-                Jewellery Section
+              <NavItem to="/admin/admin-reels" icon={Gem}>
+                Reels Section
               </NavItem>
             </div>
           )}

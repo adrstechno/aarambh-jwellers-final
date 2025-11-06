@@ -12,8 +12,7 @@ export default function MyRefunds() {
   const [toast, setToast] = useState({ type: "", message: "" });
 
   const BASE_URL =
-    import.meta.env.VITE_API_BASE?.replace("/api", "") ||
-    "http://localhost:5000";
+    import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
 
   const showToast = (type, message) => {
     setToast({ type, message });
@@ -21,25 +20,25 @@ export default function MyRefunds() {
   };
 
   useEffect(() => {
-  const fetchData = async () => {
-    try {
-      const [returnRes, refundRes] = await Promise.all([
-        getUserReturns(user.token, user._id),
-        getUserRefunds(user.token, user._id), // ✅ userId passed
-      ]);
+    const fetchData = async () => {
+      try {
+        const [returnRes, refundRes] = await Promise.all([
+          getUserReturns(user.token, user._id),
+          getUserRefunds(user.token, user._id),
+        ]);
 
-      setReturns(Array.isArray(returnRes) ? returnRes : returnRes?.data || []);
-      setRefunds(Array.isArray(refundRes) ? refundRes : refundRes?.data || []);
-    } catch (err) {
-      console.error("❌ Error loading refunds:", err);
-      showToast("error", "Failed to load refund data.");
-    } finally {
-      setLoading(false);
-    }
-  };
+        setReturns(Array.isArray(returnRes) ? returnRes : returnRes?.data || []);
+        setRefunds(Array.isArray(refundRes) ? refundRes : refundRes?.data || []);
+      } catch (err) {
+        console.error("❌ Error loading refunds:", err);
+        showToast("error", "Failed to load refund data.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (user?._id) fetchData();
-}, [user?._id]);
+    if (user?._id) fetchData();
+  }, [user?._id]);
 
   // Match refunds based on order + product
   const getRefundForReturn = (orderId, productId) => {
@@ -48,6 +47,17 @@ export default function MyRefunds() {
         String(r.order?._id) === String(orderId) &&
         String(r.product?._id) === String(productId)
     );
+  };
+
+  // ✅ Safe image path resolver
+  const fixImageURL = (img) => {
+    if (!img) return "/placeholder.jpg";
+    const clean = img.replace(/\\/g, "/");
+
+    if (clean.startsWith("http")) return clean;
+    if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
+    if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
+    return "/placeholder.jpg";
   };
 
   if (loading)
@@ -83,11 +93,7 @@ export default function MyRefunds() {
         <div className="space-y-6">
           {returns.map((r) => {
             const refund = getRefundForReturn(r.order?._id, r.product?._id);
-            const imgSrc =
-              r.product?.image?.startsWith("http") ||
-              r.product?.image?.startsWith("/uploads/")
-                ? `${BASE_URL}${r.product?.image}`
-                : "/placeholder.jpg";
+            const imgSrc = fixImageURL(r.product?.image);
 
             return (
               <div

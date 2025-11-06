@@ -13,18 +13,25 @@ export default function Navigation() {
     const fetchCategories = async () => {
       try {
         const data = await getActiveCategories();
-        const formatted = data.map((cat) => ({
+
+        // ✅ Ensure sorting by 'order' field (lowest → highest)
+        const sorted = [...data].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+        // ✅ Map into display format
+        const formatted = sorted.map((cat) => ({
           name: cat.name,
           path: `/category/${cat.slug}`,
           highlight: false,
         }));
+
         setMenuItems(formatted);
       } catch (err) {
-        console.error("Failed to load categories:", err);
+        console.error("❌ Failed to load categories:", err);
       } finally {
         setLoading(false);
       }
     };
+
     fetchCategories();
   }, []);
 
@@ -36,8 +43,8 @@ export default function Navigation() {
             flex items-center gap-2 py-2
             overflow-x-auto
             scrollbar-hidden
-            md:justify-center          /* ← Center on tablet & laptop+ */
-            md:overflow-x-visible      /* ← No scroll on md+ */
+            md:justify-center
+            md:overflow-x-visible
             scroll-snap-type-x-mandatory
             scroll-padding-inline-start-2
           "

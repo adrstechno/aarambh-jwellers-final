@@ -18,13 +18,13 @@ export default function CategorySection() {
   const fixImageURL = (img) => {
     if (!img) return "/placeholder.jpg";
     const clean = img.replace(/\\/g, "/");
-    if (clean.startsWith("http")) return clean; // ✅ Cloudinary or external
+    if (clean.startsWith("http")) return clean;
     if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
     if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
     return "/placeholder.jpg";
   };
 
-  // 🔹 Fetch categories from backend
+  // 🔹 Fetch categories from backend (ordered)
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -34,8 +34,11 @@ export default function CategorySection() {
           ? data
           : data?.categories || [];
 
+        // ✅ Sort categories by backend "order" field
+        const sorted = [...categoryArray].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
         // ✅ Normalize image URLs
-        const normalized = categoryArray.map((c) => ({
+        const normalized = sorted.map((c) => ({
           ...c,
           image: fixImageURL(c.image),
         }));
@@ -99,7 +102,7 @@ export default function CategorySection() {
     );
   }
 
-  // ✅ Main Category UI
+  // ✅ Main Category UI (ordered)
   return (
     <section className="py-12 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

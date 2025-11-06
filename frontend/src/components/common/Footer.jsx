@@ -118,7 +118,9 @@ export default function Footer() {
               <p className="text-gray-700 mb-8 leading-relaxed text-base">
                 Crafting timeless elegance since 1985. We specialize in creating high-quality jewelry pieces that celebrate life's most precious moments with unparalleled craftsmanship.
               </p>
+             
               <p className="text-gray-700 mb-8 leading-relaxed text-base">
+                GSTIN / UIN :  23EXDPS7162D2ZF <br />
                 BIS : HM/C-8290519424
               </p>
               <div className="space-y-4 mb-8">

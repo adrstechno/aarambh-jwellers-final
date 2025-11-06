@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "../context/AppContext";
 import { useNavigate } from "react-router-dom";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import toast from "react-hot-toast";
+
 
 export default function CartPage() {
   const {
@@ -253,13 +255,20 @@ export default function CartPage() {
 
       {/* Checkout Button */}
       <div className="mt-6 text-right sticky bottom-4">
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 shadow-md transition"
-          onClick={() => navigate("/checkout")}
-        >
-          Proceed to Checkout
-        </motion.button>
+       <motion.button
+  whileTap={{ scale: 0.95 }}
+  className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 shadow-md transition"
+  onClick={() => {
+    toast.success("🛒 Redirecting to checkout — please review your details.", {
+      duration: 2500,
+    });
+
+    // Small delay before navigation for smoother UX
+    setTimeout(() => navigate("/checkout"), 1000);
+  }}
+>
+  Proceed to Checkout
+</motion.button>
       </div>
     </motion.div>
   );

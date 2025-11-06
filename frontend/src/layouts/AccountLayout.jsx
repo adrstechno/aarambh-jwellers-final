@@ -11,8 +11,16 @@ export default function AccountLayout() {
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-  // ✅ Fetch latest user data from backend
+  // ✅ Responsive check
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // ✅ Fetch latest user data
   useEffect(() => {
     const fetchProfile = async () => {
       if (!user?.token) return setLoading(false);
@@ -39,6 +47,22 @@ export default function AccountLayout() {
     { path: "/wishlist", label: "My Wishlist", icon: <Heart size={18} /> },
   ];
 
+  // ✅ MOBILE VIEW: Only render the active page (no sidebar)
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-white p-4">
+        {loading ? (
+          <p className="text-gray-500 text-center py-10">
+            Loading account info...
+          </p>
+        ) : (
+          <Outlet />
+        )}
+      </div>
+    );
+  }
+
+  // ✅ DESKTOP/TABLET LAYOUT
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -56,7 +80,7 @@ export default function AccountLayout() {
             </button>
           </div>
 
-          {/* ✅ User Profile Summary */}
+          {/* ✅ User Info */}
           <div className="flex items-center gap-3 mb-6 border-b pb-4">
             <img
               src={
@@ -117,7 +141,7 @@ export default function AccountLayout() {
           </div>
         </aside>
 
-        {/* ✅ Main content (nested routes) */}
+        {/* ✅ Main Content */}
         <main className="md:col-span-3 bg-white rounded-xl shadow p-6">
           {loading ? (
             <p className="text-gray-500 text-center py-10">

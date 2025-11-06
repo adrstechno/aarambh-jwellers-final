@@ -1,6 +1,7 @@
 // src/admin/AdminApp.jsx
 import { useState } from "react";
 import { Routes, Route } from "react-router-dom";
+import { Toaster } from "react-hot-toast"; // ✅ Import Toaster
 
 import Sidebar from "./components/Sidebar.jsx";
 import Header from "./components/Header.jsx";
@@ -17,7 +18,7 @@ import Discount from "./pages/Discount.jsx";
 import Gifts from "./pages/Gifts.jsx";
 import Refunds from "./pages/Refunds.jsx";
 import Returns from "./pages/Returns.jsx";
-import JewellerySection from "./pages/JewellerySection.jsx";
+import AdminReels from "./pages/AdminReels.jsx";
 import AdminProfile from "./pages/AdminProfile.jsx";
 
 export default function AdminApp() {
@@ -32,6 +33,26 @@ export default function AdminApp() {
       <div className="flex-1 flex flex-col transition-all duration-300">
         {/* Header */}
         <Header onMenuToggle={() => setIsSidebarOpen(!isSidebarOpen)} />
+
+        {/* Toast Notifications (GLOBAL for admin side) */}
+        <Toaster
+          position="top-right"
+          reverseOrder={false}
+          toastOptions={{
+            style: {
+              background: "#333",
+              color: "#fff",
+              borderRadius: "10px",
+              fontSize: "14px",
+            },
+            success: {
+              iconTheme: { primary: "#22c55e", secondary: "#fff" },
+            },
+            error: {
+              iconTheme: { primary: "#ef4444", secondary: "#fff" },
+            },
+          }}
+        />
 
         {/* Main content with padding for fixed header */}
         <main
@@ -52,9 +73,8 @@ export default function AdminApp() {
             <Route path="/admin/gifts" element={<Gifts />} />
             <Route path="/admin/refunds" element={<Refunds />} />
             <Route path="/admin/returns" element={<Returns />} />
-            <Route path="/admin/jewellery-section" element={<JewellerySection />} />
+            <Route path="/admin/admin-reels" element={<AdminReels />} />
             <Route path="/admin/profile" element={<AdminProfile />} />
-
           </Routes>
         </main>
       </div>

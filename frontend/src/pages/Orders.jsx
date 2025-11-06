@@ -109,144 +109,142 @@ export default function Orders() {
     }
   };
 
-  /* ===========================
-     🧾 Generate Invoice PDF
+ /* ===========================
+   🧾 Generate Branded Invoice PDF (with working ₹ + fixed column widths)
   ============================ */
- const handleDownloadInvoice = async (order) => {
-  if (!order) {
-    alert("No order data available for download");
-    return;
-  }
+const handleDownloadInvoice = (order) => {
+  if (!order) return alert("No order data available");
 
-  try {
-    const doc = new jsPDF({
-      unit: "mm",
-      format: "a4",
-      compress: true
-    });
+  // Initialize doc
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
 
-    // === LOAD CUSTOM FONT THAT SUPPORTS ₹ ===
-    // Using DejaVu Sans via CDN
-    const fontUrl = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/fonts/DejaVuSans-normal.js';
-    const fontResponse = await fetch(fontUrl);
-    const fontText = await fontResponse.text();
-    eval(fontText); // Loads DejaVuSans-normal into jsPDF VFS
-    doc.addFont('DejaVuSans-normal', 'DejaVuSans', 'normal');
-    doc.setFont('DejaVuSans'); // Now ₹ will show!
+  // ===== 🏪 Header =====
+  const shopName = "Aarambh Jewellers";
+  const shopSub = "By ADRS Technosoft, Jabalpur (M.P.)";
+  const contactInfo = [
+    "Email: info@aarambhjewellers.com",
+    "Phone: +91 9876543210",
+  ];
 
-    // Rest of your header code...
-    const shopName = "Aarambh Jewellers";
-    doc.setFillColor(240, 68, 56);
-    doc.rect(0, 0, 210, 25, "F");
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(20);
-    doc.text(shopName, 105, 15, { align: "center" });
-    doc.setFontSize(16);
-    doc.text("TAX INVOICE", 105, 22, { align: "center" });
+  doc.setFillColor(240, 68, 56);
+  doc.rect(0, 0, 210, 25, "F");
 
-    // ... [keep all your existing code until table] ...
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text(shopName, 14, 14);
 
-    // === FIXED PRODUCT TABLE ===
-    const productTable = (order.products || []).map((item, index) => {
-      const productName = item.product?.name || "Product";
-      const truncatedName = productName.length > 35
-        ? productName.substring(0, 32) + '...'
-        : productName;
+  doc.setFontSize(11);
+  doc.text("TAX INVOICE", 160, 14);
 
-      const unitPrice = item.price || 0;
-      const totalPrice = unitPrice * (item.quantity || 1);
+  // ===== 🧾 Subheader =====
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(10);
+  doc.text(shopSub, 14, 32);
+  contactInfo.forEach((line, i) => doc.text(line, 14, 38 + i * 5));
 
-      return [
-        index + 1,
-        truncatedName,
-        item.quantity,
-        `₹${unitPrice.toLocaleString('en-IN')}`,
-        `₹${totalPrice.toLocaleString('en-IN')}`
-      ];
-    });
+  // Right info block
+  const createdDate = new Date(order.createdAt).toLocaleString();
+  doc.text(`Invoice Date: ${createdDate}`, 140, 32);
+  doc.text(`Order ID: ${order._id}`, 140, 38);
+  doc.text(`Status: ${order.status}`, 140, 43);
 
-    if (productTable.length === 0) {
-      productTable.push(["", "No products found", "", "", ""]);
-    }
+  // ===== 👤 Customer Info =====
+  doc.setFontSize(12);
+  doc.setFont("helvetica", "bold");
+  doc.text("Billing Details:", 14, 52);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
 
-    autoTable(doc, {
-      startY: tableStartY,
-      head: [["#", "Product Name", "Qty", "Unit Price", "Total"]],
-      body: productTable,
-      theme: "grid",
-      headStyles: {
-        fillColor: [240, 68, 56],
-        textColor: 255,
-        fontStyle: "bold",
-        fontSize: 9,
-      },
-      bodyStyles: {
-        fontSize: 8,
-        cellPadding: 2,
-      },
-      columnStyles: {
-        0: { cellWidth: 10, halign: "center" },
-        1: { cellWidth: 78 },
-        2: { cellWidth: 12, halign: "center" },
-        3: { cellWidth: 28, halign: "right", fontSize: 7.5 }, // Smaller font
-        4: { cellWidth: 28, halign: "right", fontSize: 7.5 },
-      },
-      styles: {
-        font: 'DejaVuSans', // Critical for ₹
-        overflow: 'linebreak',
-        cellWidth: 'wrap',
-        lineColor: [200, 200, 200],
-        lineWidth: 0.1,
-      },
-      margin: { left: 14, right: 14 },
-      tableWidth: 182,
-    });
+  let customerY = 58;
+  doc.text(`${user?.name || "Customer"}`, 14, customerY);
+  if (user?.email) doc.text(`${user.email}`, 14, customerY + 5);
+  if (order.address?.street)
+    doc.text(`${order.address.street}`, 14, customerY + 10);
 
-    const finalY = doc.lastAutoTable.finalY + 10;
+  // ===== 📦 Products Table =====
+  const rupee = "Rs."; // ✅ works in all jsPDF fonts
+  const products = (order.products || []).map((item, i) => {
+    const pName = item.product?.name || "Product";
+    const shortName = pName.length > 35 ? pName.slice(0, 32) + "..." : pName;
+    const unitPrice = `${rupee} ${item.price.toLocaleString("en-IN")}`;
+    const totalPrice = `${rupee} ${(item.price * item.quantity).toLocaleString("en-IN")}`;
+    return [i + 1, shortName, item.quantity, unitPrice, totalPrice];
+  });
 
-    // === PAYMENT SUMMARY (with ₹) ===
-    const subtotal = order.total || 0;
-    const gstRate = 0.03;
-    const gstAmount = subtotal * gstRate;
-    const totalAmount = subtotal + gstAmount;
+  autoTable(doc, {
+    startY: 75,
+    head: [["#", "Product", "Qty", "Unit Price", "Subtotal"]],
+    body: products,
+    theme: "grid",
+    headStyles: {
+      fillColor: [240, 68, 56],
+      textColor: 255,
+      fontStyle: "bold",
+      halign: "center",
+    },
+    bodyStyles: {
+      fontSize: 9,
+      cellPadding: 2,
+      valign: "middle",
+    },
+    styles: {
+      font: "helvetica",
+      lineColor: [220, 220, 220],
+      lineWidth: 0.1,
+      overflow: "linebreak",
+    },
+    columnStyles: {
+      0: { cellWidth: 10, halign: "center" },
+      1: { cellWidth: 80 },
+      2: { cellWidth: 15, halign: "center" },
+      3: { cellWidth: 40, halign: "right" },
+      4: { cellWidth: 40, halign: "right" },
+    },
+    margin: { left: 14, right: 14 },
+    tableWidth: "auto",
+  });
 
-    doc.setFontSize(11);
-    doc.setFont('DejaVuSans', 'bold');
-    doc.text("Payment Summary:", 14, finalY);
+  const afterTable = doc.lastAutoTable.finalY + 10;
 
-    const summaryItems = [
-      { label: "Subtotal:", value: `₹${subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
-      { label: "SGST (1.5%):", value: `₹${(gstAmount / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
-      { label: "CGST (1.5%):", value: `₹${(gstAmount / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
-      { label: "Total GST (3%):", value: `₹${gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}` },
-    ];
+  // ===== 💰 Summary =====
+  const subtotal = order.total || 0;
+  const gst = subtotal * 0.03;
+  const grandTotal = subtotal + gst;
 
-    doc.setFont('DejaVuSans', 'normal');
-    doc.setFontSize(8.5);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("Payment Summary:", 14, afterTable);
+  doc.setFont("helvetica", "normal");
 
-    const rightAlign = 180;
-    summaryItems.forEach((item, index) => {
-      const yPos = finalY + 8 + (index * 4);
-      doc.text(item.label, 14, yPos);
-      doc.text(item.value, rightAlign, yPos, { align: "right" });
-    });
+  const sumY = afterTable + 7;
+  const rightX = 180;
 
-    doc.setFont('DejaVuSans', 'bold');
-    doc.setFontSize(10);
-    const grandTotalY = finalY + 8 + (summaryItems.length * 4) + 2;
-    doc.text("Grand Total:", 14, grandTotalY);
-    doc.text(`₹${totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, rightAlign, grandTotalY, { align: "right" });
+  doc.text(`Payment Method: ${order.paymentMethod || "COD"}`, 14, sumY);
+  doc.text(`Subtotal: ${rupee} ${subtotal.toLocaleString("en-IN")}`, rightX, sumY, { align: "right" });
+  doc.text(`GST (3%): ${rupee} ${gst.toFixed(2)}`, rightX, sumY + 6, { align: "right" });
 
-    // ... rest of footer ...
+  doc.setFont("helvetica", "bold");
+  doc.text(`Total: ${rupee} ${grandTotal.toLocaleString("en-IN")}`, rightX, sumY + 14, { align: "right" });
 
-    const fileName = `Invoice_${order._id.slice(-8)}.pdf`;
-    doc.save(fileName);
+  // ===== ❤️ Footer =====
+  const footerY = sumY + 30;
+  doc.setDrawColor(240, 68, 56);
+  doc.line(14, footerY, 196, footerY);
 
-  } catch (error) {
-    console.error("Error generating invoice:", error);
-    alert("Failed to generate invoice. Please try again.");
-  }
+  doc.setFont("helvetica", "italic");
+  doc.setFontSize(10);
+  doc.setTextColor(120, 120, 120);
+  doc.text("Thank you for shopping with Aarambh Jewellers!", 14, footerY + 8);
+  doc.text("For queries, contact support@aarambhjewellers.com", 14, footerY + 13);
+
+  doc.setDrawColor(240, 68, 56);
+  doc.rect(5, 5, 200, 287); // border
+
+  // ===== 💾 Save =====
+  doc.save(`Invoice_${order._id}.pdf`);
 };
+
   /* ===========================
      Helpers
   ============================ */

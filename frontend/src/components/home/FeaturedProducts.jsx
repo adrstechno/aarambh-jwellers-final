@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react";
 import ProductCard from "../products/ProductCard";
 import { getProductsByCategory } from "../../api/productApi";
+import { getActiveCategories } from "../../api/categoryApi";
 
 export default function FeaturedProducts() {
-  const [activeTab, setActiveTab] = useState("rings");
+  const [activeTab, setActiveTab] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [autoSwitch, setAutoSwitch] = useState(true);
-
-  const categories = ["rings", "bracelet", "earrings"];
+  const [categories, setCategories] = useState([]); // ✅ dynamic categories
 
   const BASE_URL =
     import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
@@ -25,9 +25,32 @@ export default function FeaturedProducts() {
   };
 
   /* ===========================================================
-     Fetch Products
+     🟢 Fetch top 3 categories (ordered by backend)
   =========================================================== */
   useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const data = await getActiveCategories();
+
+        // ✅ Sort by 'order' and take top 3
+        const sorted = [...data].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+        const topThree = sorted.slice(0, 3);
+
+        setCategories(topThree);
+        if (topThree.length > 0) setActiveTab(topThree[0].slug); // default to first
+      } catch (err) {
+        console.error("❌ Failed to load categories:", err);
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  /* ===========================================================
+     🟡 Fetch products for active category
+  =========================================================== */
+  useEffect(() => {
+    if (!activeTab) return;
+
     const fetchProducts = async () => {
       setLoading(true);
       try {
@@ -55,22 +78,22 @@ export default function FeaturedProducts() {
   }, [activeTab]);
 
   /* ===========================================================
-     Auto-switch Tabs
+     🟠 Auto-switch between top 3 categories
   =========================================================== */
   useEffect(() => {
-    if (!autoSwitch) return;
+    if (!autoSwitch || categories.length === 0) return;
     const interval = setInterval(() => {
       setActiveTab((prev) => {
-        const currentIndex = categories.indexOf(prev);
+        const currentIndex = categories.findIndex((c) => c.slug === prev);
         const nextIndex = (currentIndex + 1) % categories.length;
-        return categories[nextIndex];
+        return categories[nextIndex]?.slug;
       });
     }, 5000);
     return () => clearInterval(interval);
-  }, [autoSwitch]);
+  }, [autoSwitch, categories]);
 
   /* ===========================================================
-     Loading Skeleton
+     🧩 Loading Skeleton
   =========================================================== */
   const LoadingSkeleton = () => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
@@ -109,31 +132,36 @@ export default function FeaturedProducts() {
           </p>
         </div>
 
-        {/* Tabs - Mobile Scroll, Desktop Inline */}
+        {/* Tabs */}
         <div className="mb-10 sm:mb-12 overflow-x-auto scrollbar-hide">
           <div className="flex justify-center gap-2 sm:gap-3 min-w-max sm:min-w-0">
-            {categories.map((tab) => (
-              <button
-                key={tab}
-                onClick={() => {
-                  setActiveTab(tab);
-                  setAutoSwitch(false);
-                }}
-                className={`
-                  relative px-5 sm:px-8 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold uppercase tracking-wider
-                  rounded-full transition-all duration-300 whitespace-nowrap
-                  ${activeTab === tab
-                    ? "bg-gradient-to-r from-amber-400 to-amber-500 text-white shadow-lg scale-105"
-                    : "bg-white text-gray-700 hover:text-amber-600 hover:bg-amber-50 border border-gray-200"
-                  }
-                `}
-              >
-                {tab}
-                {activeTab === tab && (
-                  <span className="absolute inset-0 rounded-full animate-ping bg-amber-400 opacity-30"></span>
-                )}
-              </button>
-            ))}
+            {categories.length > 0 ? (
+              categories.map((cat) => (
+                <button
+                  key={cat._id}
+                  onClick={() => {
+                    setActiveTab(cat.slug);
+                    setAutoSwitch(false);
+                  }}
+                  className={`
+                    relative px-5 sm:px-8 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold uppercase tracking-wider
+                    rounded-full transition-all duration-300 whitespace-nowrap
+                    ${
+                      activeTab === cat.slug
+                        ? "bg-gradient-to-r from-amber-400 to-amber-500 text-white shadow-lg scale-105"
+                        : "bg-white text-gray-700 hover:text-amber-600 hover:bg-amber-50 border border-gray-200"
+                    }
+                  `}
+                >
+                  {cat.name}
+                  {activeTab === cat.slug && (
+                    <span className="absolute inset-0 rounded-full animate-ping bg-amber-400 opacity-30"></span>
+                  )}
+                </button>
+              ))
+            ) : (
+              <p className="text-gray-400 text-sm italic">Loading categories...</p>
+            )}
           </div>
         </div>
 
@@ -144,7 +172,8 @@ export default function FeaturedProducts() {
           ) : products.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-gray-500 text-lg">
-                No products found for <span className="font-medium capitalize">"{activeTab}"</span>.
+                No products found for{" "}
+                <span className="font-medium capitalize">"{activeTab}"</span>.
               </p>
             </div>
           ) : (
@@ -172,7 +201,7 @@ export default function FeaturedProducts() {
               <div
                 key={i}
                 className={`h-1.5 w-8 rounded-full transition-all duration-300 ${
-                  i === categories.indexOf(activeTab)
+                  i === categories.findIndex((c) => c.slug === activeTab)
                     ? "bg-amber-500 w-12"
                     : "bg-gray-300"
                 }`}
@@ -182,7 +211,7 @@ export default function FeaturedProducts() {
         )}
       </div>
 
-      {/* Custom Scrollbar Hide */}
+      {/* Hide scrollbar style */}
       <style jsx>{`
         .scrollbar-hide::-webkit-scrollbar {
           display: none;

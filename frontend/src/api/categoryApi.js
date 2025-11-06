@@ -155,3 +155,23 @@ export const getActiveCategories = async () => {
 
 // ✅ Aliases for readability
 export const getCategories = getCategoriesWithCount;
+
+// 🟡 Reorder Categories
+export const reorderCategories = async (categories, token) => {
+  try {
+    const res = await axios.put(
+      `${CATEGORY_API}/reorder`,   // ✅ fixed endpoint
+      categories,                  // ✅ sending direct array
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: token ? `Bearer ${token}` : "",
+        },
+      }
+    );
+    return res.data;
+  } catch (err) {
+    console.error("❌ Error reordering categories:", err);
+    throw err;
+  }
+};

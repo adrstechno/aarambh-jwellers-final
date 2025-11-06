@@ -270,97 +270,102 @@ export default function Header() {
       <header className="bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            {/* Logo + Home Button */}
-            <div className="flex items-center gap-3 sm:gap-4">
-              <img
-                src="/logo2.png"
-                alt="Logo"
-                className="h-12 sm:h-14 cursor-pointer hover:scale-105 transition-transform duration-300"
-                onClick={goHome}
-              />
-              {/* Home Button – Always Visible */}
-              <button
-                onClick={goHome}
-                className="flex items-center gap-1.5 text-gray-700 hover:text-red-600 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded-lg px-2 py-1"
-                aria-label="Go to Home"
-              >
-                <Home className="w-5 h-5" />
-                <span className="hidden sm:inline">Home</span>
-              </button>
-            </div>
+  {/* Logo */}
+  <div className="flex items-center gap-3 sm:gap-4">
+    <img
+      src="/logo2.png"
+      alt="Logo"
+      className="h-12 sm:h-14 cursor-pointer hover:scale-105 transition-transform duration-300"
+      onClick={goHome}
+    />
+  </div>
 
-            {/* Desktop Search */}
-            {!isAdmin() && (
-              <div ref={searchRef} className="hidden md:flex flex-1 max-w-md mx-8">
-                <form onSubmit={handleSearch} className="w-full relative">
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search products..."
-                    className="w-full px-5 py-2.5 pr-12 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm transition-all"
-                    onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
-                  />
-                  <button
-                    type="submit"
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-red-500 transition"
-                  >
-                    <Search className="w-5 h-5" />
-                  </button>
-                </form>
+  {/* Desktop Search */}
+  {!isAdmin() && (
+    <div
+      ref={searchRef}
+      className="hidden md:flex flex-1 max-w-md mx-8 relative"
+    >
+      <form onSubmit={handleSearch} className="w-full relative">
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search products..."
+          className="w-full px-5 py-2.5 pr-12 border border-gray-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-red-500 shadow-sm transition-all"
+          onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
+        />
+        <button
+          type="submit"
+          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-red-500 transition"
+        >
+          <Search className="w-5 h-5" />
+        </button>
+      </form>
 
-                {/* Desktop Suggestions */}
-                {showSuggestions && suggestions.length > 0 && (
-                  <div className="absolute top-full mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-72 overflow-y-auto">
-                    {suggestions.map((product) => (
-                      <div
-                        key={product._id}
-                        onClick={() => {
-                          navigate(
-                            product.slug
-                              ? `/product/${product.slug}`
-                              : `/product/${product._id}`
-                          );
-                          setShowSuggestions(false);
-                          setSearchQuery("");
-                        }}
-                        className="flex items-center gap-3 px-3 py-2 hover:bg-red-50 cursor-pointer transition-all group"
-                      >
-                        <img
-                          src={fixImageURL(product.image)}
-                          alt={product.name}
-                          className="w-10 h-10 rounded object-cover border group-hover:scale-105 transition-transform"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-800 truncate">
-                            {product.name}
-                          </p>
-                          <p className="text-xs text-red-600 font-semibold">
-                            ₹{product.price?.toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Desktop: User + Cart */}
-            <div className="hidden md:flex items-center gap-6">
-              {renderUserSection()}
-              {renderCartWishlist()}
-            </div>
-
-            {/* Mobile Menu Toggle */}
-            <button
-              className="md:hidden text-gray-700 hover:text-red-600 z-10 p-1"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              aria-label="Toggle menu"
+      {/* Desktop Suggestions */}
+      {showSuggestions && suggestions.length > 0 && (
+        <div className="absolute top-full mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-72 overflow-y-auto">
+          {suggestions.map((product) => (
+            <div
+              key={product._id}
+              onClick={() => {
+                navigate(
+                  product.slug
+                    ? `/product/${product.slug}`
+                    : `/product/${product._id}`
+                );
+                setShowSuggestions(false);
+                setSearchQuery("");
+              }}
+              className="flex items-center gap-3 px-3 py-2 hover:bg-red-50 cursor-pointer transition-all group"
             >
-              {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
+              <img
+                src={fixImageURL(product.image)}
+                alt={product.name}
+                className="w-10 h-10 rounded object-cover border group-hover:scale-105 transition-transform"
+              />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800 truncate">
+                  {product.name}
+                </p>
+                <p className="text-xs text-red-600 font-semibold">
+                  ₹{product.price?.toLocaleString()}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )}
+
+  {/* 🏠 Home Button (moved here, after search bar) */}
+  <button
+    onClick={goHome}
+    className="hidden md:flex items-center gap-1.5 text-gray-700 hover:text-red-600 font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 rounded-lg px-3 py-2"
+    aria-label="Go to Home"
+  >
+    <Home className="w-5 h-5" />
+    <span>Home</span>
+  </button>
+
+  {/* Desktop: User + Cart */}
+  <div className="hidden md:flex items-center gap-6">
+    {renderUserSection()}
+    {renderCartWishlist()}
+  </div>
+
+  {/* Mobile Menu Toggle */}
+  <button
+    className="md:hidden text-gray-700 hover:text-red-600 z-10 p-1"
+    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+    aria-label="Toggle menu"
+  >
+    {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+  </button>
+</div>
+
         </div>
 
         {/* Mobile Search Bar */}

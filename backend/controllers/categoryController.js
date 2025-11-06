@@ -3,7 +3,6 @@ import Product from "../models/product.js";
 import slugify from "slugify";
 import cloudinary from "../config/cloudinary.js";
 import fs from "fs";
-import path from "path";
 
 /* ===========================================================
    🟢 CREATE CATEGORY (with Cloudinary upload)
@@ -34,23 +33,24 @@ export const createCategory = async (req, res) => {
       });
       imageUrl = uploadResult.secure_url;
 
-      // Remove temp file
       if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
     }
+
+    // 🟢 Determine next order index
+    const highestOrder = await Category.findOne().sort({ order: -1 }).select("order");
+    const nextOrder = highestOrder ? highestOrder.order + 1 : 0;
 
     const category = new Category({
       name: name.trim(),
       slug: slugify(name, { lower: true }),
       parentCategory: parentCategory || null,
-      image: imageUrl, // ✅ Cloudinary URL
+      image: imageUrl,
+      order: nextOrder, // ✅ maintain consistent ordering
     });
 
     await category.save();
 
-    const populated = await Category.findById(category._id).populate(
-      "parentCategory",
-      "name"
-    );
+    const populated = await Category.findById(category._id).populate("parentCategory", "name");
 
     res.status(201).json({
       message: "✅ Category added successfully",
@@ -90,13 +90,14 @@ export const getCategoriesWithCount = async (req, res) => {
         },
       },
       { $unwind: { path: "$parentCategory", preserveNullAndEmptyArrays: true } },
-      { $sort: { createdAt: -1 } },
+      { $sort: { order: 1, createdAt: -1 } }, // ✅ sort by order first
       {
         $project: {
           name: 1,
           slug: 1,
           image: 1,
           productCount: 1,
+          order: 1, // ✅ include order in output
           "parentCategory._id": 1,
           "parentCategory.name": 1,
         },
@@ -127,7 +128,6 @@ export const updateCategory = async (req, res) => {
       updateData.parentCategory = parentCategory || null;
     }
 
-    // ✅ Upload new image if provided
     if (req.file?.path) {
       const uploadResult = await cloudinary.uploader.upload(req.file.path, {
         folder: "aarambh-jwellers/categories",
@@ -141,14 +141,9 @@ export const updateCategory = async (req, res) => {
       new: true,
     }).populate("parentCategory", "name");
 
-    if (!updated) {
-      return res.status(404).json({ message: "Category not found" });
-    }
+    if (!updated) return res.status(404).json({ message: "Category not found" });
 
-    res.json({
-      message: "✅ Category updated successfully",
-      category: updated,
-    });
+    res.json({ message: "✅ Category updated successfully", category: updated });
   } catch (error) {
     console.error("❌ Error updating category:", error);
     res.status(500).json({ message: "Failed to update category" });
@@ -156,7 +151,7 @@ export const updateCategory = async (req, res) => {
 };
 
 /* ===========================================================
-   🗑️ DELETE CATEGORY (optional Cloudinary removal)
+   🗑️ DELETE CATEGORY
 =========================================================== */
 export const deleteCategory = async (req, res) => {
   try {
@@ -164,13 +159,7 @@ export const deleteCategory = async (req, res) => {
     if (!category)
       return res.status(404).json({ message: "Category not found" });
 
-    // ❗ Optional: Delete from Cloudinary (if you store public_id)
-    // Example:
-    // const publicId = category.image.split("/").pop().split(".")[0];
-    // await cloudinary.uploader.destroy(`aarambh-jwellers/categories/${publicId}`);
-
     await Category.findByIdAndDelete(req.params.id);
-
     res.json({ message: "🗑️ Category deleted successfully" });
   } catch (error) {
     console.error("❌ Error deleting category:", error);
@@ -184,12 +173,40 @@ export const deleteCategory = async (req, res) => {
 export const getActiveCategories = async (req, res) => {
   try {
     const categories = await Category.find({ parentCategory: null })
-      .select("name slug image")
-      .sort({ name: 1 });
+      .select("name slug image order")
+      .sort({ order: 1, name: 1 }); // ✅ sort by order
 
     res.status(200).json(categories);
   } catch (error) {
     console.error("❌ Error fetching categories:", error);
     res.status(500).json({ message: "Failed to fetch categories" });
+  }
+};
+
+/* ===========================================================
+   🔄 REORDER CATEGORIES
+=========================================================== */
+export const reorderCategories = async (req, res) => {
+  try {
+
+    // Support both formats: [{_id, order}] OR { categories: [...] }
+    const data = Array.isArray(req.body)
+      ? req.body
+      : req.body.categories;
+
+    if (!Array.isArray(data))
+      return res.status(400).json({ message: "Invalid data format. Expected an array of categories." });
+
+    // Bulk update each category
+    const updates = data.map(cat =>
+      Category.findByIdAndUpdate(cat._id, { order: cat.order })
+    );
+
+    await Promise.all(updates);
+
+    res.status(200).json({ message: "✅ Category order updated successfully" });
+  } catch (error) {
+    console.error("❌ Error reordering categories:", error);
+    res.status(500).json({ message: "Failed to reorder categories" });
   }
 };

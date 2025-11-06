@@ -1,13 +1,16 @@
+// backend/middleware/uploadMiddleware.js
 import multer from "multer";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import cloudinary from "../config/cloudinary.js";
 
-// ✅ Configure Cloudinary storage
-const storage = new CloudinaryStorage({
+/* ============================================================
+   🖼 IMAGE UPLOAD (Existing Setup)
+============================================================ */
+const imageStorage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => ({
-    folder: "vednine-jwellers/products", // 🗂 Organized Cloudinary folder
-    resource_type: "auto", // Supports all image formats
+    folder: "vednine-jwellers/products",
+    resource_type: "image",
     allowed_formats: [
       "jpg",
       "jpeg",
@@ -22,17 +25,38 @@ const storage = new CloudinaryStorage({
     public_id: `${Date.now()}-${file.originalname
       .split(".")[0]
       .replace(/\s+/g, "_")}`,
-    transformation: [{ width: 800, height: 800, crop: "limit" }], // Optimize image
+    transformation: [{ width: 800, height: 800, crop: "limit" }],
   }),
 });
 
-// ✅ Initialize Multer with Cloudinary storage
-const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // Max 10MB
+const imageUpload = multer({
+  storage: imageStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 
-// ✅ Export ready-to-use middlewares
-export const uploadSingle = upload.single("image"); // Single image (for banner, category, etc.)
-export const uploadMultiple = upload.array("images", 10); // Multiple images (for product gallery)
-export default upload;
+export const uploadSingle = imageUpload.single("image");
+export const uploadMultiple = imageUpload.array("images", 10);
+
+/* ============================================================
+   🎥 VIDEO UPLOAD (for Reels)
+============================================================ */
+const videoStorage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => ({
+    folder: "vednine-jwellers/reels",
+    resource_type: "video",
+    allowed_formats: ["mp4", "mov", "avi", "mkv", "webm"],
+    public_id: `${Date.now()}-${file.originalname
+      .split(".")[0]
+      .replace(/\s+/g, "_")}`,
+  }),
+});
+
+const videoUpload = multer({
+  storage: videoStorage,
+  limits: { fileSize: 200 * 1024 * 1024 }, // Max 200MB for videos
+});
+
+export const uploadVideoSingle = videoUpload.single("video"); // ✅ for reels
+
+export default imageUpload;

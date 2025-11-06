@@ -4,6 +4,7 @@ import { useApp } from "../context/AppContext";
 import { createOrder } from "../api/orderApi";
 import { clearCartAPI } from "../api/cartApi";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 export default function CheckoutPage() {
   const { cart, getTotalPrice, user, clearCart } = useApp();
@@ -26,25 +27,26 @@ export default function CheckoutPage() {
   // 🧾 Place Order (Cash on Delivery)
   const handleOrder = async () => {
     if (!user) {
-      alert("Please login to place an order.");
+      toast.error("⚠️ Please login to place an order.");
       navigate("/login");
       return;
     }
 
     if (!cart.length) {
-      alert("Your cart is empty.");
+      toast.error("🛒 Your cart is empty!");
       return;
     }
 
     if (!address.trim()) {
-      alert("Please enter your shipping address.");
+      toast.error("📍 Please enter your complete shipping address.");
       return;
     }
 
     try {
       setLoading(true);
+      const loadingToast = toast.loading("🕓 Placing your order...");
 
-      // ✅ Order payload matches backend model
+      // ✅ Order payload
       const orderData = {
         userId: user._id,
         customerName: user.name,
@@ -64,11 +66,17 @@ export default function CheckoutPage() {
       await clearCartAPI(user._id, user.token);
       clearCart();
 
-      alert("✅ Order placed successfully! Your order will be delivered soon.");
-      navigate("/orders?refresh=true");
+      toast.dismiss(loadingToast);
+      toast.success("✅ Order placed successfully! 🎉 Your items will be delivered soon.");
+
+      // Smooth transition
+      setTimeout(() => {
+        navigate("/orders?refresh=true");
+      }, 1200);
     } catch (err) {
+      toast.dismiss();
       console.error("❌ Failed to place order:", err);
-      alert(err.response?.data?.message || "Failed to place order");
+      toast.error(err.response?.data?.message || "❌ Failed to place order. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -174,7 +182,7 @@ export default function CheckoutPage() {
               <span>₹{subtotal.toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span>Tax (18%):</span>
+              <span>Tax (3%):</span>
               <span>₹{tax.toFixed(2)}</span>
             </div>
             <div className="flex justify-between font-semibold text-lg border-t pt-2">
@@ -187,7 +195,11 @@ export default function CheckoutPage() {
           <button
             onClick={handleOrder}
             disabled={loading}
-            className="w-full mt-6 bg-red-600 text-white py-3 rounded-lg font-semibold text-lg hover:bg-red-700 transition-all shadow-md"
+            className={`w-full mt-6 py-3 rounded-lg font-semibold text-lg shadow-md transition-all ${
+              loading
+                ? "bg-red-400 text-white cursor-not-allowed"
+                : "bg-red-600 text-white hover:bg-red-700"
+            }`}
           >
             {loading ? "Placing Order..." : "Confirm & Place Order"}
           </button>

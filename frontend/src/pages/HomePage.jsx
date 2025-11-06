@@ -3,7 +3,7 @@ import CategorySection from "../components/home/CategorySection";
 import GiftSection from "../components/home/GiftSection";
 import FeaturedProducts from "../components/home/FeaturedProducts";
 // import DiscountSection from "../components/home/DiscountSection";
-import JewellerySection from "../components/home/JewellerySection";
+import ReelSection from "../components/home/ReelSection";
 import Footer from "../components/common/Footer";
 
 export default function HomePage() {
@@ -41,7 +41,7 @@ export default function HomePage() {
       {/* <DiscountSection /> */}
 
       {/* 💍 Jewellery Promo */}
-      <JewellerySection />
+      <ReelSection />
 
       {/* ⚜️ Footer */}
       <Footer />

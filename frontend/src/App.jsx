@@ -10,7 +10,7 @@ import HeroCarousel from "./pages/HeroCarousel.jsx";
 import CategorySection from "./components/home/CategorySection.jsx";
 import GiftSection from "./components/home/GiftSection.jsx";
 import FeaturedProducts from "./components/home/FeaturedProducts.jsx";
-import JewellerySection from "./components/home/JewellerySection.jsx";
+import ReelSection from "./components/home/ReelSection.jsx";
 // import DiscountSection from "./components/home/DiscountSection.jsx";
 import Footer from "./components/common/Footer.jsx";
 
@@ -40,7 +40,7 @@ function HomePage() {
       <GiftSection />
       <FeaturedProducts />
       {/* <DiscountSection /> */}
-      <JewellerySection />
+      <ReelSection />
       <Footer />
     </>
   );
