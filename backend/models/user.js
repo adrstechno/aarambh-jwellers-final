@@ -4,36 +4,61 @@ import bcrypt from "bcryptjs";
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
+
+    // ✅ Email is optional; store as null instead of "" to prevent duplicate key errors
     email: {
       type: String,
-      required: true,
-      unique: true,
       lowercase: true,
       trim: true,
+      unique: true,
+      sparse: true, // allows multiple nulls
+      default: null,
     },
+
+    // ✅ Phone is optional; store as null instead of ""
+    phone: {
+      type: String,
+      trim: true,
+      unique: true,
+      sparse: true,
+      default: null,
+    },
+
     password: { type: String, required: true },
-    phone: { type: String },
+
     role: {
       type: String,
-      enum: ["admin", "customer"], // ✅ lowercase only
+      enum: ["admin", "customer"],
       default: "customer",
     },
+
     status: {
       type: String,
-      enum: ["active", "blocked"], // ✅ lowercase only
+      enum: ["active", "blocked"],
       default: "active",
     },
+
     lastLogin: { type: Date, default: null },
   },
   { timestamps: true }
 );
 
 /* =======================================================
-   🔄 Normalize Case for Role & Status (Pre-Validation)
+   🔄 Normalize Case for Role & Status
 ======================================================= */
 userSchema.pre("validate", function (next) {
   if (this.role) this.role = this.role.toLowerCase();
   if (this.status) this.status = this.status.toLowerCase();
+  next();
+});
+
+/* =======================================================
+   🔐 Ensure at least one of email or phone exists
+======================================================= */
+userSchema.pre("validate", function (next) {
+  if (!this.email && !this.phone) {
+    return next(new Error("Either email or phone number must be provided"));
+  }
   next();
 });
 

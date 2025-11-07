@@ -160,30 +160,73 @@ export const updateProfile = async (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: "Not authorized" });
 
-    const { name, phone, password } = req.body;
+    const { name, phone = "", email = "", password, address } = req.body;
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
+    // 🔎 Validate email/phone updates
+    if (!email && !phone) {
+      return res
+        .status(400)
+        .json({ message: "Either email or phone number must be provided." });
+    }
+
+    // 🔍 Check if updated email/phone already exists (exclude current user)
+    if (email) {
+      const emailExists = await User.findOne({
+        email: email.toLowerCase(),
+        _id: { $ne: userId },
+      });
+      if (emailExists)
+        return res.status(400).json({ message: "Email is already in use." });
+    }
+
+    if (phone) {
+      const phoneExists = await User.findOne({
+        phone,
+        _id: { $ne: userId },
+      });
+      if (phoneExists)
+        return res.status(400).json({ message: "Phone number is already in use." });
+    }
+
+    // ✅ Apply updates
     if (name) user.name = name;
     if (phone) user.phone = phone;
+    if (email) user.email = email.toLowerCase();
+    if (address) user.address = address;
+
+    // 🔒 If password is being changed here (rare)
     if (password) user.password = await bcrypt.hash(password, 10);
 
-    const updatedUser = await user.save();
+    await user.save();
+
     res.status(200).json({
       message: "✅ Profile updated successfully",
       user: {
-        _id: updatedUser._id,
-        name: updatedUser.name,
-        email: updatedUser.email,
-        phone: updatedUser.phone,
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        address: user.address || "",
+        role: user.role,
+        status: user.status,
       },
     });
   } catch (error) {
     console.error("❌ Update profile error:", error);
+
+    // Mongo duplicate fallback (should rarely hit due to pre-check)
+    if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyValue)[0];
+      return res
+        .status(400)
+        .json({ message: `This ${duplicateField} is already in use.` });
+    }
+
     res.status(500).json({ message: "Failed to update profile" });
   }
 };
-
 // 🔒 Change password (Protected)
 export const changePassword = async (req, res) => {
   try {

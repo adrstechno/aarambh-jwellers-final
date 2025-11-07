@@ -17,30 +17,33 @@ const generateToken = (user) => {
 ======================================================= */
 export const register = async (req, res) => {
   try {
-    const { name, email, phone, password } = req.body;
+    const { name, email = "", phone = "", password } = req.body;
 
-    // 🧩 Validation: At least one identifier (email or phone)
+    // 🧩 Basic validation
     if (!name || !password || (!email && !phone)) {
       return res.status(400).json({
-        message: "Name, password, and either email or phone are required",
+        message: "Name, password, and either email or phone are required.",
       });
     }
 
-    // 🧠 Check if user already exists (by email OR phone)
-    const existingUser = await User.findOne({
-      $or: [{ email }, { phone }],
-    });
+    // 🔍 Build a flexible query (only check non-empty fields)
+    const query = [];
+    if (email) query.push({ email: email.toLowerCase() });
+    if (phone) query.push({ phone });
+
+    const existingUser = await User.findOne({ $or: query });
     if (existingUser) {
-      return res
-        .status(400)
-        .json({ message: "User already exists with this email or phone" });
+      const field = existingUser.email === email ? "email" : "phone number";
+      return res.status(400).json({
+        message: `User with this ${field} already exists.`,
+      });
     }
 
     // 🆕 Create new user
     const newUser = new User({
       name,
-      email: email || "",
-      phone: phone || "",
+      email: email.toLowerCase(),
+      phone,
       password,
       role: "customer",
       status: "active",
@@ -48,8 +51,11 @@ export const register = async (req, res) => {
 
     await newUser.save();
 
-    // 🔐 Generate token
-    const token = generateToken(newUser);
+    const token = jwt.sign(
+      { id: newUser._id, role: newUser.role },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
     res.status(201).json({
       message: "✅ Registration successful",
@@ -65,6 +71,15 @@ export const register = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Register Error:", error);
+
+    if (error.code === 11000) {
+      const duplicateField = Object.keys(error.keyValue)[0];
+      const prettyField = duplicateField === "phone" ? "Phone number" : "Email";
+      return res.status(400).json({
+        message: `${prettyField} is already registered.`,
+      });
+    }
+
     res.status(500).json({
       message: "Registration failed",
       error: error.message,

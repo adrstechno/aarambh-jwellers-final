@@ -166,12 +166,14 @@ export default function Profile() {
               <label className="block text-sm font-medium text-gray-600 mb-1">
                 Email
               </label>
-              <input
-                type="email"
-                value={profile.email}
-                disabled
-                className="w-full px-3 py-2 border rounded-lg bg-gray-100 cursor-not-allowed text-sm sm:text-base"
-              />
+             <input
+  type="email"
+  value={profile.email}
+  onChange={(e) =>
+    setProfile({ ...profile, email: e.target.value })
+  }
+  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 text-sm sm:text-base"
+/>
             </div>
           </div>
 
