@@ -212,7 +212,7 @@ export default function FeaturedProducts() {
       </div>
 
       {/* Hide scrollbar style */}
-      <style jsx>{`
+      <style>{`
         .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }

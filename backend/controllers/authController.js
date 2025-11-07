@@ -13,46 +13,51 @@ const generateToken = (user) => {
 };
 
 /* =======================================================
-   🟢 Register User
+   🟢 Register User (email OR phone)
 ======================================================= */
 export const register = async (req, res) => {
   try {
-    const { name, email, password, phone } = req.body;
+    const { name, email, phone, password } = req.body;
 
-    // 🧩 Basic validation
-    if (!name || !email || !password) {
-      return res
-        .status(400)
-        .json({ message: "All required fields must be filled" });
+    // 🧩 Validation: At least one identifier (email or phone)
+    if (!name || !password || (!email && !phone)) {
+      return res.status(400).json({
+        message: "Name, password, and either email or phone are required",
+      });
     }
 
-    // 🧠 Check if email already registered
-    const existingUser = await User.findOne({ email });
-    if (existingUser)
-      return res.status(400).json({ message: "User already exists" });
+    // 🧠 Check if user already exists (by email OR phone)
+    const existingUser = await User.findOne({
+      $or: [{ email }, { phone }],
+    });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ message: "User already exists with this email or phone" });
+    }
 
-    // 🆕 Create user (auto-hash & normalize via model middleware)
+    // 🆕 Create new user
     const newUser = new User({
       name,
-      email,
+      email: email || "",
+      phone: phone || "",
       password,
-      phone,
       role: "customer",
       status: "active",
     });
 
     await newUser.save();
 
+    // 🔐 Generate token
     const token = generateToken(newUser);
 
-    // ✅ Return sanitized user object
     res.status(201).json({
       message: "✅ Registration successful",
       user: {
         _id: newUser._id,
         name: newUser.name,
         email: newUser.email,
-        phone: newUser.phone || "",
+        phone: newUser.phone,
         role: newUser.role,
         status: newUser.status,
       },
@@ -68,36 +73,50 @@ export const register = async (req, res) => {
 };
 
 /* =======================================================
-   🔵 Login User
+   🔵 Login User (email OR phone)
 ======================================================= */
 export const login = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { identifier, password } = req.body;
 
-    // 🧩 Validate input
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password are required" });
+    // 🧩 Validation
+    if (!identifier || !password) {
+      return res
+        .status(400)
+        .json({ message: "Please provide email/phone and password" });
     }
 
-    const user = await User.findOne({ email });
-    if (!user)
-      return res.status(400).json({ message: "Invalid email or password" });
+    // 🔍 Find user by email OR phone
+    const user = await User.findOne({
+      $or: [{ email: identifier }, { phone: identifier }],
+    });
 
-    // ✅ Validate password using model method
+    if (!user) {
+      return res
+        .status(400)
+        .json({ message: "Invalid email/phone or password" });
+    }
+
+    // ✅ Validate password using schema method
     const isMatch = await user.matchPassword(password);
-    if (!isMatch)
-      return res.status(400).json({ message: "Invalid email or password" });
+    if (!isMatch) {
+      return res
+        .status(400)
+        .json({ message: "Invalid email/phone or password" });
+    }
 
-    // 🚫 Blocked users cannot login
+    // 🚫 Blocked users can’t login
     if (user.status === "blocked") {
-      return res.status(403).json({ message: "Your account is blocked. Please contact support." });
+      return res.status(403).json({
+        message: "Your account is blocked. Please contact support.",
+      });
     }
 
     // 🕒 Update last login
     user.lastLogin = new Date();
     await user.save();
 
-    // 🔐 Generate token
+    // 🔐 Generate JWT
     const token = generateToken(user);
 
     res.json({
@@ -125,7 +144,6 @@ export const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
-
     res.json(user);
   } catch (error) {
     console.error("❌ Get Profile Error:", error);
@@ -138,8 +156,6 @@ export const getProfile = async (req, res) => {
 ======================================================= */
 export const logout = async (req, res) => {
   try {
-    // Optional cookie removal if used
-    // res.clearCookie("token");
     res.json({ message: "✅ Logged out successfully" });
   } catch (error) {
     console.error("❌ Logout Error:", error);
