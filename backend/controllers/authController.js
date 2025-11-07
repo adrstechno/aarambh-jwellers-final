@@ -23,44 +23,58 @@ export const register = async (req, res) => {
     if (!name || !password || (!email && !phone)) {
       return res
         .status(400)
-        .json({ message: "Name, password, and either email or phone are required." });
+        .json({
+          message: "Name, password, and either email or phone are required.",
+        });
     }
 
-    // 🧼 Clean up empty strings or undefined values
-    if (email === "" || email === undefined || email === null) email = undefined;
-    if (phone === "" || phone === undefined || phone === null) phone = undefined;
+    // 🧼 Normalize inputs
+    email = email && email.trim() !== "" ? email.toLowerCase().trim() : undefined;
+    phone = phone && phone.trim() !== "" ? phone.trim() : undefined;
 
-    // 🧠 Check if user already exists (by email or phone)
-    const existingUser = await User.findOne({
-      $or: [{ email: email || null }, { phone: phone || null }],
-    });
+    // 🧠 Build dynamic query only for defined values
+    const query = [];
+    if (email) query.push({ email });
+    if (phone) query.push({ phone });
+
+    let existingUser = null;
+    if (query.length > 0) {
+      existingUser = await User.findOne({ $or: query });
+    }
 
     if (existingUser) {
-      let field = existingUser.email === email ? "email" : "phone number";
-      return res.status(400).json({ message: `User with this ${field} already exists.` });
+      // identify which field matches
+      const duplicateField =
+        email && existingUser.email === email
+          ? "email"
+          : phone && existingUser.phone === phone
+          ? "phone number"
+          : "credentials";
+
+      return res
+        .status(400)
+        .json({ message: `User with this ${duplicateField} already exists.` });
     }
 
-    // 🆕 Create user object (exclude undefined fields)
-    const newUserData = {
-      name,
-      password,
-      role: "customer",
-      status: "active",
-    };
+    // 🆕 Create new user
+    const newUser = new User({
+  name,
+  password,
+  role: "customer",
+  status: "active",
+  ...(email ? { email: email.toLowerCase() } : {}),
+  ...(phone ? { phone } : {}),
+});
 
-    if (email) newUserData.email = email.toLowerCase();
-    if (phone) newUserData.phone = phone;
-
-    const newUser = new User(newUserData);
     await newUser.save();
 
     const token = jwt.sign(
       { id: newUser._id, role: newUser.role },
-      process.env.JWT_SECRET || "supersecretkey123",
+      JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "✅ Registration successful",
       user: {
         _id: newUser._id,
@@ -78,8 +92,11 @@ export const register = async (req, res) => {
     // 🧩 Handle duplicate key errors clearly
     if (error.code === 11000) {
       const duplicateField = Object.keys(error.keyValue)[0];
-      const prettyField = duplicateField === "phone" ? "Phone number" : "Email";
-      return res.status(400).json({ message: `${prettyField} is already registered.` });
+      const prettyField =
+        duplicateField === "phone" ? "Phone number" : "Email";
+      return res
+        .status(400)
+        .json({ message: `${prettyField} is already registered.` });
     }
 
     res.status(500).json({

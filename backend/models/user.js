@@ -7,22 +7,18 @@ const userSchema = new mongoose.Schema(
 
     // ✅ Email is optional; store as null instead of "" to prevent duplicate key errors
     email: {
-      type: String,
-      lowercase: true,
-      trim: true,
-      unique: true,
-      sparse: true, // allows multiple nulls
-      default: null,
-    },
-
-    // ✅ Phone is optional; store as null instead of ""
-    phone: {
-      type: String,
-      trim: true,
-      unique: true,
-      sparse: true,
-      default: null,
-    },
+  type: String,
+  lowercase: true,
+  trim: true,
+  unique: true,
+  sparse: true,
+},
+phone: {
+  type: String,
+  trim: true,
+  unique: true,
+  sparse: true,
+},
 
     password: { type: String, required: true },
 

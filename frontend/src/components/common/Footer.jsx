@@ -1,6 +1,6 @@
 /* eslint-disable react/no-unescaped-entities */
 import { useEffect, useState } from "react";
-import { Facebook, Instagram, Youtube } from "lucide-react";
+import { Instagram } from "lucide-react";
 import { getCategories } from "../../api/categoryApi";
 
 export default function Footer() {
@@ -43,9 +43,7 @@ export default function Footer() {
         <div>
           <h3 className="font-semibold text-lg mb-4">About Us</h3>
           <p className="text-sm leading-relaxed text-gray-600 mb-2">
-            Since 2012, Vednine Jewellery has risen to prominence as one of
-            India's fastest-growing jewellery brands known for timeless designs
-            and fine craftsmanship.
+            At VEDNINE, we believe that “every piece tells a story”. Crafted in 925 sterling silver, each design is thoughtfully conceived to reflect elegance, refinement and modern luxury. Our collections celebrate the union of timeless silver craftsmanship with contemporary style — for the woman who values both heritage and the high-end aesthetic.
           </p>
            <p className="text-sm leading-relaxed text-gray-600 mb-2">
             GSTIN / UIN : 23EXDPS7162D2ZF
@@ -60,7 +58,6 @@ export default function Footer() {
           <h3 className="font-semibold text-lg mb-4">Let us Help you</h3>
           <ul className="space-y-2 text-sm">
             {[
-              { label: "Contact Us", href: "/contact" },
               { label: "Shipping Policy", href: "/shipping" },
               { label: "Privacy Policy", href: "/privacy" },
               { label: "Returns & Exchange", href: "/returns" },
@@ -108,24 +105,17 @@ export default function Footer() {
           {/* Social Icons */}
           <div className="flex items-center gap-4 mt-6">
             {[
-              {
-                Icon: Facebook,
-                color: "border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white",
-              },
+              
               {
                 Icon: Instagram,
                 color:
                   "border-pink-500 text-pink-500 hover:bg-pink-500 hover:text-white",
               },
-              {
-                Icon: Youtube,
-                color:
-                  "border-red-500 text-red-500 hover:bg-red-500 hover:text-white",
-              },
+              
             ].map(({ Icon, color }, i) => (
               <a
                 key={i}
-                href="#"
+                href="https://www.instagram.com/vednine925?igsh=N2g2M3RtZGZwM2Rp"
                 className={`w-9 h-9 border rounded-full flex items-center justify-center transition ${color}`}
               >
                 <Icon size={18} />

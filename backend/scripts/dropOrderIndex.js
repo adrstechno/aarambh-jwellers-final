@@ -1,94 +1,77 @@
-// cleanupUsers.js
+// backend/scripts/fixUserCollection.js
 import mongoose from "mongoose";
-import dotenv from "dotenv";
 
-dotenv.config();
+// 👉 Your Atlas connection
+const MONGO_URI =
+  "mongodb+srv://kharepiyushpk:piyush2382000@cluster1.etjiprc.mongodb.net/test?retryWrites=true&w=majority&appName=Cluster1";
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb://127.0.0.1:27017/test";
-
-const cleanup = async () => {
+(async () => {
   try {
+    console.log("🔗 Connecting to MongoDB (test DB)...");
     await mongoose.connect(MONGO_URI);
-    console.log("✅ Connected to MongoDB");
+    console.log("✅ Connected successfully!");
 
     const db = mongoose.connection.db;
     const users = db.collection("users");
 
-    // 1️⃣ Drop all indexes
-    console.log("🧩 Dropping ALL indexes...");
-    try {
-      await users.dropIndexes();
-      console.log("   ✔ All indexes dropped successfully");
-    } catch {
-      console.log("   ⚠️ No indexes found");
-    }
+    /* =====================================================
+       1️⃣  CLEAN EXISTING DATA
+    ===================================================== */
+    console.log("\n🧹 Cleaning existing null email/phone fields...");
+    const cleanRes = await users.updateMany(
+      { $or: [{ email: null }, { phone: null }] },
+      { $unset: { email: "", phone: "" } }
+    );
+    console.log(`✅ Cleaned ${cleanRes.modifiedCount} user(s).`);
 
-    // 2️⃣ Remove duplicates and invalid values for email & phone
-    console.log("🧹 Cleaning null, missing, and empty values...");
+    /* =====================================================
+       2️⃣  DROP & REBUILD INDEXES
+    ===================================================== */
+    const indexes = await users.listIndexes().toArray();
+    console.log("\n📋 Existing indexes:");
+    console.table(indexes.map((i) => i.name));
 
-    // Remove explicit empty strings
-    await users.updateMany({ email: "" }, { $unset: { email: "" } });
-    await users.updateMany({ phone: "" }, { $unset: { phone: "" } });
-
-    // Delete users with duplicate or null emails
-    const nullEmails = await users.find({ email: null }).toArray();
-    if (nullEmails.length > 1) {
-      await users.deleteMany({ email: null });
-      console.log(`   🗑 Deleted ${nullEmails.length} users with email: null`);
-    }
-
-    const missingEmail = await users.find({ email: { $exists: false } }).toArray();
-    if (missingEmail.length > 1) {
-      await users.deleteMany({ email: { $exists: false } });
-      console.log(`   🗑 Deleted ${missingEmail.length} users missing email`);
-    }
-
-    // Delete users with duplicate or null phones
-    const nullPhones = await users.find({ phone: null }).toArray();
-    if (nullPhones.length > 1) {
-      await users.deleteMany({ phone: null });
-      console.log(`   🗑 Deleted ${nullPhones.length} users with phone: null`);
-    }
-
-    const missingPhones = await users.find({ phone: { $exists: false } }).toArray();
-    if (missingPhones.length > 1) {
-      await users.deleteMany({ phone: { $exists: false } });
-      console.log(`   🗑 Deleted ${missingPhones.length} users missing phone`);
-    }
-
-    console.log("   ✔ All invalid/null values cleaned");
-
-    // 3️⃣ Remove any leftover duplicates
-    const dedup = async (field) => {
-      const duplicates = await users
-        .aggregate([
-          { $group: { _id: `$${field}`, ids: { $push: "$_id" }, count: { $sum: 1 } } },
-          { $match: { _id: { $ne: null }, count: { $gt: 1 } } },
-        ])
-        .toArray();
-
-      for (const dup of duplicates) {
-        const [, ...toDelete] = dup.ids;
-        await users.deleteMany({ _id: { $in: toDelete } });
-        console.log(`   🗑 Removed duplicates for ${field}: ${dup._id}`);
+    for (const idx of indexes) {
+      if (["email_1", "phone_1"].includes(idx.name)) {
+        try {
+          await users.dropIndex(idx.name);
+          console.log(`🗑️ Dropped index: ${idx.name}`);
+        } catch (err) {
+          console.log(`⚠️ Could not drop ${idx.name}:`, err.message);
+        }
       }
-    };
+    }
 
-    await dedup("email");
-    await dedup("phone");
-
-    // 4️⃣ Recreate indexes safely
-    console.log("🔧 Recreating sparse unique indexes...");
+    console.log("\n🔧 Creating proper sparse unique indexes...");
     await users.createIndex({ email: 1 }, { unique: true, sparse: true });
     await users.createIndex({ phone: 1 }, { unique: true, sparse: true });
+    console.log("✅ Indexes rebuilt successfully!");
 
-    console.log("✅ FIX COMPLETE — register/login now works with email or phone!");
-  } catch (err) {
-    console.error("❌ Cleanup error:", err);
-  } finally {
+    const finalIndexes = await users.listIndexes().toArray();
+    console.log("\n🧾 Final indexes:");
+    console.table(
+      finalIndexes.map((i) => ({
+        name: i.name,
+        unique: i.unique || false,
+        sparse: i.sparse || false,
+      }))
+    );
+
+    /* =====================================================
+       3️⃣  VALIDATE FIX
+    ===================================================== */
+    const sample = await users.findOne({}, { projection: { email: 1, phone: 1 } });
+    console.log("\n🔍 Sample user (for sanity check):", sample);
+
+    console.log("\n🎉 All done!");
+    console.log(
+      "✅ You can now safely register users with or without email/phone — no more duplicate null errors."
+    );
+
     await mongoose.disconnect();
-    console.log("🔌 Disconnected from MongoDB");
+    process.exit(0);
+  } catch (err) {
+    console.error("❌ Error fixing users collection:", err);
+    process.exit(1);
   }
-};
-
-cleanup();
+})();

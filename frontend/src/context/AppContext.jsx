@@ -51,7 +51,7 @@ export function AppProvider({ children }) {
   const isAdmin = () => user?.role?.toLowerCase() === "admin";
 
   /* =====================================================
-     🔑 AUTHENTICATION - logout (exposed)
+     🔑 AUTHENTICATION - logout (moved up so autoLogin can call it safely)
   ===================================================== */
   const logoutUser = async () => {
     try {
@@ -91,7 +91,7 @@ export function AppProvider({ children }) {
         // don't navigate here — centralized navigation handled below (after authLoading)
       } catch (err) {
         console.warn("⚠️ Auto-login failed:", err?.message || err);
-        // fallback to logout to clear bad tokens/state
+        // use logoutUser safely
         try {
           await logoutUser();
         } catch (e) {
@@ -117,11 +117,10 @@ export function AppProvider({ children }) {
     const role = user?.role?.toLowerCase();
     const currentPath = window.location.pathname;
 
-    // small timeout to allow router/context re-render; prevents race with route guards
     if (role === "admin" && !currentPath.startsWith("/admin")) {
-      setTimeout(() => navigate("/admin", { replace: true }), 150);
+      navigate("/admin", { replace: true });
     } else if (role !== "admin" && currentPath.startsWith("/admin")) {
-      setTimeout(() => navigate("/", { replace: true }), 150);
+      navigate("/", { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, authLoading]);
@@ -288,7 +287,6 @@ export function AppProvider({ children }) {
 
   /* =====================================================
      🔑 AUTHENTICATION
-     saveUserSession no longer navigates immediately — navigation is handled by the effect above
   ===================================================== */
   const saveUserSession = (data) => {
     const fullUser = { ...data.user, token: data.token };
@@ -297,6 +295,16 @@ export function AppProvider({ children }) {
     setUser(fullUser);
     setIsLoginModalOpen(false);
     toast.success(`Welcome ${fullUser.name || "back"}! 👋`);
+
+    // 🚀 Immediate navigation to avoid race condition between modal and context
+    const role = fullUser.role?.toLowerCase();
+    setTimeout(() => {
+      if (role === "admin") {
+        navigate("/admin", { replace: true });
+      } else {
+        navigate("/", { replace: true });
+      }
+    }, 80);
   };
 
   const handleLogin = async (credentials) => {
