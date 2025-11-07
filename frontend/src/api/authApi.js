@@ -8,7 +8,7 @@ const AUTH_API = `${API_BASE}/auth`;
 ======================================================= */
 const api = axios.create({
   baseURL: AUTH_API,
-  withCredentials: true, // For cookie-based tokens (future ready)
+  withCredentials: true,
   headers: { "Content-Type": "application/json" },
 });
 
@@ -30,10 +30,7 @@ const handleError = (error, action = "authentication") => {
 export const registerUser = async (userData) => {
   try {
     const { data } = await api.post("/register", userData);
-
-    // ✅ Store JWT for session persistence
     if (data.token) localStorage.setItem("token", data.token);
-
     return data;
   } catch (error) {
     handleError(error, "registration");
@@ -46,9 +43,7 @@ export const registerUser = async (userData) => {
 export const loginUser = async (credentials) => {
   try {
     const { data } = await api.post("/login", credentials);
-
     if (data.token) localStorage.setItem("token", data.token);
-
     return data;
   } catch (error) {
     handleError(error, "login");
@@ -69,7 +64,6 @@ export const getProfile = async () => {
 
     return data;
   } catch (error) {
-    // 🧠 Handle expired/invalid token gracefully
     if (error.response?.status === 401 || error.message.includes("token")) {
       localStorage.removeItem("token");
     }
@@ -93,5 +87,34 @@ export const logoutUser = async () => {
    🧠 Token Helpers
 ======================================================= */
 export const getAuthToken = () => localStorage.getItem("token");
-
 export const isAuthenticated = () => Boolean(localStorage.getItem("token"));
+
+/* =======================================================
+   🧩 Password Reset via Email OTP (NEW)
+======================================================= */
+
+/**
+ * Step 1: Request OTP for password reset
+ * @param {{ identifier: string }} payload - { identifier: email }
+ */
+export const requestPasswordReset = async (payload) => {
+  try {
+    const { data } = await api.post("/request-reset", payload);
+    return data; // { message: "OTP sent to your email" }
+  } catch (error) {
+    handleError(error, "requesting password reset");
+  }
+};
+
+/**
+ * Step 2: Verify OTP and reset password
+ * @param {{ identifier: string, otp: string, newPassword: string }} payload
+ */
+export const verifyOtpAndReset = async (payload) => {
+  try {
+    const { data } = await api.post("/verify-reset", payload);
+    return data; // { message: "Password reset successful" }
+  } catch (error) {
+    handleError(error, "verifying OTP or resetting password");
+  }
+};

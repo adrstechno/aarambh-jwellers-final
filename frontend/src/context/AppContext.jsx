@@ -19,6 +19,8 @@ import {
   loginUser,
   registerUser,
   logoutUser as logoutAPI,
+  requestPasswordReset,
+  verifyOtpAndReset,
 } from "../api/authApi";
 import { useNavigate } from "react-router-dom";
 
@@ -27,7 +29,9 @@ const AppContext = createContext();
 export function AppProvider({ children }) {
   const [cart, setCart] = useState([]);
   const [wishlist, setWishlist] = useState([]);
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")) || null);
+  const [user, setUser] = useState(
+    JSON.parse(localStorage.getItem("user")) || null
+  );
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
@@ -47,6 +51,26 @@ export function AppProvider({ children }) {
   const isAdmin = () => user?.role?.toLowerCase() === "admin";
 
   /* =====================================================
+     🔑 AUTHENTICATION - logout (exposed)
+  ===================================================== */
+  const logoutUser = async () => {
+    try {
+      await logoutAPI();
+    } catch {
+      /* ignore */
+    } finally {
+      setUser(null);
+      setCart([]);
+      setWishlist([]);
+      localStorage.removeItem("user");
+      localStorage.removeItem("token");
+      toast.success("Logged out 👋");
+      navigate("/");
+      setTimeout(() => window.location.reload(), 200);
+    }
+  };
+
+  /* =====================================================
      🧠 AUTO LOGIN
   ===================================================== */
   useEffect(() => {
@@ -64,17 +88,43 @@ export function AppProvider({ children }) {
         setUser(fullUser);
         localStorage.setItem("user", JSON.stringify(fullUser));
 
-        if (userData.role?.toLowerCase() === "admin") navigate("/admin");
+        // don't navigate here — centralized navigation handled below (after authLoading)
       } catch (err) {
-        console.warn("⚠️ Auto-login failed:", err.message);
-        logoutUser();
+        console.warn("⚠️ Auto-login failed:", err?.message || err);
+        // fallback to logout to clear bad tokens/state
+        try {
+          await logoutUser();
+        } catch (e) {
+          /* ignore */
+        }
       } finally {
         setAuthLoading(false);
       }
     };
 
     autoLogin();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* =====================================================
+     🧭 Redirect after user state changes (centralized)
+     Ensures navigation happens *after* user is set and after auto-login finishes.
+  ===================================================== */
+  useEffect(() => {
+    if (authLoading) return; // wait for auto-login
+    if (!user) return;
+
+    const role = user?.role?.toLowerCase();
+    const currentPath = window.location.pathname;
+
+    // small timeout to allow router/context re-render; prevents race with route guards
+    if (role === "admin" && !currentPath.startsWith("/admin")) {
+      setTimeout(() => navigate("/admin", { replace: true }), 150);
+    } else if (role !== "admin" && currentPath.startsWith("/admin")) {
+      setTimeout(() => navigate("/", { replace: true }), 150);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authLoading]);
 
   /* =====================================================
      🧾 LOAD CART & WISHLIST
@@ -112,7 +162,6 @@ export function AppProvider({ children }) {
     if (!user) return setIsLoginModalOpen(true);
 
     try {
-      // 🔥 Optimistic update (immediate UI feedback)
       setCart((prev) => {
         const existing = prev.find((i) => i.product._id === product._id);
         if (existing) {
@@ -125,10 +174,14 @@ export function AppProvider({ children }) {
         return [...prev, { product, quantity, price: product.price }];
       });
 
-      // 🧩 Sync with backend (without overwriting local instantly)
-      const updatedCart = await addToCartAPI(user._id, product._id, quantity, user.token);
+      const updatedCart = await addToCartAPI(
+        user._id,
+        product._id,
+        quantity,
+        user.token
+      );
       if (updatedCart?.items) {
-        setCart([...updatedCart.items]); // triggers re-render
+        setCart([...updatedCart.items]);
       }
 
       toast.success(`${product.name} added to cart 🛒`);
@@ -139,28 +192,29 @@ export function AppProvider({ children }) {
   };
 
   const removeFromCart = async (productId) => {
-  if (!user) return;
-  try {
-    // ✅ Instant optimistic removal
-    setCart((prev) => prev.filter((i) => i.product._id !== productId));
-    toast.success("Item removed from cart 🗑️");
+    if (!user) return;
+    try {
+      setCart((prev) => prev.filter((i) => i.product._id !== productId));
+      toast.success("Item removed from cart 🗑️");
+      await removeFromCartAPI(user._id, productId, user.token);
+    } catch (err) {
+      console.error("❌ Failed to remove from cart:", err);
+      toast.error("Could not remove from cart");
+    }
+  };
 
-    // ✅ Background sync (don’t overwrite UI)
-    await removeFromCartAPI(user._id, productId, user.token);
-  } catch (err) {
-    console.error("❌ Failed to remove from cart:", err);
-    toast.error("Could not remove from cart");
-  }
-};
   const updateCartQuantity = async (productId, quantity) => {
     if (!user) return;
     try {
       setCart((prev) =>
-        prev.map((i) =>
-          i.product._id === productId ? { ...i, quantity } : i
-        )
+        prev.map((i) => (i.product._id === productId ? { ...i, quantity } : i))
       );
-      const updatedCart = await updateQuantityAPI(user._id, productId, quantity, user.token);
+      const updatedCart = await updateQuantityAPI(
+        user._id,
+        productId,
+        quantity,
+        user.token
+      );
       setCart(updatedCart.items || []);
     } catch (err) {
       console.error("❌ Update quantity failed:", err);
@@ -178,81 +232,63 @@ export function AppProvider({ children }) {
     }
   };
 
-  const getTotalPrice = () =>
-    cart.reduce((t, i) => t + i.price * i.quantity, 0);
-  const getTotalItems = () =>
-    cart.reduce((t, i) => t + i.quantity, 0);
+  const getTotalPrice = () => cart.reduce((t, i) => t + i.price * i.quantity, 0);
+  const getTotalItems = () => cart.reduce((t, i) => t + i.quantity, 0);
 
   /* =====================================================
      ❤️ WISHLIST MANAGEMENT (Instant Update)
   ===================================================== */
   const addToWishlist = async (product) => {
-  if (!user) {
-    setIsLoginModalOpen(true);
-    return;
-  }
-
-  try {
-    // If already in wishlist, inform user and skip API call
-    const already = wishlist.some((p) => p._id === product._id);
-    if (already) {
-      toast("Product already in wishlist 💖", { icon: "ℹ️" });
+    if (!user) {
+      setIsLoginModalOpen(true);
       return;
     }
 
-    // Optimistic update for instant UI feedback
-    setWishlist((prev) => [...prev, product]);
+    try {
+      const already = wishlist.some((p) => p._id === product._id);
+      if (already) {
+        toast("Product already in wishlist 💖", { icon: "ℹ️" });
+        return;
+      }
 
-    // Call backend to persist
-    const updated = await addToWishlistAPI(user._id, product._id, user.token);
+      setWishlist((prev) => [...prev, product]);
+      const updated = await addToWishlistAPI(user._id, product._id, user.token);
 
-    // If backend returns canonical list, use it. Otherwise keep optimistic list.
-    if (updated?.products) {
-      // normalize to product objects
-      setWishlist(updated.products.map((p) => p.product));
-    } else {
-      // fallback: keep optimistic list (already set)
-      // (optional) re-fetch from server if you want canonical state
+      if (updated?.products) {
+        setWishlist(updated.products.map((p) => p.product));
+      }
+
+      toast.success(`${product.name} added to wishlist 💖`);
+    } catch (err) {
+      const msg =
+        err.response?.data?.message || err.message || "Could not add to wishlist — try again";
+
+      if (msg.toLowerCase().includes("already") || msg.toLowerCase().includes("duplicate")) {
+        toast("Product already in wishlist 💖", { icon: "ℹ️" });
+        return;
+      }
+
+      setWishlist((prev) => prev.filter((p) => p._id !== product._id));
+      console.error("❌ Add to wishlist failed:", err);
+      toast.error(msg);
     }
+  };
 
-    toast.success(`${product.name} added to wishlist 💖`);
-  } catch (err) {
-    // If backend signals duplicate (or other client-friendly reason), show friendly message
-    const msg =
-      err.response?.data?.message ||
-      err.message ||
-      "Could not add to wishlist — try again";
-
-    // If API returned duplicate error, just show info and keep optimistic state
-    if (msg.toLowerCase().includes("already") || msg.toLowerCase().includes("duplicate")) {
-      toast("Product already in wishlist 💖", { icon: "ℹ️" });
-      return;
+  const removeFromWishlist = async (productId) => {
+    if (!user) return;
+    try {
+      setWishlist((prev) => prev.filter((p) => p._id !== productId));
+      toast.success("Removed from wishlist 💔");
+      await removeFromWishlistAPI(user._id, productId, user.token);
+    } catch (err) {
+      console.error("❌ Failed to remove from wishlist:", err);
+      toast.error("Could not remove from wishlist");
     }
-
-    // Otherwise rollback optimistic update and show error
-    setWishlist((prev) => prev.filter((p) => p._id !== product._id));
-    console.error("❌ Add to wishlist failed:", err);
-    toast.error(msg);
-  }
-};
-
- const removeFromWishlist = async (productId) => {
-  if (!user) return;
-  try {
-    // ✅ Instant optimistic removal
-    setWishlist((prev) => prev.filter((p) => p._id !== productId));
-    toast.success("Removed from wishlist 💔");
-
-    // ✅ Background sync (don’t overwrite UI)
-    await removeFromWishlistAPI(user._id, productId, user.token);
-  } catch (err) {
-    console.error("❌ Failed to remove from wishlist:", err);
-    toast.error("Could not remove from wishlist");
-  }
-};
+  };
 
   /* =====================================================
      🔑 AUTHENTICATION
+     saveUserSession no longer navigates immediately — navigation is handled by the effect above
   ===================================================== */
   const saveUserSession = (data) => {
     const fullUser = { ...data.user, token: data.token };
@@ -260,11 +296,7 @@ export function AppProvider({ children }) {
     localStorage.setItem("token", data.token);
     setUser(fullUser);
     setIsLoginModalOpen(false);
-
     toast.success(`Welcome ${fullUser.name || "back"}! 👋`);
-
-    if (fullUser.role?.toLowerCase() === "admin") navigate("/admin");
-    else navigate("/");
   };
 
   const handleLogin = async (credentials) => {
@@ -287,32 +319,39 @@ export function AppProvider({ children }) {
     }
   };
 
-  const logoutUser = async () => {
-  try {
-    await logoutAPI();
-  } catch {
-    /* ignore server logout error */
-  } finally {
-    // ✅ Immediately clear all app state
-    setUser(null);
-    setCart([]);
-    setWishlist([]);
+  /* =====================================================
+     🧠 PASSWORD RESET
+  ===================================================== */
+  const handleRequestPasswordReset = async (identifier) => {
+    try {
+      const res = await requestPasswordReset({ identifier });
+      toast.success(res.message || "OTP sent successfully!");
+      return true;
+    } catch (err) {
+      toast.error(err.message || "Failed to send OTP.");
+      return false;
+    }
+  };
 
-    // ✅ Clear persistent storage
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
+  const handleVerifyOtpReset = async (data) => {
+    try {
+      const res = await verifyOtpAndReset(data);
+      toast.success(res.message || "Password reset successful!");
+      return true;
+    } catch (err) {
+      toast.error(err.message || "Failed to reset password.");
+      return false;
+    }
+  };
 
-    toast.success("Logged out 👋");
-
-    // ✅ Navigate to user home
-    navigate("/");
-
-    // ✅ Ensure UI re-renders instantly across routes
-    setTimeout(() => {
-      window.location.reload(); // 👈 only reloads once to reset admin/user root
-    }, 200);
-  }
-};
+  /* =====================================================
+     🆕 AUTO CLOSE LOGIN MODAL ON SUCCESSFUL LOGIN
+  ===================================================== */
+  useEffect(() => {
+    if (user && isLoginModalOpen) {
+      setIsLoginModalOpen(false);
+    }
+  }, [user, isLoginModalOpen]);
 
   /* =====================================================
      🧩 PROVIDER VALUE
@@ -340,6 +379,8 @@ export function AppProvider({ children }) {
         handleLogin,
         handleRegister,
         logoutUser,
+        handleRequestPasswordReset,
+        handleVerifyOtpReset,
         isLoginModalOpen,
         toggleLoginModal,
         getAuthHeader,

@@ -242,7 +242,8 @@ export const changePassword = async (req, res) => {
     if (!isMatch)
       return res.status(400).json({ message: "Incorrect current password" });
 
-    user.password = await bcrypt.hash(newPassword, 10);
+    // ✅ Let the schema handle hashing
+    user.password = newPassword;
     await user.save();
 
     res.json({ message: "✅ Password updated successfully" });

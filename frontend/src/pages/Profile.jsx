@@ -1,5 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { CheckCircle, AlertCircle, Save, ArrowLeft } from "lucide-react";
 import { useApp } from "../context/AppContext";
 import {
@@ -85,27 +86,44 @@ export default function Profile() {
 
   // ✅ Update password
   const handlePasswordUpdate = async (e) => {
-    e.preventDefault();
-    try {
-      await updateUserPassword(
-        { ...passwordData, userId: user._id },
-        null
-      );
-      showToast("success", "Password updated successfully!");
-      setPasswordData({ currentPassword: "", newPassword: "" });
-    } catch (err) {
-      console.error("❌ Error updating password:", err);
-      const msg = err.response?.data?.message || "Failed to change password.";
-      showToast("error", msg);
-    }
-  };
+  e.preventDefault();
 
-  if (loading)
-    return (
-      <div className="text-center text-gray-600 py-10 text-sm sm:text-base">
-        Loading your profile...
-      </div>
+  // Don’t allow empty new passwords
+  if (!passwordData.newPassword.trim()) {
+    showToast("error", "Please enter a new password.");
+    return;
+  }
+
+  try {
+    // Send only the userId and new password
+    await updateUserPassword(
+      { userId: user._id, newPassword: passwordData.newPassword },
+      null
     );
+
+    // ✅ Update local view to show the newly set password
+    setPasswordData({
+      ...passwordData,
+      currentPassword: passwordData.newPassword, // show new as current
+      newPassword: "",
+    });
+
+    showToast("success", "Password updated successfully!");
+  } catch (err) {
+    console.error("❌ Error updating password:", err);
+    const msg =
+      err.response?.data?.message || "Failed to change password.";
+    showToast("error", msg);
+  }
+};
+
+if (loading)
+  return (
+    <div className="text-center text-gray-600 py-10 text-sm sm:text-base">
+      Loading your profile...
+    </div>
+  );
+
 
   return (
     <div
@@ -217,62 +235,93 @@ export default function Profile() {
         </form>
       </section>
 
-      {/* Password Section */}
-      {!isMobile && (
-        <section className="bg-gray-50 p-4 sm:p-6 rounded-lg border border-gray-200 shadow-sm">
-          <h2 className="text-lg sm:text-xl font-bold mb-4 text-gray-800 text-center sm:text-left">
-            Change Password
-          </h2>
-          <form
-            onSubmit={handlePasswordUpdate}
-            className="space-y-4 max-w-md mx-auto sm:mx-0"
-          >
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">
-                Current Password
-              </label>
-              <input
-                type="password"
-                value={passwordData.currentPassword}
-                onChange={(e) =>
-                  setPasswordData({
-                    ...passwordData,
-                    currentPassword: e.target.value,
-                  })
-                }
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 text-sm sm:text-base"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-600 mb-1">
-                New Password
-              </label>
-              <input
-                type="password"
-                value={passwordData.newPassword}
-                onChange={(e) =>
-                  setPasswordData({
-                    ...passwordData,
-                    newPassword: e.target.value,
-                  })
-                }
-                className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 text-sm sm:text-base"
-                required
-              />
-            </div>
+   {/* Password Section */}
+{!isMobile && (
+  <section className="bg-gray-50 p-4 sm:p-6 rounded-lg border border-gray-200 shadow-sm">
+    <h2 className="text-lg sm:text-xl font-bold mb-4 text-gray-800 text-center sm:text-left">
+      Change Password
+    </h2>
+    <form
+      onSubmit={handlePasswordUpdate}
+      className="space-y-4 max-w-md mx-auto sm:mx-0"
+    >
+      {/* Current Password (View-only with Eye toggle) */}
+      <div className="relative">
+        <label className="block text-sm font-medium text-gray-600 mb-1">
+          Current Password
+        </label>
+        <input
+          type={passwordData.showCurrent ? "text" : "password"}
+          value={passwordData.currentPassword || "********"}
+          readOnly
+          className="w-full px-3 py-2 border rounded-lg bg-gray-100 text-gray-700 cursor-not-allowed focus:ring-0 text-sm sm:text-base pr-10"
+        />
+        <button
+          type="button"
+          onClick={() =>
+            setPasswordData({
+              ...passwordData,
+              showCurrent: !passwordData.showCurrent,
+            })
+          }
+          className="absolute right-3 top-[38px] text-gray-500 hover:text-gray-700"
+        >
+          {passwordData.showCurrent ? (
+            <EyeOff className="w-5 h-5" />
+          ) : (
+            <Eye className="w-5 h-5" />
+          )}
+        </button>
+      </div>
 
-            <div className="flex flex-col sm:flex-row sm:justify-end">
-              <button
-                type="submit"
-                className="flex items-center justify-center gap-2 bg-gray-700 text-white px-5 py-2 rounded-lg hover:bg-gray-800 transition w-full sm:w-auto"
-              >
-                <Save size={18} /> Update Password
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
+      {/* New Password */}
+      <div className="relative">
+        <label className="block text-sm font-medium text-gray-600 mb-1">
+          New Password
+        </label>
+        <input
+          type={passwordData.showNew ? "text" : "password"}
+          value={passwordData.newPassword}
+          onChange={(e) =>
+            setPasswordData({
+              ...passwordData,
+              newPassword: e.target.value,
+            })
+          }
+          placeholder="Enter your new password"
+          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 text-sm sm:text-base pr-10"
+          required
+        />
+        <button
+          type="button"
+          onClick={() =>
+            setPasswordData({
+              ...passwordData,
+              showNew: !passwordData.showNew,
+            })
+          }
+          className="absolute right-3 top-[38px] text-gray-500 hover:text-gray-700"
+        >
+          {passwordData.showNew ? (
+            <EyeOff className="w-5 h-5" />
+          ) : (
+            <Eye className="w-5 h-5" />
+          )}
+        </button>
+      </div>
+
+      {/* Submit Button */}
+      <div className="flex flex-col sm:flex-row sm:justify-end">
+        <button
+          type="submit"
+          className="flex items-center justify-center gap-2 bg-gray-700 text-white px-5 py-2 rounded-lg hover:bg-gray-800 transition w-full sm:w-auto"
+        >
+          <Save size={18} /> Update Password
+        </button>
+      </div>
+    </form>
+  </section>
+)}
     </div>
   );
 }

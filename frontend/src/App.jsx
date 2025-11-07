@@ -28,6 +28,7 @@ import MyRefunds from "./pages/MyRefunds.jsx";
 import Profile from "./pages/Profile.jsx";
 import CheckoutPage from "./pages/CheckoutPage.jsx";
 import SearchResults from "./pages/SearchResults.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
 
 // 👤 Layout
 import AccountLayout from "./layouts/AccountLayout.jsx";
@@ -68,6 +69,7 @@ export default function App() {
             <Route path="/wishlist" element={<WishlistPage />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/search" element={<SearchResults />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
 
             {/* ✅ Account Pages with Sidebar */}
             <Route element={<AccountLayout />}>

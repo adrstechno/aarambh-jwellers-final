@@ -17,43 +17,46 @@ const generateToken = (user) => {
 ======================================================= */
 export const register = async (req, res) => {
   try {
-    const { name, email = "", phone = "", password } = req.body;
+    let { name, email, phone, password } = req.body;
 
     // 🧩 Basic validation
     if (!name || !password || (!email && !phone)) {
-      return res.status(400).json({
-        message: "Name, password, and either email or phone are required.",
-      });
+      return res
+        .status(400)
+        .json({ message: "Name, password, and either email or phone are required." });
     }
 
-    // 🔍 Build a flexible query (only check non-empty fields)
-    const query = [];
-    if (email) query.push({ email: email.toLowerCase() });
-    if (phone) query.push({ phone });
+    // 🧼 Clean up empty strings or undefined values
+    if (email === "" || email === undefined || email === null) email = undefined;
+    if (phone === "" || phone === undefined || phone === null) phone = undefined;
 
-    const existingUser = await User.findOne({ $or: query });
+    // 🧠 Check if user already exists (by email or phone)
+    const existingUser = await User.findOne({
+      $or: [{ email: email || null }, { phone: phone || null }],
+    });
+
     if (existingUser) {
-      const field = existingUser.email === email ? "email" : "phone number";
-      return res.status(400).json({
-        message: `User with this ${field} already exists.`,
-      });
+      let field = existingUser.email === email ? "email" : "phone number";
+      return res.status(400).json({ message: `User with this ${field} already exists.` });
     }
 
-    // 🆕 Create new user
-    const newUser = new User({
+    // 🆕 Create user object (exclude undefined fields)
+    const newUserData = {
       name,
-      email: email.toLowerCase(),
-      phone,
       password,
       role: "customer",
       status: "active",
-    });
+    };
 
+    if (email) newUserData.email = email.toLowerCase();
+    if (phone) newUserData.phone = phone;
+
+    const newUser = new User(newUserData);
     await newUser.save();
 
     const token = jwt.sign(
       { id: newUser._id, role: newUser.role },
-      JWT_SECRET,
+      process.env.JWT_SECRET || "supersecretkey123",
       { expiresIn: "7d" }
     );
 
@@ -62,8 +65,8 @@ export const register = async (req, res) => {
       user: {
         _id: newUser._id,
         name: newUser.name,
-        email: newUser.email,
-        phone: newUser.phone,
+        email: newUser.email || "",
+        phone: newUser.phone || "",
         role: newUser.role,
         status: newUser.status,
       },
@@ -72,12 +75,11 @@ export const register = async (req, res) => {
   } catch (error) {
     console.error("❌ Register Error:", error);
 
+    // 🧩 Handle duplicate key errors clearly
     if (error.code === 11000) {
       const duplicateField = Object.keys(error.keyValue)[0];
       const prettyField = duplicateField === "phone" ? "Phone number" : "Email";
-      return res.status(400).json({
-        message: `${prettyField} is already registered.`,
-      });
+      return res.status(400).json({ message: `${prettyField} is already registered.` });
     }
 
     res.status(500).json({
@@ -86,7 +88,6 @@ export const register = async (req, res) => {
     });
   }
 };
-
 /* =======================================================
    🔵 Login User (email OR phone)
 ======================================================= */
@@ -101,23 +102,27 @@ export const login = async (req, res) => {
         .json({ message: "Please provide email/phone and password" });
     }
 
+    // 🧠 Normalize identifier safely
+    const trimmed = identifier.trim();
+    const normalizedEmail = trimmed.includes("@") ? trimmed.toLowerCase() : null;
+    const normalizedPhone = !trimmed.includes("@") ? trimmed : null;
+
     // 🔍 Find user by email OR phone
     const user = await User.findOne({
-      $or: [{ email: identifier }, { phone: identifier }],
+      $or: [
+        ...(normalizedEmail ? [{ email: normalizedEmail }] : []),
+        ...(normalizedPhone ? [{ phone: normalizedPhone }] : []),
+      ],
     });
 
     if (!user) {
-      return res
-        .status(400)
-        .json({ message: "Invalid email/phone or password" });
+      return res.status(400).json({ message: "Invalid email/phone or password" });
     }
 
     // ✅ Validate password using schema method
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
-      return res
-        .status(400)
-        .json({ message: "Invalid email/phone or password" });
+      return res.status(400).json({ message: "Invalid email/phone or password" });
     }
 
     // 🚫 Blocked users can’t login
@@ -132,14 +137,18 @@ export const login = async (req, res) => {
     await user.save();
 
     // 🔐 Generate JWT
-    const token = generateToken(user);
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET || "supersecretkey123",
+      { expiresIn: "7d" }
+    );
 
-    res.json({
+    return res.json({
       message: "✅ Login successful",
       user: {
         _id: user._id,
         name: user.name,
-        email: user.email,
+        email: user.email || "",
         phone: user.phone || "",
         role: user.role,
         status: user.status,
@@ -148,7 +157,7 @@ export const login = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Login Error:", error);
-    res.status(500).json({ message: "Login failed", error: error.message });
+    return res.status(500).json({ message: "Login failed", error: error.message });
   }
 };
 

@@ -25,6 +25,7 @@ import reportRoutes from "./routes/reportRoutes.js";
 import bannerRoutes from "./routes/bannerRoutes.js";
 import reelRoutes from "./routes/reelRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import passwordResetRoutes from "./routes/passwordReset.js";
 
 dotenv.config();
 const app = express();
@@ -85,6 +86,7 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/banners", bannerRoutes);
 app.use("/api/reels", reelRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/auth", passwordResetRoutes);
 /* =======================================================
    ⚠️ Global Error Handler
 ======================================================= */
