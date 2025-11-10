@@ -128,7 +128,7 @@ export default function FeaturedProducts() {
             FEATURED PRODUCTS
           </h2>
           <p className="text-gray-600 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
-            "Celebrate your moments with timeless designs, meticulously crafted to perfection by Vednine Jwellers."
+            "Celebrate your moments with timeless designs, meticulously crafted to perfection by Vednine Jewellers."
           </p>
         </div>
 

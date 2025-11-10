@@ -63,7 +63,6 @@ export default function Footer() {
               { label: "Returns & Exchange", href: "/returns" },
               { label: "Cancellations Policy", href: "/cancellations" },
               { label: "Terms & Conditions", href: "/terms" },
-              { label: "Bulk Orders", href: "/bulk-orders" },
             ].map((link, i) => (
               <li key={i}>
                 <a
@@ -81,7 +80,7 @@ export default function Footer() {
         <div>
           <h3 className="font-semibold text-lg mb-4">Contact Us</h3>
           <p className="text-sm text-gray-700 leading-relaxed">
-            <strong>Vednine Jewellery</strong>
+            <strong>Vednine Jewelry</strong>
             <br />
             Vijay Nagar, Indore
             <br />
@@ -127,7 +126,7 @@ export default function Footer() {
 
       {/* Bottom Footer */}
       <div className="border-t border-gray-200 py-4 text-center text-sm text-gray-600">
-        © 2025 Vednine Jewellery — All rights reserved.
+        © 2025 Vednine Jewelry — All rights reserved.
       </div>
     </footer>
   );

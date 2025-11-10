@@ -47,7 +47,7 @@ export default function ReelSection() {
             Trending Reels
           </h2>
           <p className="text-gray-500 mt-3 text-sm md:text-base">
-            Watch the latest trends from our jewellery creators and collections.
+            Watch the latest trends from our jewelry creators and collections.
           </p>
         </div>
 
