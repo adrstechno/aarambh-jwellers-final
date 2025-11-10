@@ -273,7 +273,7 @@ export default function Header() {
   {/* Logo */}
   <div className="flex items-center gap-3 sm:gap-4">
     <img
-      src="/logo2.png"
+      src="/logo-main.png"
       alt="Logo"
       className="h-12 sm:h-14 cursor-pointer hover:scale-105 transition-transform duration-300"
       onClick={goHome}
