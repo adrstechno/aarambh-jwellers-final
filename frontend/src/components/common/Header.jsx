@@ -271,14 +271,14 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
   {/* Logo */}
-  <div className="flex items-center gap-3 sm:gap-4">
-    <img
-      src="/logo-main.png"
-      alt="Logo"
-      className="h-12 sm:h-14 cursor-pointer hover:scale-105 transition-transform duration-300"
-      onClick={goHome}
-    />
-  </div>
+ <div className="flex items-center gap-3 sm:gap-4">
+  <img
+    src="/logo-main.png"
+    alt="Logo"
+    className="h-8 sm:h-10 cursor-pointer hover:scale-105 transition-transform duration-300"
+    onClick={goHome}
+  />
+</div>
 
   {/* Desktop Search */}
   {!isAdmin() && (

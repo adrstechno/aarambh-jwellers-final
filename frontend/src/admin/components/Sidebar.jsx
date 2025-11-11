@@ -107,6 +107,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
               <NavItem to="/admin/admin-reels" icon={Gem}>
                 Reels Section
               </NavItem>
+              
             </div>
           )}
         </div>

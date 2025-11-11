@@ -13,6 +13,7 @@ import FeaturedProducts from "./components/home/FeaturedProducts.jsx";
 import ReelSection from "./components/home/ReelSection.jsx";
 // import DiscountSection from "./components/home/DiscountSection.jsx";
 import Footer from "./components/common/Footer.jsx";
+import DeliveryPartners from "./pages/DeliveryPartners.jsx";
 
 // 🧭 Common Components
 import Header from "./components/common/Header.jsx";
@@ -42,6 +43,7 @@ function HomePage() {
       <FeaturedProducts />
       {/* <DiscountSection /> */}
       <ReelSection />
+      <DeliveryPartners />
       <Footer />
     </>
   );
@@ -70,6 +72,7 @@ export default function App() {
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/search" element={<SearchResults />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/delivery-partner" element={<DeliveryPartners />}/>
 
             {/* ✅ Account Pages with Sidebar */}
             <Route element={<AccountLayout />}>
