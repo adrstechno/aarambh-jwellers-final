@@ -30,6 +30,7 @@ import Profile from "./pages/Profile.jsx";
 import CheckoutPage from "./pages/CheckoutPage.jsx";
 import SearchResults from "./pages/SearchResults.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
+import WhatsAppButton from "./pages/WhatsappButton.jsx";
 
 // 👤 Layout
 import AccountLayout from "./layouts/AccountLayout.jsx";
@@ -45,7 +46,9 @@ function HomePage() {
       <ReelSection />
       <DeliveryPartners />
       <Footer />
+      <WhatsAppButton />
     </>
+   
   );
 }
 
