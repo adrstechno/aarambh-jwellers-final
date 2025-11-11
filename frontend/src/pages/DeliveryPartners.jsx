@@ -8,22 +8,22 @@ export default function DeliveryPartners() {
 
       {/* Partner Logos */}
       <div className="flex justify-center items-center gap-20 sm:gap-28 flex-wrap mb-10">
-        <div className="flex flex-col items-center">
+        {/* Amazon */}
+        <div className="flex justify-center items-center bg-white rounded-lg shadow-sm p-4 hover:scale-105 transition-transform duration-300">
           <img
-            src="/amazon.png"
+            src="/amazon2.png"
             alt="Amazon"
-            className="h-24 sm:h-32 w-auto object-contain hover:scale-110 transition-transform duration-300"
+            className="h-24 sm:h-28 w-auto object-contain"
           />
-          
         </div>
 
-        <div className="flex flex-col items-center">
+        {/* Flipkart */}
+        <div className="flex justify-center items-center bg-white rounded-lg shadow-sm p-4 hover:scale-105 transition-transform duration-300">
           <img
-            src="/flipkart.png"
+            src="/flipkart2.png"
             alt="Flipkart"
-            className="h-24 sm:h-32 w-auto object-contain hover:scale-110 transition-transform duration-300"
+            className="h-24 sm:h-28 w-auto object-contain"
           />
-          
         </div>
       </div>
 
@@ -61,7 +61,7 @@ export default function DeliveryPartners() {
 
         <div className="bg-gray-50 p-5 rounded-lg shadow-sm hover:shadow-md transition duration-300">
           <p className="font-medium text-gray-700 text-base sm:text-lg">
-            🔁 Exchange & Resale of Silver Jwelery <br />
+            🔁 Exchange & Resale of Silver Jewellery <br />
             <span className="text-sm sm:text-base text-green-600 font-semibold block mt-2">
               💬 Connect with us on WhatsApp
             </span>
