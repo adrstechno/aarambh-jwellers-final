@@ -10,30 +10,41 @@ export default function Navigation() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const data = await getActiveCategories();
+  console.log("[Navigation] mounted - starting fetchCategories"); // <-- add this
 
-        // ✅ Ensure sorting by 'order' field (lowest → highest)
-        const sorted = [...data].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const fetchCategories = async () => {
+  try {
+    console.debug("[Navigation] fetchCategories - starting");
+    const data = await getActiveCategories();
+    console.debug("[Navigation] getActiveCategories returned:", data);
 
-        // ✅ Map into display format
-        const formatted = sorted.map((cat) => ({
-          name: cat.name,
-          path: `/category/${cat.slug}`,
-          highlight: false,
-        }));
+    // defensive normalization (in case API helper wasn't updated)
+    const arr = Array.isArray(data) ? data : Array.isArray(data?.categories) ? data.categories : [];
 
-        setMenuItems(formatted);
-      } catch (err) {
-        console.error("❌ Failed to load categories:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    // sort by order then map to menu items
+    const sorted = [...arr].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const formatted = sorted.map((cat) => ({
+      name: cat.name,
+      path: `/category/${cat.slug}`,
+      highlight: false,
+    }));
 
-    fetchCategories();
-  }, []);
+    console.debug(`[Navigation] formatted ${formatted.length} menu items`);
+    setMenuItems(formatted);
+  } catch (err) {
+    console.error("❌ Failed to load categories (Navigation):", err);
+    setMenuItems([]); // be explicit
+  } finally {
+    setLoading(false);
+    console.debug("[Navigation] fetchCategories - finished");
+  }
+};
+
+
+
+  fetchCategories();
+}, []);
+
 
   return (
     <nav className="bg-white border-b border-gray-200 sticky top-16 z-30 py-4">

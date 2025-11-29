@@ -167,19 +167,49 @@ export const deleteCategory = async (req, res) => {
   }
 };
 
-/* ===========================================================
-   🌐 GET ACTIVE CATEGORIES (for navigation)
-=========================================================== */
+// GET ACTIVE CATEGORIES - defensive version
 export const getActiveCategories = async (req, res) => {
   try {
-    const categories = await Category.find({ parentCategory: null })
-      .select("name slug image order")
-      .sort({ order: 1, name: 1 }); // ✅ sort by order
+    // fetch all categories but only the fields we need
+    const categories = await Category.find({})
+      .select("name slug image order parentCategory")
+      .sort({ order: 1, name: 1 })
+      .lean();
 
-    res.status(200).json(categories);
+    // Normalize: treat category as "root/top-level" if parentCategory is null,
+    // missing, or equals the category's own _id (older docs).
+    const normalized = categories.filter((cat) => {
+      if (!cat) return false;
+      // parentCategory could be ObjectId, string, object, or missing
+      const p = cat.parentCategory;
+
+      // Case: null/undefined -> top-level
+      if (p === null || p === undefined) return true;
+
+      // If parentCategory is an object with _id (older populated-stored shape),
+      // compare to the category's own _id
+      if (typeof p === "object" && p._id) {
+        // If parentCategory equals itself -> treat as top-level
+        return `${p._id}` === `${cat._id}` ? true : false;
+      }
+
+      // If parentCategory is an ObjectId or string, it's not top-level
+      return false;
+    });
+
+    // Map to the simple nav shape (only include fields frontend needs)
+    const out = normalized.map((cat) => ({
+      _id: cat._id,
+      name: cat.name,
+      slug: cat.slug,
+      image: cat.image,
+      order: cat.order ?? 0,
+    }));
+
+    return res.status(200).json(out);
   } catch (error) {
     console.error("❌ Error fetching categories:", error);
-    res.status(500).json({ message: "Failed to fetch categories" });
+    return res.status(500).json({ message: "Failed to fetch categories" });
   }
 };
 

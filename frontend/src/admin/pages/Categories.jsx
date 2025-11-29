@@ -70,8 +70,12 @@ export default function Categories() {
     try {
       const formData = new FormData();
       formData.append("name", newCategory.name);
-      if (newCategory.parentCategory)
+
+      // ✅ Only append parentCategory if it's a non-empty string (ID)
+      if (newCategory.parentCategory && typeof newCategory.parentCategory === "string") {
         formData.append("parentCategory", newCategory.parentCategory);
+      }
+
       formData.append("image", newCategory.image.file);
 
       await addCategory(formData);
@@ -87,59 +91,66 @@ export default function Categories() {
     }
   };
 
-// ✅ True centered custom delete confirmation modal (independent of toast container)
-const handleDelete = (id, name) => {
-  // Create a custom portal element for the modal
-  const modal = document.createElement("div");
-  modal.className =
-    "fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-[9999]";
-  document.body.appendChild(modal);
+  // ✅ True centered custom delete confirmation modal (independent of toast container)
+  const handleDelete = (id, name) => {
+    // Create a custom portal element for the modal
+    const modal = document.createElement("div");
+    modal.className =
+      "fixed inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm z-[9999]";
+    document.body.appendChild(modal);
 
-  const closeModal = () => {
-    modal.remove();
-  };
+    const closeModal = () => {
+      modal.remove();
+    };
 
-  // Render modal manually
-  modal.innerHTML = `
-    <div class="bg-white rounded-xl shadow-2xl p-6 w-[90%] max-w-sm text-center border border-gray-200 animate-enter">
-      <h3 class="text-lg font-semibold text-gray-800 mb-2">Confirm Deletion</h3>
-      <p class="text-gray-600 text-sm mb-6 leading-relaxed">
-        Are you sure you want to delete <span class="font-semibold text-red-600">"${name}"</span>?<br />
-        This action cannot be undone.
-      </p>
-      <div class="flex justify-center gap-3">
-        <button id="confirmDelete" class="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 transition">Delete</button>
-        <button id="cancelDelete" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md text-sm font-medium hover:bg-gray-300 transition">Cancel</button>
+    // Render modal manually
+    modal.innerHTML = `
+      <div class="bg-white rounded-xl shadow-2xl p-6 w-[90%] max-w-sm text-center border border-gray-200 animate-enter">
+        <h3 class="text-lg font-semibold text-gray-800 mb-2">Confirm Deletion</h3>
+        <p class="text-gray-600 text-sm mb-6 leading-relaxed">
+          Are you sure you want to delete <span class="font-semibold text-red-600">"${name}"</span>?<br />
+          This action cannot be undone.
+        </p>
+        <div class="flex justify-center gap-3">
+          <button id="confirmDelete" class="px-4 py-2 bg-red-600 text-white rounded-md text-sm font-medium hover:bg-red-700 transition">Delete</button>
+          <button id="cancelDelete" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md text-sm font-medium hover:bg-gray-300 transition">Cancel</button>
+        </div>
       </div>
-    </div>
-  `;
+    `;
 
-  // Bind actions
-  modal.querySelector("#cancelDelete").onclick = closeModal;
+    // Bind actions
+    modal.querySelector("#cancelDelete").onclick = closeModal;
 
-  modal.querySelector("#confirmDelete").onclick = async () => {
-    closeModal();
-    const loadingToast = toast.loading(`Deleting "${name}"...`);
-    try {
-      await deleteCategory(id);
-      toast.dismiss(loadingToast);
-      toast.success(`✅ "${name}" deleted successfully!`);
-      fetchCategories();
-    } catch (err) {
-      toast.dismiss(loadingToast);
-      console.error("❌ Failed to delete:", err);
-      toast.error("Failed to delete category.");
-    }
+    modal.querySelector("#confirmDelete").onclick = async () => {
+      closeModal();
+      const loadingToast = toast.loading(`Deleting "${name}"...`);
+      try {
+        await deleteCategory(id);
+        toast.dismiss(loadingToast);
+        toast.success(`✅ "${name}" deleted successfully!`);
+        fetchCategories();
+      } catch (err) {
+        toast.dismiss(loadingToast);
+        console.error("❌ Failed to delete:", err);
+        toast.error("Failed to delete category.");
+      }
+    };
   };
-};
-
-
 
   // 🔹 Edit category modal open
   const handleEdit = (cat) => {
     setEditingId(cat._id);
+
+    // ✅ IMPORTANT: ensure parentCategory in state becomes an ID string (not an object)
+    // Backend sometimes returns parentCategory as an object { _id, name } — convert to _id
+    const parentId =
+      cat.parentCategory && typeof cat.parentCategory === "object"
+        ? cat.parentCategory._id
+        : cat.parentCategory || "";
+
     setEditedCategory({
       ...cat,
+      parentCategory: parentId,
       image: cat.image
         ? cat.image.startsWith("http")
           ? cat.image
@@ -157,10 +168,13 @@ const handleDelete = (id, name) => {
     try {
       const formData = new FormData();
       formData.append("name", editedCategory.name);
-      if (editedCategory.parentCategory)
+
+      // ✅ Only append parentCategory if it's a valid ID string
+      if (editedCategory.parentCategory && typeof editedCategory.parentCategory === "string") {
         formData.append("parentCategory", editedCategory.parentCategory);
-      if (editedCategory.image?.file)
-        formData.append("image", editedCategory.image.file);
+      }
+
+      if (editedCategory.image?.file) formData.append("image", editedCategory.image.file);
 
       await updateCategory(editingId, formData);
       toast.dismiss(loadingToast);

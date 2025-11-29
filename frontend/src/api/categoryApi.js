@@ -143,15 +143,23 @@ export const deleteCategory = async (id) => {
   }
 };
 
+// src/api/categoryApi.js
 export const getActiveCategories = async () => {
   try {
     const { data } = await axios.get(`${API_BASE}/categories/active`);
-    return data;
+    // Normalize response shape to always return an array of category objects
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.categories)) return data.categories;
+    if (Array.isArray(data?.data)) return data.data;
+
+    console.warn("⚠️ Unexpected getActiveCategories response:", data);
+    return [];
   } catch (err) {
     console.error("❌ Error fetching categories:", err.response?.data || err);
     throw err;
   }
 };
+
 
 // ✅ Aliases for readability
 export const getCategories = getCategoriesWithCount;
