@@ -63,8 +63,7 @@ export default function HeroCarousel() {
 
   if (slides.length === 0) {
     return (
-      // Changed fixed height to min-height for flexibility
-      <div className="min-h-[16rem] md:min-h-[20rem] flex items-center justify-center text-gray-500">
+      <div className="h-[24rem] md:h-[32rem] flex items-center justify-center text-gray-500">
         Loading banners...
       </div>
     );
@@ -74,33 +73,41 @@ export default function HeroCarousel() {
     🎨 Carousel UI
   =========================================================== */
   return (
-    // **CRITICAL CHANGE 1: Use h-auto (or remove height) and set min-height**
-    // This allows the container to adopt the full height of the banner image.
-    <section className="relative w-full overflow-hidden min-h-[16rem] md:min-h-[20rem]">
+    // Adjusted height to be responsive: h-[24rem] for small devices, h-[32rem] for medium and up
+    <section className="relative h-[24rem] md:h-[32rem] overflow-hidden">
       {/* Slides */}
       <div
-        // **CRITICAL CHANGE 2: Ensure slide wrapper is w-full and uses transition**
-        className="flex transition-transform duration-700 ease-in-out w-full"
+        className="flex transition-transform duration-700 ease-in-out h-full"
         style={{ transform: `translateX(-${current * 100}%)` }}
       >
         {slides.map((slide) => (
           <div
             key={slide._id}
-            // **CRITICAL CHANGE 3: Slide container is w-full and height is determined by image**
-            className="w-full flex-shrink-0 relative h-auto"
+            // Adjusted height to be responsive
+            className="w-full flex-shrink-0 relative h-[24rem] md:h-[32rem]"
           >
             {/* Background Image */}
             <img
               src={fixImageURL(slide.image)}
               alt={slide.title || "Banner"}
-              // *** FIX: Revert to object-fit and h-auto ***
-              // w-full ensures full width. h-auto and object-fit ensure the entire image is displayed, maintaining aspect ratio.
-              className="w-full h-auto object-fit" 
+              // Changed object-cover to object-fit to attempt better fitting on small screens
+              // Added max-h-full to ensure it respects the parent's height
+              className="w-full max-h-full object-fit" 
               onError={(e) => (e.target.src = "/placeholder.jpg")}
             />
 
-            {/* Overlay - Note: Overlay height will now match the dynamic image height */}
+            {/* Overlay - Changed to relative position for content centering, but added absolute for button */}
             <div className="absolute inset-0 bg-black/40 p-4 sm:p-8 flex flex-col justify-between">
+              {/* Text Content - Positioned top-center and made less wide */}
+              {/* <div className="text-center text-white w-full">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold mb-2 sm:mb-4 bg-gradient-to-r from-yellow-300 to-red-200 bg-clip-text text-transparent">
+                  {slide.title}
+                </h1>
+                <p className="text-base sm:text-lg md:text-xl opacity-90">
+                  {slide.subtitle}
+                </p>
+              </div> */}
+
               {/* Action Button - Moved to bottom-right corner */}
               <div className="flex justify-end mt-auto">
                 <button
