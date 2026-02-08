@@ -30,24 +30,39 @@ import { getDashboardData } from "../../api/dashboardApi";
 export default function Dashboard() {
   const { user } = useApp();
   const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const COLORS = ["#facc15", "#22c55e", "#ef4444", "#3b82f6"];
 
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
+        setLoading(true);
+        setError("");
         const res = await getDashboardData(user.token);
         setData(res);
       } catch (error) {
         console.error("❌ Error loading dashboard data:", error);
+        setError(error?.response?.data?.message || error.message || "Failed to load dashboard data.");
+      }
+      finally {
+        setLoading(false);
       }
     };
     if (user?.token) fetchDashboard();
   }, [user]);
 
-  if (!data)
+  if (loading)
     return <div className="p-6 text-center text-gray-500">Loading Dashboard...</div>;
 
-  const { stats, weeklySales, orderStatus, paymentMethods, recentOrders, recentUsers } = data;
+  if (error)
+    return (
+      <div className="p-6 text-center text-red-600">
+        {error}
+      </div>
+    );
+
+  const { stats = {}, weeklySales = [], orderStatus = [], paymentMethods = [], recentOrders = [], recentUsers = [], refundSummary = { total:0, approved:0 }, returnSummary = { total:0, approved:0 } } = data;
 
   return (
     <div className="p-6 space-y-6">
@@ -63,7 +78,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ChartCard title="Sales (Last 7 Days)" icon={<LineChartIcon className="w-4 h-4 text-blue-600" />}>
           <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={weeklySales.map(d => ({ day: `Day ${d._id}`, sales: d.total }))}>
+            <LineChart data={(weeklySales || []).map(d => ({ day: `Day ${d._id}`, sales: d.total }))}>
               <CartesianGrid stroke="#e5e7eb" strokeDasharray="5 5" />
               <XAxis dataKey="day" />
               <YAxis />
@@ -77,7 +92,7 @@ export default function Dashboard() {
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={orderStatus} dataKey="count" nameKey="_id" outerRadius={70} label>
-                {orderStatus.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
+                {(orderStatus || []).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Pie>
               <Legend />
               <Tooltip />
@@ -89,7 +104,7 @@ export default function Dashboard() {
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={paymentMethods} dataKey="count" nameKey="_id" outerRadius={70} label>
-                {paymentMethods.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
+                {(paymentMethods || []).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Pie>
               <Legend />
               <Tooltip />
@@ -133,13 +148,13 @@ export default function Dashboard() {
     <div className="bg-red-50 p-3 rounded-lg text-center">
       <p className="text-gray-600">Approved Refunds</p>
       <p className="font-bold text-red-600">
-        {data.refundSummary.approved} / {data.refundSummary.total}
+        {refundSummary.approved} / {refundSummary.total}
       </p>
     </div>
     <div className="bg-blue-50 p-3 rounded-lg text-center">
       <p className="text-gray-600">Approved Returns</p>
       <p className="font-bold text-blue-600">
-        {data.returnSummary.approved} / {data.returnSummary.total}
+        {returnSummary.approved} / {returnSummary.total}
       </p>
     </div>
   </div>
@@ -148,8 +163,8 @@ export default function Dashboard() {
 
       {/* ✅ Recent Orders and Users */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <RecentList title="Recent Orders" icon={<ListChecks className="w-4 h-4 text-indigo-600" />} items={recentOrders} />
-        <RecentList title="Recent Users" icon={<UserPlus className="w-4 h-4 text-purple-600" />} items={recentUsers} />
+        <RecentList title="Recent Orders" icon={<ListChecks className="w-4 h-4 text-indigo-600" />} items={recentOrders || []} />
+        <RecentList title="Recent Users" icon={<UserPlus className="w-4 h-4 text-purple-600" />} items={recentUsers || []} />
       </div>
     </div>
   );
@@ -185,7 +200,10 @@ function RecentList({ title, icon, items }) {
         {icon} {title}
       </h3>
       <ul className="divide-y divide-gray-200 text-sm">
-        {items.map((item, i) => (
+        {(items || []).length === 0 && (
+          <li className="py-4 text-center text-gray-500">No items to display.</li>
+        )}
+        {(items || []).map((item, i) => (
           <li key={i} className="py-2 flex justify-between">
             <div>
               <p className="text-gray-800">{item.user?.name || item.name}</p>

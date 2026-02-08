@@ -50,16 +50,8 @@ export default function HeroCarousel() {
   }, []);
 
   /* ===========================================================
-    🔁 Auto-slide every 5s
+    🔁 Auto-slide DISABLED - Manual navigation only
   =========================================================== */
-  useEffect(() => {
-    if (slides.length > 0) {
-      const interval = setInterval(() => {
-        setCurrent((prev) => (prev + 1) % slides.length);
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [slides]);
 
   if (slides.length === 0) {
     return (
@@ -99,8 +91,8 @@ export default function HeroCarousel() {
               onError={(e) => (e.target.src = "/placeholder.jpg")}
             />
 
-            {/* Overlay - Note: Overlay height will now match the dynamic image height */}
-            <div className="absolute inset-0 bg-black/40 p-4 sm:p-8 flex flex-col justify-between">
+            {/* Overlay - Removed black shade for clear banner display */}
+            <div className="absolute inset-0 p-4 sm:p-8 flex flex-col justify-between">
               {/* Action Button - Moved to bottom-right corner */}
               <div className="flex justify-end mt-auto">
                 <button
@@ -115,34 +107,7 @@ export default function HeroCarousel() {
         ))}
       </div>
 
-      {/* Dots */}
-      <div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 flex space-x-2">
-        {slides.map((_, index) => (
-          <button
-            key={index}
-            onClick={() => setCurrent(index)}
-            className={`w-3 h-3 rounded-full ${
-              current === index ? "bg-yellow-400" : "bg-gray-300"
-            }`}
-          />
-        ))}
-      </div>
-
-      {/* Prev / Next */}
-      <button
-        onClick={() =>
-          setCurrent((prev) => (prev - 1 + slides.length) % slides.length)
-        }
-        className="absolute top-1/2 left-4 -translate-y-1/2 bg-white/70 hover:bg-white p-2 rounded-full shadow"
-      >
-        ❮
-      </button>
-      <button
-        onClick={() => setCurrent((prev) => (prev + 1) % slides.length)}
-        className="absolute top-1/2 right-4 -translate-y-1/2 bg-white/70 hover:bg-white p-2 rounded-full shadow"
-      >
-        ❯
-      </button>
+      {/* Navigation removed - Static banner display */}
     </section>
   );
 }

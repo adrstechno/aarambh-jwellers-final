@@ -5,10 +5,30 @@ const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
 // ✅ For consistent image URLs
 const BASE_URL = API_BASE.replace("/api", "");
 
+// ✅ API request caching to reduce duplicate requests
+const CACHE = new Map();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 // ✅ Central error handler
 const handleError = (action, error) => {
   console.error(`❌ Error ${action}:`, error.response?.data || error.message);
   throw new Error(error.response?.data?.message || `Failed to ${action}`);
+};
+
+// ✅ Cache-aware GET request
+const cachedGet = async (url) => {
+  const now = Date.now();
+  if (CACHE.has(url)) {
+    const { data, timestamp } = CACHE.get(url);
+    if (now - timestamp < CACHE_DURATION) {
+      return data;
+    }
+    CACHE.delete(url);
+  }
+  
+  const { data } = await axios.get(url);
+  CACHE.set(url, { data, timestamp: now });
+  return data;
 };
 
 /* =======================================================
@@ -38,27 +58,32 @@ const normalizeProductImages = (product) => {
 };
 
 /* =======================================================
-   🟢 PRODUCT API FUNCTIONS
+   🟢 PRODUCT API FUNCTIONS - OPTIMIZED
 ======================================================= */
 
-// ✅ Get all public (active) products
-export const getAllProducts = async () => {
+// ✅ Get all public (active) products with pagination
+export const getAllProducts = async (page = 1, limit = 20) => {
   try {
-    const { data } = await axios.get(`${API_BASE}/products`);
-    const products = Array.isArray(data)
-      ? data.map(normalizeProductImages)
+    const { data } = await cachedGet(
+      `${API_BASE}/products?page=${page}&limit=${limit}`
+    );
+    const products = Array.isArray(data?.products)
+      ? data.products.map(normalizeProductImages)
       : [];
-    return products;
+    return { products, pagination: data?.pagination || {} };
   } catch (error) {
     handleError("fetching all products", error);
   }
 };
 
-// ✅ Get products by category slug
-export const getProductsByCategory = async (category) => {
+// ✅ Get products by category slug with pagination
+export const getProductsByCategory = async (category, page = 1, limit = 20) => {
   try {
-    const { data } = await axios.get(`${API_BASE}/products/category/${category}`);
-    const products = Array.isArray(data)
+    const url = `${API_BASE}/products/category/${category}?page=${page}&limit=${limit}`;
+    const { data } = await cachedGet(url);
+    const products = Array.isArray(data?.products)
+      ? data.products.map(normalizeProductImages)
+      : Array.isArray(data)
       ? data.map(normalizeProductImages)
       : [];
     return products;
@@ -87,7 +112,7 @@ export const getProductBySlug = async (slug) => {
   }
 };
 
-// ✅ Search products
+// ✅ Search products (no caching as results change frequently)
 export const searchProducts = async (query) => {
   try {
     const { data } = await axios.get(

@@ -13,28 +13,38 @@ const fixImagePath = (image) => {
     : `${base}/${cleanPath}`;
 };
 
-// 🧩 Normalize product images in wishlist
+// ✅ Normalize product images in wishlist - OPTIMIZED
 const normalizeWishlistImages = (wishlist) => {
   if (!wishlist || !wishlist.products) return wishlist;
   return {
-    ...wishlist._doc,
+    ...(wishlist._doc || wishlist),
     products: wishlist.products.map((p) => ({
-      ...p._doc,
+      ...(p._doc || p),
       product: {
-        ...p.product._doc,
+        ...(p.product._doc || p.product),
         image: fixImagePath(p.product.image),
       },
     })),
   };
 };
 
+// ✅ Get wishlist - OPTIMIZED with lean()
 export const getWishlist = async (req, res) => {
   try {
     const { userId } = req.params;
-    const wishlist = await Wishlist.findOne({ user: userId }).populate("products.product");
-    if (!wishlist) return res.json({ products: [] });
+    const wishlist = await Wishlist.findOne({ user: userId })
+      .populate({
+        path: "products.product",
+        select: "name price image images slug category stock",
+      })
+      .select("products createdAt");
+
+    if (!wishlist) return res.json({ products: [], total: 0 });
 
     const normalized = normalizeWishlistImages(wishlist);
+    
+    // ✅ Set cache headers
+    res.set("Cache-Control", "private, max-age=300"); // 5 minutes
     res.status(200).json(normalized);
   } catch (err) {
     console.error("❌ Error fetching wishlist:", err);
@@ -42,6 +52,7 @@ export const getWishlist = async (req, res) => {
   }
 };
 
+// ✅ Add to wishlist - OPTIMIZED
 export const addToWishlist = async (req, res) => {
   try {
     const { userId, productId } = req.body;
@@ -60,7 +71,10 @@ export const addToWishlist = async (req, res) => {
     }
 
     await wishlist.save();
-    const updated = await wishlist.populate("products.product");
+    const updated = await wishlist.populate({
+      path: "products.product",
+      select: "name price image images slug category stock",
+    });
 
     const normalized = normalizeWishlistImages(updated);
     res.status(200).json(normalized);
@@ -70,7 +84,7 @@ export const addToWishlist = async (req, res) => {
   }
 };
 
-
+// ✅ Remove from wishlist - OPTIMIZED
 export const removeFromWishlist = async (req, res) => {
   try {
     const { userId, productId } = req.body;
@@ -84,7 +98,10 @@ export const removeFromWishlist = async (req, res) => {
     );
 
     await wishlist.save();
-    const updated = await wishlist.populate("products.product");
+    const updated = await wishlist.populate({
+      path: "products.product",
+      select: "name price image images slug category stock",
+    });
 
     const normalized = normalizeWishlistImages(updated);
     res.status(200).json(normalized);

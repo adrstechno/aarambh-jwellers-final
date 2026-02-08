@@ -3,7 +3,7 @@ export default function DeliveryPartners() {
     <section className="w-full bg-white py-12 px-4 sm:px-8 text-center border-t border-gray-100">
       {/* Title */}
       <h1 className="text-4xl sm:text-5xl font-serif text-gray-800 font-semibold mb-10">
-        We Are Available On
+        Channel Partners
       </h1>
 
       {/* Partner Logos */}

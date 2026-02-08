@@ -1,25 +1,31 @@
-import { StrictMode } from "react";
+import { StrictMode, Suspense, lazy } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "./context/AppContext";
 import "./index.css";
 
-import App from "./App.jsx"; // frontend
-import AdminApp from "./admin/AdminApp.jsx";
+import App from "./App.jsx";
 
-// ✅ Detect current user from localStorage
-const storedUser = JSON.parse(localStorage.getItem("user"));
-const isAdmin =
-  storedUser?.role?.toLowerCase() === "admin" || storedUser?.isAdmin === true;
+// Lazy load AdminApp to reduce initial bundle size
+const AdminApp = lazy(() => import("./admin/AdminApp.jsx"));
 
-// ✅ Choose which app to render
-const RootApp = isAdmin ? AdminApp : App;
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen bg-gray-50">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
+  </div>
+);
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <AppProvider>
-        <RootApp />
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/admin/*" element={<AdminApp />} />
+            <Route path="/*" element={<App />} />
+          </Routes>
+        </Suspense>
       </AppProvider>
     </BrowserRouter>
   </StrictMode>

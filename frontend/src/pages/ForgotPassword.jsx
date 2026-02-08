@@ -8,7 +8,7 @@ export default function ForgotPassword() {
   const navigate = useNavigate();
 
   const [stage, setStage] = useState("email"); // email | otp | done
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState(""); // Can be email or mobile
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -22,15 +22,15 @@ export default function ForgotPassword() {
     setError("");
     setMessage("");
 
-    if (!email.trim()) {
-      setError("Please enter your registered email.");
+    if (!identifier.trim()) {
+      setError("Please enter your registered email or mobile number.");
       return;
     }
 
     setLoading(true);
     try {
-      const res = await requestPasswordReset(email.trim());
-      setMessage(res.message || "OTP sent to your email.");
+      const res = await requestPasswordReset(identifier.trim());
+      setMessage(res.message || "OTP sent to your registered contact.");
       setStage("otp");
     } catch (err) {
       setError(err.message || "Failed to send OTP.");
@@ -53,7 +53,7 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
-      const res = await verifyOtpAndReset(email.trim(), otp.trim(), newPassword.trim());
+      const res = await verifyOtpAndReset(identifier.trim(), otp.trim(), newPassword.trim());
       setMessage(res.message || "Password reset successful!");
       setStage("done");
     } catch (err) {
@@ -77,8 +77,8 @@ export default function ForgotPassword() {
             {stage === "done" && "Password Reset Successful"}
           </h2>
           <p className="text-sm text-gray-500 mt-1">
-            {stage === "email" && "We’ll send a 6-digit code to your registered email."}
-            {stage === "otp" && "Enter the code sent to your email to reset your password."}
+            {stage === "email" && "We'll send a 6-digit code to your registered email or mobile."}
+            {stage === "otp" && "Enter the code sent to your email/mobile to reset your password."}
           </p>
         </div>
 
@@ -88,13 +88,16 @@ export default function ForgotPassword() {
             <div className="relative mb-4">
               <Mail className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" />
               <input
-                type="email"
-                placeholder="Enter your registered email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                placeholder="Enter email (abc@example.com) or mobile (10 digits)"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                pattern="^([0-9]{10}|[\\w.%+-]+@[\\w.-]+\\.[a-zA-Z]{2,})$"
+                title="Enter a valid email or 10-digit mobile number"
                 className="w-full pl-10 pr-3 py-2 border rounded-lg focus:ring-2 focus:ring-red-500 focus:outline-none"
               />
             </div>
+            <p className="text-xs text-gray-400 mb-3">✓ Use your registered email or mobile number</p>
 
             <button
               onClick={handleSendOtp}

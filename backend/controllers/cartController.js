@@ -2,7 +2,7 @@ import Cart from "../models/cart.js";
 import Product from "../models/product.js";
 
 /* =======================================================
-   🟢 GET CART
+   🟢 GET CART - OPTIMIZED
 ======================================================= */
 export const getCart = async (req, res) => {
   try {
@@ -13,10 +13,16 @@ export const getCart = async (req, res) => {
       return res.status(400).json({ message: "Invalid or missing user ID" });
     }
 
-    const cart = await Cart.findOne({ user: userId }).populate("items.product");
+    const cart = await Cart.findOne({ user: userId })
+      .populate({
+        path: "items.product",
+        select: "name price image images stock" // Only select needed fields
+      });
 
     if (!cart) return res.json({ items: [], total: 0 });
 
+    // ✅ Set cache headers
+    res.set("Cache-Control", "private, max-age=300"); // 5 minutes
     res.status(200).json(cart);
   } catch (err) {
     console.error("❌ Error fetching cart:", err);
@@ -25,7 +31,7 @@ export const getCart = async (req, res) => {
 };
 
 /* =======================================================
-   🟡 ADD TO CART
+   🟡 ADD TO CART - OPTIMIZED
 ======================================================= */
 export const addToCart = async (req, res) => {
   try {
@@ -38,7 +44,8 @@ export const addToCart = async (req, res) => {
     if (!productId || !quantity)
       return res.status(400).json({ message: "Missing product or quantity" });
 
-    const product = await Product.findById(productId);
+    // ✅ Use lean() for read-only query
+    const product = await Product.findById(productId).lean();
     if (!product) return res.status(404).json({ message: "Product not found" });
 
     let cart = await Cart.findOne({ user: userId });
@@ -64,7 +71,10 @@ export const addToCart = async (req, res) => {
     }
 
     await cart.save();
-    const updated = await cart.populate("items.product");
+    const updated = await cart.populate({
+      path: "items.product",
+      select: "name price image images stock"
+    });
 
     res.status(200).json(updated);
   } catch (err) {
@@ -74,7 +84,7 @@ export const addToCart = async (req, res) => {
 };
 
 /* =======================================================
-   🟠 UPDATE QUANTITY
+   🟠 UPDATE QUANTITY - OPTIMIZED
 ======================================================= */
 export const updateQuantity = async (req, res) => {
   try {
@@ -83,7 +93,11 @@ export const updateQuantity = async (req, res) => {
     if (!userId || userId === "undefined")
       return res.status(400).json({ message: "Invalid user ID" });
 
-    const cart = await Cart.findOne({ user: userId }).populate("items.product");
+    const cart = await Cart.findOne({ user: userId })
+      .populate({
+        path: "items.product",
+        select: "name price image images stock"
+      });
     if (!cart) return res.status(404).json({ message: "Cart not found" });
 
     const item = cart.items.find((i) => i.product._id.toString() === productId);
@@ -93,7 +107,10 @@ export const updateQuantity = async (req, res) => {
     cart.total = cart.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
     await cart.save();
 
-    const updated = await cart.populate("items.product");
+    const updated = await cart.populate({
+      path: "items.product",
+      select: "name price image images stock"
+    });
     res.status(200).json(updated);
   } catch (err) {
     console.error("❌ Error updating quantity:", err);
@@ -102,7 +119,7 @@ export const updateQuantity = async (req, res) => {
 };
 
 /* =======================================================
-   🔴 REMOVE ITEM
+   🔴 REMOVE ITEM - OPTIMIZED
 ======================================================= */
 export const removeItem = async (req, res) => {
   try {
@@ -118,7 +135,10 @@ export const removeItem = async (req, res) => {
     cart.total = cart.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
     await cart.save();
 
-    const updated = await cart.populate("items.product");
+    const updated = await cart.populate({
+      path: "items.product",
+      select: "name price image images stock"
+    });
     res.status(200).json(updated);
   } catch (err) {
     console.error("❌ Error removing item:", err);
@@ -127,7 +147,7 @@ export const removeItem = async (req, res) => {
 };
 
 /* =======================================================
-   ⚫ CLEAR CART
+   ⚫ CLEAR CART - OPTIMIZED
 ======================================================= */
 export const clearCart = async (req, res) => {
   try {

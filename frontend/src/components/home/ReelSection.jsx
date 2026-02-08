@@ -51,13 +51,13 @@ export default function ReelSection() {
           </p>
         </div>
 
-        {/* Reels Scroll Section */}
+        {/* Reels Grid Section - Responsive */}
         {reels.length > 0 ? (
-          <div className="flex gap-6 overflow-x-auto scrollbar-hide pb-3 px-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 place-items-center">
             {reels.map((reel) => (
               <div
                 key={reel._id}
-                className="flex-none w-60 bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100"
+                className="w-full h-full bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100"
               >
                 <div className="relative">
                   {reel.videoUrl ? (

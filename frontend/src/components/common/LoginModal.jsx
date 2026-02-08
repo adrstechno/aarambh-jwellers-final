@@ -203,22 +203,30 @@ export default function LoginModal() {
             </div>
           )}
 
-          {/* Email / Identifier */}
+          {/* Email / Phone Input - With Better Label */}
           {(step === "auth" || step === "forgot" || step === "otp") && (
-            <div className="relative">
-              <Mail className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" />
-<input
-  type="text"
-  name="identifier"
-  placeholder="Email or Mobile Number"
-  value={form.identifier}
-  onChange={handleChange}
-  required
-  readOnly={step === "otp"}
-  pattern="^([0-9]{10}|[\\w.%+-]+@[\\w.-]+\\.[a-zA-Z]{2,})$"
-  title="Enter a valid email or 10-digit mobile number"
-  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg bg-white/80 focus:ring-2 focus:ring-red-400 focus:border-transparent outline-none"
-/>
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                {step === "otp" ? "Registered Email or Mobile" : isLogin ? "Email or Mobile Number" : "Email or Mobile Number"}
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-2.5 text-gray-400 w-4 h-4" />
+                <input
+                  type="text"
+                  name="identifier"
+                  placeholder="Enter email (abc@example.com) or mobile (10 digits)"
+                  value={form.identifier}
+                  onChange={handleChange}
+                  required
+                  readOnly={step === "otp"}
+                  pattern="^([0-9]{10}|[\\w.%+-]+@[\\w.-]+\\.[a-zA-Z]{2,})$"
+                  title="Enter a valid email or 10-digit mobile number"
+                  className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg bg-white/80 focus:ring-2 focus:ring-red-400 focus:border-transparent outline-none text-sm"
+                />
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                ✓ Use your email address or 10-digit mobile number to login
+              </p>
             </div>
           )}
 

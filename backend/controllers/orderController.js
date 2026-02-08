@@ -68,21 +68,40 @@ export const createOrder = async (req, res) => {
     res.status(500).json({ message: "Failed to create order" });
   }
 };
-// 🟡 Get user orders
+// 🟡 Get user orders - OPTIMIZED
 export const getUserOrders = async (req, res) => {
   try {
     const userId = req.query.userId || req.params.userId;
     if (!userId)
       return res.status(400).json({ message: "User ID missing" });
 
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     const orders = await Order.find({ user: userId })
       .populate({
-        path: "products.product", // ✅ correct populate path
+        path: "products.product",
         select: "name image price category",
       })
-      .sort({ createdAt: -1 });
+      .select("_id products total status address createdAt")
+      .lean() // ⚡ Performance optimization
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    res.status(200).json(orders);
+    const total = await Order.countDocuments({ user: userId });
+
+    // ✅ Set cache headers
+    res.set("Cache-Control", "private, max-age=300");
+    res.status(200).json({
+      orders,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+      }
+    });
   } catch (error) {
     console.error("❌ Error fetching user orders:", error);
     res.status(500).json({ message: "Failed to fetch user orders" });
@@ -91,24 +110,41 @@ export const getUserOrders = async (req, res) => {
 
 /* ADMIN CONTROLLERS*/
 
-// 🟢 Get all orders for admin
+// 🟢 Get all orders for admin - OPTIMIZED
 export const getAllOrders = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
     const orders = await Order.find()
       .populate({
-        path: "products.product", // ✅ Correct path
+        path: "products.product",
         select: "name image price category",
       })
-      .populate("user", "name email phone") // ✅ includes phone
-      .sort({ createdAt: -1 });
+      .select("_id user products total status address createdAt")
+      .lean() // ⚡ Performance optimization
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    res.status(200).json(orders);
-  } catch (error) {
-    console.error("❌ Error fetching all orders:", error);
-    res.status(500).json({ message: "Failed to fetch orders", error: error.message });
+    const total = await Order.countDocuments();
+
+    // ✅ Set cache headers
+    res.set("Cache-Control", "private, max-age=300");
+    res.status(200).json({
+      orders,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+      }
+    });
+  } catch (err) {
+    console.error("❌ Error fetching all orders:", err);
+    res.status(500).json({ message: "Failed to fetch orders" });
   }
 };
-
 
 // 🟣 Get Orders by User (Admin)
 export const getOrdersByUser = async (req, res) => {

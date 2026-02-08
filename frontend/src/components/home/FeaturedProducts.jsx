@@ -1,28 +1,28 @@
 /* eslint-disable react/no-unknown-property */
 /* eslint-disable react/no-unescaped-entities */
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo, useCallback } from "react";
 import ProductCard from "../products/ProductCard";
 import { getProductsByCategory } from "../../api/productApi";
 import { getActiveCategories } from "../../api/categoryApi";
 
-export default function FeaturedProducts() {
+const FeaturedProducts = memo(function FeaturedProducts() {
   const [activeTab, setActiveTab] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [autoSwitch, setAutoSwitch] = useState(true);
-  const [categories, setCategories] = useState([]); // ✅ dynamic categories
+  const [categories, setCategories] = useState([]);
 
   const BASE_URL =
     import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
 
-  const fixImageURL = (img) => {
+  const fixImageURL = useCallback((img) => {
     if (!img) return "/placeholder.jpg";
     const clean = img.replace(/\\/g, "/");
     if (clean.startsWith("http")) return clean;
     if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
     if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
     return "/placeholder.jpg";
-  };
+  }, [BASE_URL]);
 
   /* ===========================================================
      🟢 Fetch top 3 categories (ordered by backend)
@@ -46,7 +46,7 @@ export default function FeaturedProducts() {
   }, []);
 
   /* ===========================================================
-     🟡 Fetch products for active category
+     🟡 Fetch products for active category - OPTIMIZED
   =========================================================== */
   useEffect(() => {
     if (!activeTab) return;
@@ -54,8 +54,11 @@ export default function FeaturedProducts() {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const data = await getProductsByCategory(activeTab);
-        const productList = Array.isArray(data) ? data : data?.products || [];
+        // ✅ Add pagination to API call
+        const data = await getProductsByCategory(activeTab + "?page=1&limit=8");
+        const productList = Array.isArray(data?.products) ? data.products : 
+                          Array.isArray(data) ? data : 
+                          data?.products || [];
 
         const normalized = productList.slice(0, 8).map((p) => ({
           ...p,
@@ -75,13 +78,14 @@ export default function FeaturedProducts() {
     };
 
     fetchProducts();
-  }, [activeTab]);
+  }, [activeTab, fixImageURL]);
 
   /* ===========================================================
-     🟠 Auto-switch between top 3 categories
+     🟠 Auto-switch between top 3 categories - OPTIMIZED
   =========================================================== */
   useEffect(() => {
     if (!autoSwitch || categories.length === 0) return;
+    
     const interval = setInterval(() => {
       setActiveTab((prev) => {
         const currentIndex = categories.findIndex((c) => c.slug === prev);
@@ -89,11 +93,12 @@ export default function FeaturedProducts() {
         return categories[nextIndex]?.slug;
       });
     }, 5000);
+    
     return () => clearInterval(interval);
   }, [autoSwitch, categories]);
 
   /* ===========================================================
-     🧩 Loading Skeleton
+     🧩 Loading Skeleton - OPTIMIZED
   =========================================================== */
   const LoadingSkeleton = () => (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
@@ -132,9 +137,9 @@ export default function FeaturedProducts() {
           </p>
         </div>
 
-        {/* Tabs */}
-        <div className="mb-10 sm:mb-12 overflow-x-auto scrollbar-hide">
-          <div className="flex justify-center gap-2 sm:gap-3 min-w-max sm:min-w-0">
+        {/* Tabs - Responsive Grid */}
+        <div className="mb-10 sm:mb-12 flex justify-center flex-wrap">
+          <div className="flex justify-center gap-2 sm:gap-3 flex-wrap w-full">
             {categories.length > 0 ? (
               categories.map((cat) => (
                 <button
@@ -148,79 +153,37 @@ export default function FeaturedProducts() {
                     rounded-full transition-all duration-300 whitespace-nowrap
                     ${
                       activeTab === cat.slug
-                        ? "bg-gradient-to-r from-amber-400 to-amber-500 text-white shadow-lg scale-105"
-                        : "bg-white text-gray-700 hover:text-amber-600 hover:bg-amber-50 border border-gray-200"
+                        ? "bg-amber-600 text-white shadow-lg"
+                        : "bg-white text-gray-600 border-2 border-gray-200 hover:border-amber-600"
                     }
                   `}
                 >
                   {cat.name}
-                  {activeTab === cat.slug && (
-                    <span className="absolute inset-0 rounded-full animate-ping bg-amber-400 opacity-30"></span>
-                  )}
                 </button>
               ))
             ) : (
-              <p className="text-gray-400 text-sm italic">Loading categories...</p>
+              <p className="text-gray-500">Loading categories...</p>
             )}
           </div>
         </div>
 
-        {/* Product Grid */}
-        <div className="relative">
-          {loading ? (
-            <LoadingSkeleton />
-          ) : products.length === 0 ? (
-            <div className="text-center py-16">
-              <p className="text-gray-500 text-lg">
-                No products found for{" "}
-                <span className="font-medium capitalize">"{activeTab}"</span>.
-              </p>
-            </div>
-          ) : (
-            <div
-              key={activeTab}
-              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6 animate-in fade-in slide-in-from-bottom duration-500"
-            >
-              {products.map((product, index) => (
-                <div
-                  key={product._id}
-                  className="transform transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <ProductCard product={product} />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Auto-rotate indicator */}
-        {autoSwitch && !loading && products.length > 0 && (
-          <div className="flex justify-center mt-8 gap-1">
-            {categories.map((_, i) => (
-              <div
-                key={i}
-                className={`h-1.5 w-8 rounded-full transition-all duration-300 ${
-                  i === categories.findIndex((c) => c.slug === activeTab)
-                    ? "bg-amber-500 w-12"
-                    : "bg-gray-300"
-                }`}
-              />
+        {/* Products Grid */}
+        {loading ? (
+          <LoadingSkeleton />
+        ) : products.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
+            {products.map((product) => (
+              <ProductCard key={product._id} product={product} />
             ))}
+          </div>
+        ) : (
+          <div className="text-center py-16">
+            <p className="text-gray-500 text-lg">No products found in this category</p>
           </div>
         )}
       </div>
-
-      {/* Hide scrollbar style */}
-      <style>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
     </section>
   );
-}
+});
+
+export default FeaturedProducts;

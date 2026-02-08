@@ -1,12 +1,10 @@
-import { useRef, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { getCategories } from "../../api/categoryApi";
 
 export default function CategorySection() {
   const navigate = useNavigate();
-  const scrollRef = useRef(null);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -54,15 +52,8 @@ export default function CategorySection() {
     fetchData();
   }, []);
 
-  // 🔹 Scroll left/right buttons
-  const scroll = (direction) => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollBy({
-        left: direction === "left" ? -300 : 300,
-        behavior: "smooth",
-      });
-    }
-  };
+  // 🔹 Scroll left/right buttons - REMOVED
+  // Cards now display in responsive grid layout
 
   // 🟢 Loading skeletons
   if (loading) {
@@ -114,46 +105,15 @@ export default function CategorySection() {
           <p className="text-lg text-gray-600">Explore our collections</p>
         </div>
 
-        {/* Category Carousel */}
-        <div className="relative group">
-          {/* Left Button */}
-          <motion.button
-            onClick={() => scroll("left")}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white border border-gray-200 rounded-full p-2 shadow-lg hover:bg-gray-100"
-            whileTap={{ scale: 0.9 }}
-            aria-label="Previous categories"
-          >
-            <ChevronLeft className="w-5 h-5 text-gray-700" />
-          </motion.button>
-
-          {/* Right Button */}
-          <motion.button
-            onClick={() => scroll("right")}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white border border-gray-200 rounded-full p-2 shadow-lg hover:bg-gray-100"
-            whileTap={{ scale: 0.9 }}
-            aria-label="Next categories"
-          >
-            <ChevronRight className="w-5 h-5 text-gray-700" />
-          </motion.button>
-
-          {/* Scrollable List */}
-          <div
-            ref={scrollRef}
-            className="flex overflow-x-auto py-2 gap-4 scroll-smooth"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-            data-scroll-container
-          >
-            <style>{`
-              [data-scroll-container]::-webkit-scrollbar {
-                display: none !important;
-              }
-            `}</style>
-
+        {/* Category Grid - Responsive Layout */}
+        <div className="relative">
+          {/* Grid Container */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             {categories.map((category) => (
               <motion.div
                 key={category._id}
                 onClick={() => navigate(`/category/${category.slug}`)}
-                className="flex-shrink-0 cursor-pointer w-[150px] group"
+                className="cursor-pointer group"
                 whileHover={{ y: -3 }}
                 transition={{ type: "spring", stiffness: 500 }}
               >

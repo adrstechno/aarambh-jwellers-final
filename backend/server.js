@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import mongoose from "mongoose";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import compression from "compression";
+import helmet from "helmet";
 
 // ✅ Import Cloudinary config (initialize it once globally)
 import "./config/cloudinary.js";
@@ -35,6 +37,21 @@ const app = express();
    🧩 Global Middlewares
 ======================================================= */
 
+// ✅ Security & Performance Headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:", "*.cloudinary.com"],
+    },
+  },
+}));
+
+// ✅ Compression Middleware
+app.use(compression({ level: 6, threshold: 1000 }));
+
 // ✅ CORS Configuration
 const allowedOrigins = [
   process.env.FRONTEND_URL, // ✅ from Render environment variable
@@ -57,9 +74,9 @@ app.use(
   })
 );
 
-// ✅ JSON & URL parsing
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// ✅ JSON & URL parsing with size limits
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // ✅ Cookie Parser
 app.use(cookieParser());

@@ -3,11 +3,17 @@ import cloudinary from "../config/cloudinary.js";
 import fs from "fs";
 
 /* ===========================================================
-   🟢 Get Active Banners (for Frontend)
+   🟢 Get Active Banners (for Frontend) - OPTIMIZED
 =========================================================== */
 export const getBanners = async (req, res) => {
   try {
-    const banners = await Banner.find({ active: true }).sort({ order: 1 });
+    const banners = await Banner.find({ active: true })
+      .select("title subtitle image link order createdAt")
+      .lean() // ⚡ Performance optimization
+      .sort({ order: 1 });
+
+    // ✅ Set cache headers for banners
+    res.set("Cache-Control", "public, max-age=3600"); // 1 hour
     res.status(200).json(banners);
   } catch (error) {
     console.error("❌ Error fetching banners:", error);
@@ -16,12 +22,33 @@ export const getBanners = async (req, res) => {
 };
 
 /* ===========================================================
-   🟡 Get All Banners (for Admin)
+   🟡 Get All Banners (for Admin) - OPTIMIZED
 =========================================================== */
 export const getAllBanners = async (req, res) => {
   try {
-    const banners = await Banner.find().sort({ order: 1, createdAt: -1 });
-    res.status(200).json(banners);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const banners = await Banner.find()
+      .select("title subtitle image link order active createdAt")
+      .lean() // ⚡ Performance optimization
+      .sort({ order: 1, createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Banner.countDocuments();
+
+    // ✅ Set cache headers
+    res.set("Cache-Control", "private, max-age=300");
+    res.status(200).json({
+      banners,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+      }
+    });
   } catch (error) {
     console.error("❌ Error fetching all banners:", error);
     res.status(500).json({ message: "Failed to fetch all banners" });

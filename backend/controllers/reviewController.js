@@ -2,20 +2,75 @@ import Review from "../models/review.js";
 import Product from "../models/product.js";
 
 
+// ✅ Get all reviews - OPTIMIZED with lean()
 export const getAllReviews = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
     const reviews = await Review.find()
       .populate("user", "name email")
       .populate("product", "name slug")
-      .sort({ createdAt: -1 });
-    res.status(200).json(reviews);
+      .select("rating comment status createdAt user product")
+      .lean() // ⚡ Performance optimization
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Review.countDocuments();
+
+    // ✅ Set cache headers for review list
+    res.set("Cache-Control", "private, max-age=300"); // 5 minutes
+    res.status(200).json({
+      reviews,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        limit,
+      }
+    });
   } catch (err) {
     console.error("❌ Error fetching reviews:", err);
     res.status(500).json({ message: "Failed to fetch reviews" });
   }
 };
 
+// ✅ Get reviews by product - OPTIMIZED
+export const getReviewsByProduct = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
+    const reviews = await Review.find({ product: productId, status: "Approved" })
+      .populate("user", "name")
+      .select("rating comment user createdAt")
+      .lean() // ⚡ Performance optimization
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Review.countDocuments({ product: productId, status: "Approved" });
+
+    res.set("Cache-Control", "private, max-age=600"); // 10 minutes
+    res.status(200).json({
+      reviews,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+      }
+    });
+  } catch (err) {
+    console.error("❌ Error fetching product reviews:", err);
+    res.status(500).json({ message: "Failed to fetch reviews" });
+  }
+};
+
+// ✅ Update review status - OPTIMIZED
 export const updateReviewStatus = async (req, res) => {
   try {
     const { status } = req.body;
@@ -41,7 +96,7 @@ export const updateReviewStatus = async (req, res) => {
   }
 };
 
-
+// ✅ Delete review
 export const deleteReview = async (req, res) => {
   try {
     const deleted = await Review.findByIdAndDelete(req.params.id);
@@ -53,7 +108,7 @@ export const deleteReview = async (req, res) => {
   }
 };
 
-
+// ✅ Get paginated reviews - OPTIMIZED with lean()
 export const getPaginatedReviews = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -64,15 +119,21 @@ export const getPaginatedReviews = async (req, res) => {
     const reviews = await Review.find()
       .populate("user", "name email")
       .populate("product", "name")
+      .select("rating comment status createdAt user product")
+      .lean() // ⚡ Performance optimization
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
+    res.set("Cache-Control", "private, max-age=300");
     res.status(200).json({
       reviews,
-      total,
-      page,
-      totalPages: Math.ceil(total / limit),
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        limit,
+      }
     });
   } catch (err) {
     console.error("❌ Error fetching paginated reviews:", err);
@@ -108,22 +169,7 @@ export const getTopRatedProducts = async (req, res) => {
   }
 };
 
-
-export const getReviewsByProduct = async (req, res) => {
-  try {
-    const { productId } = req.params;
-    const reviews = await Review.find({ product: productId, status: "Approved" })
-      .populate("user", "name")
-      .sort({ createdAt: -1 });
-
-    res.status(200).json(reviews);
-  } catch (err) {
-    console.error("❌ Error fetching product reviews:", err);
-    res.status(500).json({ message: "Failed to fetch product reviews" });
-  }
-};
-
-
+// ✅ Create review
 export const createReview = async (req, res) => {
   try {
     const { product, rating, comment, userId } = req.body;

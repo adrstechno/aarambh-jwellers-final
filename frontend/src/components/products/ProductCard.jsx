@@ -1,16 +1,19 @@
 /* eslint-disable react/prop-types */
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { Heart, Eye, ShoppingCart } from "lucide-react";
 import { useApp } from "../../context/AppContext.jsx";
 import { useNavigate } from "react-router-dom";
 
-export default function ProductCard({ product }) {
+// ✅ Optimize image preloading
+const IMAGE_CACHE = new Map();
+
+const ProductCard = memo(function ProductCard({ product }) {
   const [isHovered, setIsHovered] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const { user, addToCart, addToWishlist, removeFromWishlist } = useApp();
+  const { user, addToCart, addToWishlist, removeFromWishlist, wishlist } = useApp();
   const navigate = useNavigate();
 
   const isSoldOut = product.stock === 0 || product.status === "Inactive";
@@ -36,11 +39,18 @@ export default function ProductCard({ product }) {
       ? product.images.map((img) => fixImageURL(img))
       : [fixImageURL(product.image || "/placeholder.jpg")];
 
+  // ✅ Check wishlist status
+  useEffect(() => {
+    if (wishlist) {
+      setIsInWishlist(wishlist.some((p) => p._id === product._id));
+    }
+  }, [wishlist, product._id]);
+
   /* ======================================================
      🎞 Auto Image Slideshow (every 3 seconds)
   ====================================================== */
   useEffect(() => {
-    if (productImages.length <= 1) return; // Skip if only one image
+    if (productImages.length <= 1) return;
 
     const interval = setInterval(() => {
       setCurrentImageIndex((prev) =>
@@ -108,9 +118,8 @@ export default function ProductCard({ product }) {
   ====================================================== */
   return (
     <div
-      className="bg-white rounded-lg shadow-md overflow-hidden group cursor-pointer will-change-transform"
+      className="bg-white rounded-lg shadow-md overflow-hidden group cursor-pointer transition-all duration-400"
       style={{
-        transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
         transform: isHovered ? "translateY(-8px)" : "translateY(0px)",
         boxShadow: isHovered
           ? "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
@@ -126,6 +135,7 @@ export default function ProductCard({ product }) {
           src={currentImage}
           alt={product.name}
           className="w-full h-64 object-cover rounded-lg transition-transform duration-700 ease-in-out hover:scale-105"
+          loading="lazy"
           onError={(e) => (e.target.src = "/placeholder.jpg")}
         />
 
@@ -145,9 +155,8 @@ export default function ProductCard({ product }) {
 
         {/* Quick Actions */}
         <div
-          className="absolute top-3 right-3 space-y-2 z-20"
+          className="absolute top-3 right-3 space-y-2 z-20 transition-all duration-400"
           style={{
-            transition: "all 0.4s ease",
             opacity: isHovered ? 1 : 0,
             transform: isHovered
               ? "translateX(0px) scale(1)"
@@ -178,10 +187,9 @@ export default function ProductCard({ product }) {
 
         {/* Overlay Add to Cart */}
         <div
-          className="absolute inset-0 flex items-center justify-center z-10"
+          className="absolute inset-0 flex items-center justify-center z-10 transition-all duration-400"
           style={{
             background: isHovered ? "rgba(0, 0, 0, 0.4)" : "transparent",
-            transition: "all 0.4s ease",
             opacity: isHovered && !isSoldOut ? 1 : 0,
             visibility: isHovered && !isSoldOut ? "visible" : "hidden",
           }}
@@ -200,9 +208,8 @@ export default function ProductCard({ product }) {
       {/* Product Info */}
       <div className="p-6">
         <h3
-          className="text-lg font-semibold mb-2 line-clamp-2"
+          className="text-lg font-semibold mb-2 line-clamp-2 transition-colors duration-300"
           style={{
-            transition: "color 0.3s ease",
             color: isHovered ? "#dc2626" : "#111827",
           }}
         >
@@ -236,4 +243,11 @@ export default function ProductCard({ product }) {
       </div>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // ✅ Custom comparison for memo optimization
+  return prevProps.product._id === nextProps.product._id &&
+         prevProps.product.price === nextProps.product.price &&
+         prevProps.product.stock === nextProps.product.stock;
+});
+
+export default ProductCard;

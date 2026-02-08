@@ -1,8 +1,7 @@
 /* eslint-disable no-unused-vars */
 // src/App.jsx
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import { AppProvider } from "./context/AppContext"; // ✅ Import context provider
 import "./App.css";
 
 // 🏠 Home Imports
@@ -54,8 +53,6 @@ function HomePage() {
 
 export default function App() {
   return (
-    <AppProvider> {/* ✅ Wrap entire app in context */}
-      
         <div className="min-h-screen bg-gray-50">
           {/* ✅ Persistent Header + Navigation */}
           <Header />
@@ -85,7 +82,5 @@ export default function App() {
             </Route>
           </Routes>
         </div>
-  
-    </AppProvider>
   );
 }

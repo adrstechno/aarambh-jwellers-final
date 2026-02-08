@@ -255,21 +255,40 @@ export const deleteProduct = async (req, res) => {
 };
 
 /* ===========================================================
-   🌐 PUBLIC ROUTES (Frontend)
+   🌐 PUBLIC ROUTES (Frontend) - OPTIMIZED
 =========================================================== */
 export const getAllProducts = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    // ✅ Use lean() for read-only queries - faster than full documents
     const products = await Product.find({ status: "Active" })
       .populate("category", "name")
-      .sort({ createdAt: -1 });
+      .select("name slug price image images category stock status createdAt")
+      .lean() // ⚡ Performance optimization
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Product.countDocuments({ status: "Active" });
 
     const fixedProducts = products.map((p) => ({
-      ...p._doc,
+      ...p,
       image: fixImagePath(p.image),
       images: p.images?.map((img) => fixImagePath(img)) || [],
     }));
 
-    res.status(200).json(fixedProducts);
+    res.status(200).json({
+      products: fixedProducts,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        limit,
+      },
+    });
   } catch (error) {
     console.error("❌ Error fetching public products:", error);
     res.status(500).json({ message: "Failed to fetch public products" });
@@ -279,7 +298,11 @@ export const getAllProducts = async (req, res) => {
 export const getProductsByCategory = async (req, res) => {
   try {
     const { category } = req.params;
-    const foundCategory = await Category.findOne({ slug: category.toLowerCase() });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const foundCategory = await Category.findOne({ slug: category.toLowerCase() }).lean();
     if (!foundCategory)
       return res.status(404).json({ message: "Category not found" });
 
@@ -287,16 +310,32 @@ export const getProductsByCategory = async (req, res) => {
       category: foundCategory._id,
       status: "Active",
     })
-      .populate("category", "name")
-      .sort({ createdAt: -1 });
+      .select("name slug price image images category stock status createdAt")
+      .lean() // ⚡ Performance optimization
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const total = await Product.countDocuments({
+      category: foundCategory._id,
+      status: "Active",
+    });
 
     const fixedProducts = products.map((p) => ({
-      ...p._doc,
+      ...p,
       image: fixImagePath(p.image),
       images: p.images?.map((img) => fixImagePath(img)) || [],
     }));
 
-    res.status(200).json(fixedProducts);
+    res.status(200).json({
+      products: fixedProducts,
+      pagination: {
+        total,
+        page,
+        pages: Math.ceil(total / limit),
+        limit,
+      },
+    });
   } catch (error) {
     console.error("❌ Error fetching products by category:", error);
     res.status(500).json({ message: "Failed to fetch products by category" });
@@ -305,12 +344,15 @@ export const getProductsByCategory = async (req, res) => {
 
 export const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id).populate("category", "name");
+    const product = await Product.findById(req.params.id)
+      .populate("category", "name");
     if (!product) return res.status(404).json({ message: "Product not found" });
 
     product.images = product.images?.map((img) => fixImagePath(img)) || [];
     product.image = fixImagePath(product.image);
 
+    // ✅ Set cache headers for client-side caching
+    res.set("Cache-Control", "public, max-age=3600"); // 1 hour
     res.status(200).json(product);
   } catch (error) {
     console.error("❌ Error fetching product by ID:", error);
@@ -329,6 +371,8 @@ export const getProductBySlug = async (req, res) => {
     product.images = product.images?.map((img) => fixImagePath(img)) || [];
     product.image = fixImagePath(product.image);
 
+    // ✅ Set cache headers
+    res.set("Cache-Control", "public, max-age=3600");
     res.status(200).json(product);
   } catch (err) {
     console.error("❌ Error fetching product by slug:", err);
@@ -341,16 +385,26 @@ export const searchProducts = async (req, res) => {
     const query = req.query.q?.trim() || "";
     if (!query) return res.status(200).json([]);
 
+    const limit = 50;
+    
     const products = await Product.find({
       $or: [
         { name: { $regex: query, $options: "i" } },
         { description: { $regex: query, $options: "i" } },
       ],
+      status: "Active",
     })
-      .populate("category", "name slug image")
-      .limit(50);
+      .select("name slug price image images category stock status")
+      .lean() // ⚡ Performance optimization
+      .limit(limit);
 
-    res.status(200).json(products);
+    const fixedProducts = products.map((p) => ({
+      ...p,
+      image: fixImagePath(p.image),
+      images: p.images?.map((img) => fixImagePath(img)) || [],
+    }));
+
+    res.status(200).json(fixedProducts);
   } catch (err) {
     console.error("❌ Error searching products:", err);
     res.status(500).json({ message: "Failed to search products" });
