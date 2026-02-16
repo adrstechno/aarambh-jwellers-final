@@ -53,7 +53,7 @@ export default function GiftSection() {
       { name: "Friendship Forever", emoji: "🤝", icon: "handshake" },
     ],
     budget: [
-      { name: "Luxury Gifts", subtitle: "₹2,0000+", emoji: "🏆", icon: "trophy" },
+      { name: "Gift start from 499", subtitle: "₹499+", emoji: "🎁", icon: "gift" },
     ],
   };
 
