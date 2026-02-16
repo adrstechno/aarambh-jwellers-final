@@ -8,6 +8,7 @@ import "./App.css";
 import HeroCarousel from "./pages/HeroCarousel.jsx";
 import CategorySection from "./components/home/CategorySection.jsx";
 import SterlingSilverBanner from "./components/home/SterlingSilverBanner.jsx";
+import BestSellers from "./components/home/BestSellers.jsx";
 import FeaturedProducts from "./components/home/FeaturedProducts.jsx";
 import GiftSection from "./components/home/GiftSection.jsx";
 import ReelSection from "./components/home/ReelSection.jsx";
@@ -41,6 +42,7 @@ function HomePage() {
       <HeroCarousel />
       <CategorySection />
       <SterlingSilverBanner />
+      <BestSellers />
       <FeaturedProducts />
       <GiftSection />
       {/* <DiscountSection /> */}
