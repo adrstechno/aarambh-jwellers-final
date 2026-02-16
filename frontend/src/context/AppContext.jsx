@@ -75,34 +75,23 @@ export function AppProvider({ children }) {
   ===================================================== */
   useEffect(() => {
     const autoLogin = async () => {
-<<<<<<< HEAD
       console.log("🔐 AppContext: Starting auto-login...");
       const token = localStorage.getItem("token");
       console.log("🔐 AppContext: Token from localStorage =", token ? "EXISTS" : "MISSING");
       
       if (!token) {
         console.log("🔐 AppContext: No token, skipping auto-login");
-=======
-      const token = localStorage.getItem("token");
-      if (!token) {
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
         setAuthLoading(false);
         return;
       }
 
       try {
-<<<<<<< HEAD
         console.log("📡 AppContext: Fetching profile...");
         const data = await getProfile();
         console.log("✅ AppContext: Profile data =", data);
         const userData = data.user || data;
         const fullUser = { ...userData, token };
         console.log("✅ AppContext: Setting user =", fullUser);
-=======
-        const data = await getProfile();
-        const userData = data.user || data;
-        const fullUser = { ...userData, token };
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
         setUser(fullUser);
         localStorage.setItem("user", JSON.stringify(fullUser));
 
@@ -116,10 +105,7 @@ export function AppProvider({ children }) {
           /* ignore */
         }
       } finally {
-<<<<<<< HEAD
         console.log("🔐 AppContext: Auto-login complete, setting authLoading = false");
-=======
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
         setAuthLoading(false);
       }
     };
