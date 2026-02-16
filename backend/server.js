@@ -98,6 +98,7 @@ app.use(cookieParser());
    🚀 API Routes
 ======================================================= */
 app.use("/api/auth", authRoutes);
+app.use("/api/auth/password", passwordResetRoutes); // Fixed: Moved to sub-path to avoid conflict
 app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
@@ -114,12 +115,11 @@ app.use("/api/reports", reportRoutes);
 app.use("/api/banners", bannerRoutes);
 app.use("/api/reels", reelRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/auth", passwordResetRoutes);
 
 /* =======================================================
    ⚠️ Global Error Handler
 ======================================================= */
-app.use((err, req, res, next) => {
+app.use((err, _req, res, _next) => {
   console.error("❌ Global Error:", err?.stack || err);
 
   // capture useful info
@@ -183,7 +183,7 @@ mongoose
   });
 
 // ✅ Debug endpoint to inspect basic DB counts and app env (safe for short-term debugging)
-app.get("/api/debug/status", async (req, res) => {
+app.get("/api/debug/status", async (_req, res) => {
   try {
     const db = mongoose.connection.db;
     const users = await db.collection("users").countDocuments().catch(() => 0);
@@ -205,7 +205,7 @@ app.get("/api/debug/status", async (req, res) => {
 });
 
 // ✅ Debug endpoint to check categories and products
-app.get("/api/debug/categories-products", async (req, res) => {
+app.get("/api/debug/categories-products", async (_req, res) => {
   try {
     const db = mongoose.connection.db;
     

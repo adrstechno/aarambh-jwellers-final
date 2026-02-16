@@ -26,20 +26,14 @@ phone: {
       type: String,
       enum: ["admin", "customer"],
       default: "customer",
-<<<<<<< HEAD
       lowercase: true,
-=======
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
     },
 
     status: {
       type: String,
       enum: ["active", "blocked"],
       default: "active",
-<<<<<<< HEAD
       lowercase: true,
-=======
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
     },
 
     lastLogin: { type: Date, default: null },

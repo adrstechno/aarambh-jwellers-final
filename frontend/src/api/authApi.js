@@ -99,7 +99,7 @@ export const isAuthenticated = () => Boolean(localStorage.getItem("token"));
  */
 export const requestPasswordReset = async (payload) => {
   try {
-    const { data } = await api.post("/request-reset", payload);
+    const { data } = await api.post("/password/request-reset", payload);
     return data; // { message: "OTP sent to your email" }
   } catch (error) {
     handleError(error, "requesting password reset");
@@ -112,7 +112,7 @@ export const requestPasswordReset = async (payload) => {
  */
 export const verifyOtpAndReset = async (payload) => {
   try {
-    const { data } = await api.post("/verify-reset", payload);
+    const { data } = await api.post("/password/verify-reset", payload);
     return data; // { message: "Password reset successful" }
   } catch (error) {
     handleError(error, "verifying OTP or resetting password");
