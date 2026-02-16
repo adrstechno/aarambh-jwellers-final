@@ -7,6 +7,7 @@ import "./App.css";
 // 🏠 Home Imports
 import HeroCarousel from "./pages/HeroCarousel.jsx";
 import CategorySection from "./components/home/CategorySection.jsx";
+import SterlingSilverBanner from "./components/home/SterlingSilverBanner.jsx";
 import FeaturedProducts from "./components/home/FeaturedProducts.jsx";
 import GiftSection from "./components/home/GiftSection.jsx";
 import ReelSection from "./components/home/ReelSection.jsx";
@@ -39,6 +40,7 @@ function HomePage() {
     <>
       <HeroCarousel />
       <CategorySection />
+      <SterlingSilverBanner />
       <FeaturedProducts />
       <GiftSection />
       {/* <DiscountSection /> */}

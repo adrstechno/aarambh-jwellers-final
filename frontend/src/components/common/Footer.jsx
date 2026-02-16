@@ -19,7 +19,7 @@ export default function Footer() {
   }, []);
 
   return (
-    <footer className="bg-[#fbf9f8] text-gray-800 border-t border-gray-200">
+    <footer className="bg-white text-gray-800 border-t border-gray-200">
       {/* Main Footer */}
       <div className="max-w-7xl mx-auto px-6 py-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
         {/* 1️⃣ Shop */}
@@ -95,7 +95,7 @@ export default function Footer() {
             <strong>E-mail:</strong>{" "}
             <a
               href="mailto:vednine925@gmail.com"
-              className="text-red-600 hover:underline"
+              className="text--600 hover:underline"
             >
               vednine925@gmail.com
             </a>

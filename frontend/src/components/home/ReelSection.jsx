@@ -36,7 +36,7 @@ export default function ReelSection() {
   }
 
   return (
-    <section className="bg-[#fff8f6] py-16 px-6 md:px-16">
+    <section className="bg-white py-16 px-6 md:px-16">
       <div className="max-w-7xl mx-auto">
         {/* Title */}
         <div className="text-center mb-10">

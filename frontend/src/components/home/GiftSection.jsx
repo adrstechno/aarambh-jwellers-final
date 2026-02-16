@@ -1,50 +1,31 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Gift, Heart, ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { getAllGifts } from "../../api/giftApi.js";
 
 export default function GiftSection() {
-  const [hoveredIndex, setHoveredIndex] = useState(null);
   const [giftList, setGiftList] = useState([]);
-  const navigate = useNavigate();
 
   const BASE_URL =
     import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
 
-  /* ===========================================================
-     🧩 Helper: Normalize Image URLs (Cloudinary + Local)
-  =========================================================== */
   const fixImageURL = (img) => {
     if (!img) return "/placeholder.jpg";
     const clean = img.replace(/\\/g, "/");
-
-    // ✅ Cloudinary-hosted or external images
     if (clean.startsWith("http")) return clean;
-
-    // 🟡 Local fallback for old uploads
     if (clean.startsWith("/uploads/")) return `${BASE_URL}${clean}`;
     if (clean.startsWith("uploads/")) return `${BASE_URL}/${clean}`;
-
     return "/placeholder.jpg";
   };
 
-  /* ===========================================================
-     🟢 Fetch Gifts
-  =========================================================== */
   useEffect(() => {
     const fetchGifts = async () => {
       try {
         const data = await getAllGifts();
-
-        // ✅ Filter only active and normalize all images
         const normalized = data
           .filter((g) => g.status === "Active")
           .map((g) => ({
             ...g,
             image: fixImageURL(g.image),
           }));
-
         setGiftList(normalized);
       } catch (err) {
         console.error("❌ Failed to load gifts:", err);
@@ -53,103 +34,187 @@ export default function GiftSection() {
     fetchGifts();
   }, []);
 
-  /* ===========================================================
-     🎨 UI Rendering
-  =========================================================== */
+  // Static gift categories matching the reference design
+  const giftCategories = {
+    occasion: [
+      { name: "Birthday Gifts", emoji: "🎂", icon: "birthday-cake" },
+      { name: "Anniversary Gifts", emoji: "💕", icon: "hearts" },
+      { name: "Wedding Gifts", emoji: "💍", icon: "rings" },
+      { name: "Graduation Gifts", emoji: "🎓", icon: "graduation" },
+      { name: "Gifts for Mom", emoji: "👩", icon: "mom" },
+      { name: "Gifts for Wife / Girlfriend", emoji: "👫", icon: "couple" },
+      { name: "Festive Special Gifts", emoji: "🎁", icon: "gift-red" },
+      { name: "Gifts for Mear ficks Dolts...", emoji: "🎁", icon: "gift-gold" },
+    ],
+    emotion: [
+      { name: "Love & Romance", emoji: "💕", icon: "hearts" },
+      { name: "Thank You Gifts", emoji: "🌸", icon: "flowers" },
+      { name: "Good Luck Charms", emoji: "🍀", icon: "clover" },
+      { name: "Friendship Forever", emoji: "🤝", icon: "handshake" },
+    ],
+    budget: [
+      { name: "Luxury Gifts", subtitle: "₹2,0000+", emoji: "🏆", icon: "trophy" },
+    ],
+  };
+
   return (
-    <section className="py-20 bg-gradient-to-br from-gray-50 to-white">
+    <section className="py-12 sm:py-16 bg-white overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <div className="flex items-center justify-center mb-4">
-            <Gift className="w-8 h-8 text-red-500 mr-3" />
-            <h2 className="text-4xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent">
-              Perfect Gifts For Everyone
-            </h2>
+        
+        {/* Hero Section */}
+        <div className="relative bg-gray-50 rounded-3xl overflow-hidden mb-12 shadow-lg border border-gray-200">
+          <div className="grid md:grid-cols-2 gap-8 items-center">
+            {/* Left: Image */}
+            <div className="relative h-64 md:h-96">
+              <img
+                src="/gift-hero.jpg"
+                alt="Gift Box"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.src = "https://images.unsplash.com/photo-1549465220-1a8b9238cd48?w=800&q=80";
+                }}
+              />
+            </div>
+
+            {/* Right: Content */}
+            <div className="p-8 md:p-12 text-center md:text-left">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-rose-800 mb-4 leading-tight">
+                Gifts That Speak<br />From the Heart
+              </h1>
+              <p className="text-gray-700 text-base sm:text-lg mb-3">
+                Discover Thoughtful Jewelry Gifts for Every Occasion.
+              </p>
+              <p className="text-gray-600 text-sm sm:text-base mb-6">
+                Elegant. Timeless. Crafted with Love.
+              </p>
+              <button
+                className="bg-rose-500 hover:bg-rose-600 text-white px-8 py-3 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              >
+                Shop Gift Collection
+              </button>
+            </div>
           </div>
-          <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-            Discover thoughtful jewelry gifts for every occasion. Elegant,
-            timeless, and crafted with love.
-          </p>
         </div>
 
-        {/* Gift Grid - Responsive */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-6 place-items-center">
-          {giftList.length > 0 ? (
-            giftList.map((gift, index) => (
-              <motion.div
-                key={gift._id || index}
-                className="relative cursor-pointer"
-                onMouseEnter={() => setHoveredIndex(index)}
-                onMouseLeave={() => setHoveredIndex(null)}
-                whileHover={{ y: -8 }}
-                transition={{ duration: 0.3, ease: "easeOut" }}
-                onClick={() => navigate(`/gifts/${gift.code}`)} // ✅ navigate by code
+        {/* Gifts by Occasion */}
+        <div className="mb-12">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 text-center mb-8">
+            Gifts by Occasion
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {giftCategories.occasion.map((category, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-lg transition-all duration-300 group text-center border border-gray-100 hover:border-rose-200"
               >
-                <motion.div
-                  className="relative overflow-hidden rounded-xl shadow-lg bg-white"
-                  whileHover={{
-                    boxShadow: "0 20px 40px -12px rgba(0, 0, 0, 0.2)",
-                  }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
+                <div className="text-4xl sm:text-5xl mb-3 group-hover:scale-110 transition-transform duration-300">
+                  {category.emoji}
+                </div>
+                <h3 className="text-sm sm:text-base font-semibold text-gray-800 group-hover:text-rose-600 transition-colors">
+                  {category.name}
+                </h3>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Gifts by Emotion & Budget - Side by Side */}
+        <div className="grid md:grid-cols-2 gap-8">
+          {/* Gifts by Emotion */}
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 text-center mb-8">
+              Gifts by Emotion
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              {giftCategories.emotion.map((category, index) => (
+                <div
+                  key={index}
+                  className="bg-white rounded-xl p-4 sm:p-6 shadow-sm hover:shadow-lg transition-all duration-300 group text-center border border-gray-100 hover:border-rose-200"
                 >
-                  <div className="relative overflow-hidden">
-                    <motion.img
-                      src={fixImageURL(gift.image)}
+                  <div className="text-4xl sm:text-5xl mb-3 group-hover:scale-110 transition-transform duration-300">
+                    {category.emoji}
+                  </div>
+                  <h3 className="text-sm sm:text-base font-semibold text-gray-800 group-hover:text-rose-600 transition-colors">
+                    {category.name}
+                  </h3>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Gifts by Budget */}
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 text-center mb-8">
+              Gifts by Budget
+            </h2>
+            <div className="grid grid-cols-1 gap-4">
+              {giftCategories.budget.map((category, index) => (
+                <div
+                  key={index}
+                  className="bg-white rounded-xl p-6 sm:p-8 shadow-sm hover:shadow-lg transition-all duration-300 group text-center border border-gray-100 hover:border-rose-200"
+                >
+                  <div className="text-5xl sm:text-6xl mb-3 group-hover:scale-110 transition-transform duration-300">
+                    {category.emoji}
+                  </div>
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-800 group-hover:text-rose-600 transition-colors">
+                    {category.name}
+                  </h3>
+                  {category.subtitle && (
+                    <p className="text-sm text-gray-600 mt-1">{category.subtitle}</p>
+                  )}
+                </div>
+              ))}
+
+              {/* Gift Note Card */}
+              <div className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-xl p-6 shadow-sm border border-rose-200">
+                <p className="text-rose-700 font-medium text-sm mb-2">
+                  Move l:s ony art jote:
+                </p>
+                <p className="text-gray-700 text-xs mb-3">
+                  Swivles, there ths acu ereet tnter serrer
+                </p>
+                <p className="text-gray-600 text-xs mb-3">
+                  This Week's message card without Gift
+                </p>
+                <button className="bg-rose-500 hover:bg-rose-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors w-full">
+                  Add Gift Note
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Dynamic Gifts from API (if needed) */}
+        {giftList.length > 0 && (
+          <div className="mt-12">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 text-center mb-8">
+              Featured Gift Collections
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {giftList.slice(0, 6).map((gift) => (
+                <div
+                  key={gift._id}
+                  className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 group"
+                >
+                  <div className="relative h-32 overflow-hidden">
+                    <img
+                      src={gift.image}
                       alt={gift.name}
-                      className="w-full h-40 sm:h-32 object-cover"
-                      whileHover={{ scale: 1.1 }}
-                      transition={{ duration: 0.5, ease: "easeOut" }}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                       onError={(e) => (e.target.src = "/placeholder.jpg")}
                     />
-
-                    {/* Overlay Gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-
-                    {/* Overlay Text */}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center text-white p-3">
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: hoveredIndex === index ? 1 : 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="mb-1"
-                      >
-                        <Heart className="w-5 h-5 text-white fill-current" />
-                      </motion.div>
-
-                      <h3 className="font-bold text-sm sm:text-base mb-1">
-                        {gift.name}
-                      </h3>
-
-                      <motion.p
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: hoveredIndex === index ? 1 : 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="text-white text-xs mb-3"
-                      >
-                        {gift.description || "A special gift for your loved ones"}
-                      </motion.p>
-
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: hoveredIndex === index ? 1 : 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="flex items-center text-white text-xs font-medium bg-white/20 px-3 py-1 rounded-full backdrop-blur-sm"
-                      >
-                        <span className="mr-2">Shop Now</span>
-                        <ArrowRight className="w-3 h-3" />
-                      </motion.div>
-                    </div>
                   </div>
-                </motion.div>
-              </motion.div>
-            ))
-          ) : (
-            <p className="col-span-6 text-center text-gray-500 py-10">
-              No gifts available right now.
-            </p>
-          )}
-        </div>
+                  <div className="p-3 text-center">
+                    <h3 className="text-sm font-semibold text-gray-800 group-hover:text-rose-600 transition-colors">
+                      {gift.name}
+                    </h3>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
     </section>
   );

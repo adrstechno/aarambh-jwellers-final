@@ -148,7 +148,7 @@ const FeaturedProducts = memo(function FeaturedProducts() {
 
   return (
     <section
-      className="py-12 sm:py-16 bg-gradient-to-b from-amber-50 to-white overflow-hidden"
+      className="py-12 sm:py-16 bg-white overflow-hidden"
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
