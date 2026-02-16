@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
-<<<<<<< HEAD
 import { useApp } from "../../context/AppContext";
-=======
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
 import {
   User,
   Shield,
@@ -25,11 +22,7 @@ import {
 } from "../../api/userApi";
 
 export default function Users() {
-<<<<<<< HEAD
   const { user } = useApp();
-=======
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
-
 
   const [users, setUsers] = useState([]);
   const [userOrders, setUserOrders] = useState({});
@@ -41,26 +34,16 @@ export default function Users() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ type: "", message: "" });
 
-  // ✅ Toast Helper
   const showToast = (type, message) => {
     setToast({ type, message });
     setTimeout(() => setToast({ type: "", message: "" }), 2500);
   };
 
-<<<<<<< HEAD
-  // ✅ Fetch all users with token from context
   useEffect(() => {
     const fetchUsers = async () => {
       if (!user?.token) return;
       try {
         const data = await getAllUsers(user.token);
-=======
-  // ✅ Fetch all users (auto token handled by userApi.js)
-  useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        const data = await getAllUsers(); // ⬅️ no token passed now
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
         setUsers(data);
       } catch (err) {
         console.error("Error fetching users:", err);
@@ -70,21 +53,12 @@ export default function Users() {
       }
     };
     fetchUsers();
-<<<<<<< HEAD
   }, [user?.token]);
-=======
-  }, []);
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
 
-  // ✅ Fetch user orders
   const fetchUserOrdersHandler = async (userId) => {
     if (userOrders[userId]) return;
     try {
-<<<<<<< HEAD
       const data = await getUserOrders(userId, user?.token);
-=======
-      const data = await getUserOrders(userId); // ⬅️ auto token
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
       setUserOrders((prev) => ({ ...prev, [userId]: data }));
     } catch (err) {
       console.error(`Error fetching orders for user ${userId}:`, err);
@@ -92,17 +66,12 @@ export default function Users() {
     }
   };
 
-  // ✅ Toggle Admin Role
   const handleToggleAdmin = async (id) => {
     try {
       const targetUser = users.find((u) => u._id === id);
       if (!targetUser) return showToast("error", "User not found.");
 
-<<<<<<< HEAD
       const res = await toggleUserRole(id, user?.token);
-=======
-      const res = await toggleUserRole(id); // ⬅️ auto token
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
 
       if (res?.updatedUser) {
         setUsers((prev) =>
@@ -125,36 +94,27 @@ export default function Users() {
     }
   };
 
- // ✅ Toggle Block / Unblock
-const handleToggleBlock = async (id) => {
-  try {
-<<<<<<< HEAD
-    const res = await toggleUserStatus(id, user?.token);
-=======
-    const res = await toggleUserStatus(id); // ⬅️ auto token handled in API
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
+  const handleToggleBlock = async (id) => {
+    try {
+      const res = await toggleUserStatus(id, user?.token);
 
-    if (res?.updatedUser) {
-      // ✅ Update user list instantly
-      setUsers((prev) =>
-        prev.map((u) => (u._id === id ? res.updatedUser : u))
-      );
+      if (res?.updatedUser) {
+        setUsers((prev) =>
+          prev.map((u) => (u._id === id ? res.updatedUser : u))
+        );
 
-      // ✅ Show backend message for better clarity
-      showToast("success", res.message || "User status updated successfully!");
-    } else {
-      showToast("error", "Unexpected response from server.");
+        showToast("success", res.message || "User status updated successfully!");
+      } else {
+        showToast("error", "Unexpected response from server.");
+      }
+
+      setActionUser(null);
+    } catch (err) {
+      console.error("❌ Failed to update user status:", err);
+      showToast("error", err.message || "Failed to update user status.");
     }
+  };
 
-    setActionUser(null);
-  } catch (err) {
-    console.error("❌ Failed to update user status:", err);
-    showToast("error", err.message || "Failed to update user status.");
-  }
-};
-
-
-  // ✅ Export All Users to CSV
   const exportAllUsersCSV = () => {
     if (users.length === 0) return showToast("error", "No users to export.");
 
@@ -177,7 +137,6 @@ const handleToggleBlock = async (id) => {
     showToast("success", "Users exported successfully!");
   };
 
-  // ✅ Get Order Stats
   const getOrderStats = (userId) => {
     const orders = userOrders[userId] || [];
     return {
@@ -189,7 +148,6 @@ const handleToggleBlock = async (id) => {
     };
   };
 
-  // ✅ Export User Orders PDF
   const exportUserOrdersPDF = (user) => {
     const orders = userOrders[user._id] || [];
     const doc = new jsPDF();
@@ -219,7 +177,6 @@ const handleToggleBlock = async (id) => {
     showToast("success", "User report downloaded!");
   };
 
-  // ✅ Filter Users
   const filteredUsers = users.filter((user) => {
     const matchSearch =
       user.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -232,9 +189,9 @@ const handleToggleBlock = async (id) => {
 
   if (loading)
     return <div className="p-6 text-center text-gray-600">Loading users...</div>;
+  
   return (
     <div className="p-6 relative">
-      {/* ✅ Toast */}
       {toast.message && (
         <div
           className={`fixed top-5 right-5 px-4 py-2 rounded-lg shadow-lg text-white flex items-center gap-2 z-50 ${
@@ -250,7 +207,6 @@ const handleToggleBlock = async (id) => {
         </div>
       )}
 
-      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-3">
         <h1 className="text-2xl font-bold">Users</h1>
         <div className="flex flex-wrap gap-3 items-center">
@@ -291,7 +247,6 @@ const handleToggleBlock = async (id) => {
         </div>
       </div>
 
-      {/* Users Table */}
       <div className="overflow-x-auto bg-white rounded-xl shadow">
         <table className="min-w-full table-auto text-sm">
           <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
@@ -333,19 +288,15 @@ const handleToggleBlock = async (id) => {
                       </span>
                     </td>
                     <td className="py-3 px-6">
-                     <span
-  className={`px-2 py-1 rounded-full text-xs font-semibold ${
-    user.status?.toLowerCase() === "active"
-      ? "bg-green-100 text-green-700"
-      : "bg-red-100 text-red-700"
-  }`}
->
-<<<<<<< HEAD
-  {user.status || "Unknown"}
-=======
-  {user.status?.charAt(0).toUpperCase() + user.status?.slice(1)}
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
-</span>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                          user.status?.toLowerCase() === "active"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-red-100 text-red-700"
+                        }`}
+                      >
+                        {user.status || "Unknown"}
+                      </span>
                     </td>
                     <td className="py-3 px-6 text-sm text-gray-600">
                       {stats.total} orders<br />
@@ -364,74 +315,52 @@ const handleToggleBlock = async (id) => {
                       </button>
 
                       {actionUser === user._id && (
-  <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg border rounded-xl z-10 overflow-hidden animate-fadeIn">
-    {/* Header */}
-    <div className="bg-gray-50 px-4 py-2 border-b text-xs font-semibold text-gray-600 uppercase tracking-wide">
-      Actions
-    </div>
+                        <div className="absolute right-0 mt-2 w-48 bg-white shadow-lg border rounded-xl z-10 overflow-hidden animate-fadeIn">
+                          <div className="bg-gray-50 px-4 py-2 border-b text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                            Actions
+                          </div>
 
-    {/* View Details */}
-    <button
-      onClick={() => {
-        setViewUser(user);
-        fetchUserOrdersHandler(user._id);
-        setActionUser(null);
-      }}
-      className="w-full text-left px-4 py-2 hover:bg-blue-50 flex items-center gap-2 text-sm transition-colors"
-    >
-      <Eye className="w-4 h-4 text-blue-600" />
-      <span className="text-gray-700">View Details</span>
-    </button>
+                          <button
+                            onClick={() => {
+                              setViewUser(user);
+                              fetchUserOrdersHandler(user._id);
+                              setActionUser(null);
+                            }}
+                            className="w-full text-left px-4 py-2 hover:bg-blue-50 flex items-center gap-2 text-sm transition-colors"
+                          >
+                            <Eye className="w-4 h-4 text-blue-600" />
+                            <span className="text-gray-700">View Details</span>
+                          </button>
 
-    {/* Toggle Role */}
-   <button
-  onClick={() => handleToggleAdmin(user._id)}
-  className="w-full text-left px-4 py-2 hover:bg-purple-50 flex items-center gap-2 text-sm transition-colors"
->
-  <Shield
-    className={`w-4 h-4 ${
-<<<<<<< HEAD
-      user.role?.toLowerCase() === "admin" ? "text-purple-600" : "text-purple-500"
-    }`}
-  />
-  <span className="text-gray-700">
-    {user.role?.toLowerCase() === "admin" ? "Remove Admin" : "Make Admin"}
-=======
-      user.role === "Admin" ? "text-purple-600" : "text-purple-500"
-    }`}
-  />
-  <span className="text-gray-700">
-    {user.role === "Admin" ? "Remove Admin" : "Make Admin"}
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
-  </span>
-</button>
+                          <button
+                            onClick={() => handleToggleAdmin(user._id)}
+                            className="w-full text-left px-4 py-2 hover:bg-purple-50 flex items-center gap-2 text-sm transition-colors"
+                          >
+                            <Shield
+                              className={`w-4 h-4 ${
+                                user.role?.toLowerCase() === "admin" ? "text-purple-600" : "text-purple-500"
+                              }`}
+                            />
+                            <span className="text-gray-700">
+                              {user.role?.toLowerCase() === "admin" ? "Remove Admin" : "Make Admin"}
+                            </span>
+                          </button>
 
-
-    {/* Toggle Block / Unblock */}
-    <button
-      onClick={() => handleToggleBlock(user._id)}
-      className={`w-full text-left px-4 py-2 flex items-center gap-2 text-sm transition-colors ${
-<<<<<<< HEAD
-        user.status?.toLowerCase() === "active"
-=======
-        user.status === "active"
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
-          ? "hover:bg-red-50 text-red-600"
-          : "hover:bg-green-50 text-green-600"
-      }`}
-    >
-      <Ban className="w-4 h-4" />
-      <span>
-<<<<<<< HEAD
-        {user.status?.toLowerCase() === "active" ? "Block User" : "Unblock User"}
-=======
-        {user.status === "active" ? "Block User" : "Unblock User"}
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
-      </span>
-    </button>
-  </div>
-)}
-
+                          <button
+                            onClick={() => handleToggleBlock(user._id)}
+                            className={`w-full text-left px-4 py-2 flex items-center gap-2 text-sm transition-colors ${
+                              user.status?.toLowerCase() === "active"
+                                ? "hover:bg-red-50 text-red-600"
+                                : "hover:bg-green-50 text-green-600"
+                            }`}
+                          >
+                            <Ban className="w-4 h-4" />
+                            <span>
+                              {user.status?.toLowerCase() === "active" ? "Block User" : "Unblock User"}
+                            </span>
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 );
@@ -447,7 +376,6 @@ const handleToggleBlock = async (id) => {
         </table>
       </div>
 
-      {/* ✅ View User Modal */}
       {viewUser && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
           <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl p-6 relative">
@@ -460,33 +388,15 @@ const handleToggleBlock = async (id) => {
 
             <h2 className="text-xl font-bold mb-4">User Details</h2>
             <div className="space-y-2 text-sm">
-              <p>
-                <b>ID:</b> {viewUser._id}
-              </p>
-              <p>
-                <b>Name:</b> {viewUser.name}
-              </p>
-              <p>
-                <b>Email:</b> {viewUser.email}
-              </p>
-              <p>
-                <b>Phone:</b> {viewUser.phone}
-              </p>
-              <p>
-                <b>Role:</b> {viewUser.role}
-              </p>
-              <p>
-                <b>Status:</b> {viewUser.status}
-              </p>
-              <p>
-                <b>Joined:</b>{" "}
-                {new Date(viewUser.createdAt).toLocaleDateString()}
-              </p>
+              <p><b>ID:</b> {viewUser._id}</p>
+              <p><b>Name:</b> {viewUser.name}</p>
+              <p><b>Email:</b> {viewUser.email}</p>
+              <p><b>Phone:</b> {viewUser.phone}</p>
+              <p><b>Role:</b> {viewUser.role}</p>
+              <p><b>Status:</b> {viewUser.status}</p>
+              <p><b>Joined:</b> {new Date(viewUser.createdAt).toLocaleDateString()}</p>
               {viewUser.lastLogin && (
-                <p>
-                  <b>Last Login:</b>{" "}
-                  {new Date(viewUser.lastLogin).toLocaleString()}
-                </p>
+                <p><b>Last Login:</b> {new Date(viewUser.lastLogin).toLocaleString()}</p>
               )}
 
               <h3 className="mt-4 font-semibold">Order Summary:</h3>
@@ -495,15 +405,9 @@ const handleToggleBlock = async (id) => {
                 return (
                   <ul className="list-disc ml-6 space-y-1 mb-3">
                     <li>Total Orders: {stats.total}</li>
-                    <li className="text-green-600">
-                      Completed: {stats.completed}
-                    </li>
-                    <li className="text-yellow-600">
-                      Pending: {stats.pending}
-                    </li>
-                    <li className="text-red-600">
-                      Cancelled: {stats.cancelled}
-                    </li>
+                    <li className="text-green-600">Completed: {stats.completed}</li>
+                    <li className="text-yellow-600">Pending: {stats.pending}</li>
+                    <li className="text-red-600">Cancelled: {stats.cancelled}</li>
                     <li>Total Spend: ₹{stats.spend}</li>
                   </ul>
                 );

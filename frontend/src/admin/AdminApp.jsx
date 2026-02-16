@@ -20,19 +20,13 @@ import Refunds from "./pages/Refunds.jsx";
 import Returns from "./pages/Returns.jsx";
 import AdminReels from "./pages/AdminReels.jsx";
 import AdminProfile from "./pages/AdminProfile.jsx";
-<<<<<<< HEAD
 import DebugAuth from "./pages/DebugAuth.jsx";
-=======
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
 
 export default function AdminApp() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-<<<<<<< HEAD
   console.log("🎨 AdminApp: Rendering...");
 
-=======
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
   return (
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
@@ -70,7 +64,6 @@ export default function AdminApp() {
           bg-gray-50 min-h-screen mt-16`}
         >
           <Routes>
-<<<<<<< HEAD
             <Route path="/" element={<Dashboard />} />
             <Route path="/debug" element={<DebugAuth />} />
             <Route path="/products" element={<Products />} />
@@ -86,22 +79,6 @@ export default function AdminApp() {
             <Route path="/returns" element={<Returns />} />
             <Route path="/admin-reels" element={<AdminReels />} />
             <Route path="/profile" element={<AdminProfile />} />
-=======
-            <Route path="/admin" element={<Dashboard />} />
-            <Route path="/admin/products" element={<Products />} />
-            <Route path="/admin/categories" element={<Categories />} />
-            <Route path="/admin/orders" element={<Orders />} />
-            <Route path="/admin/users" element={<Users />} />
-            <Route path="/admin/reviews" element={<Reviews />} />
-            <Route path="/admin/discount" element={<Discount />} />
-            <Route path="/admin/reports" element={<Reports />} />
-            <Route path="/admin/banners" element={<Banners />} />
-            <Route path="/admin/gifts" element={<Gifts />} />
-            <Route path="/admin/refunds" element={<Refunds />} />
-            <Route path="/admin/returns" element={<Returns />} />
-            <Route path="/admin/admin-reels" element={<AdminReels />} />
-            <Route path="/admin/profile" element={<AdminProfile />} />
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
           </Routes>
         </main>
       </div>

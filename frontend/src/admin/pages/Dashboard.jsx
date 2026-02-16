@@ -35,7 +35,6 @@ export default function Dashboard() {
   const COLORS = ["#facc15", "#22c55e", "#ef4444", "#3b82f6"];
 
   useEffect(() => {
-<<<<<<< HEAD
     let isMounted = true;
     
     const fetchDashboard = async () => {
@@ -111,7 +110,7 @@ export default function Dashboard() {
   if (!data) {
     return (
       <div className="p-6 text-center">
-        <p className="text-gray-500">No dashboard data available.</p>
+        <p className="text-gray-500">No dashboard datable.</p>
         <button 
           onClick={() => window.location.reload()} 
           className="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -166,52 +165,6 @@ export default function Dashboard() {
         <ChartCard title="Sales (Last 7 Days)" icon={<LineChartIcon className="w-4 h-4 text-blue-600" />}>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={weeklySales.map(d => ({ day: `Day ${d._id}`, sales: d.total }))}>
-=======
-    const fetchDashboard = async () => {
-      try {
-        setLoading(true);
-        setError("");
-        const res = await getDashboardData(user.token);
-        setData(res);
-      } catch (error) {
-        console.error("❌ Error loading dashboard data:", error);
-        setError(error?.response?.data?.message || error.message || "Failed to load dashboard data.");
-      }
-      finally {
-        setLoading(false);
-      }
-    };
-    if (user?.token) fetchDashboard();
-  }, [user]);
-
-  if (loading)
-    return <div className="p-6 text-center text-gray-500">Loading Dashboard...</div>;
-
-  if (error)
-    return (
-      <div className="p-6 text-center text-red-600">
-        {error}
-      </div>
-    );
-
-  const { stats = {}, weeklySales = [], orderStatus = [], paymentMethods = [], recentOrders = [], recentUsers = [], refundSummary = { total:0, approved:0 }, returnSummary = { total:0, approved:0 } } = data;
-
-  return (
-    <div className="p-6 space-y-6">
-      {/* ✅ Top Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={DollarSign} color="text-green-600" label="Total Sales" value={`₹${stats.sales.toLocaleString()}`} />
-        <StatCard icon={ShoppingCart} color="text-blue-600" label="Total Orders" value={stats.orders} />
-        <StatCard icon={Package} color="text-yellow-600" label="Active Products" value={stats.products} />
-        <StatCard icon={Users} color="text-purple-600" label="Total Users" value={stats.users} />
-      </div>
-
-      {/* ✅ Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ChartCard title="Sales (Last 7 Days)" icon={<LineChartIcon className="w-4 h-4 text-blue-600" />}>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={(weeklySales || []).map(d => ({ day: `Day ${d._id}`, sales: d.total }))}>
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
               <CartesianGrid stroke="#e5e7eb" strokeDasharray="5 5" />
               <XAxis dataKey="day" />
               <YAxis />
@@ -222,14 +175,10 @@ export default function Dashboard() {
         </ChartCard>
 
         <ChartCard title="Orders by Status" icon={<PieChartIcon className="w-4 h-4 text-yellow-600" />}>
-          <ResponsiveContainer width="100%" height={220}>
+          <ResponsiveContainer width="100%"sagight={220}>
             <PieChart>
               <Pie data={orderStatus} dataKey="count" nameKey="_id" outerRadius={70} label>
-<<<<<<< HEAD
                 {orderStatus.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-=======
-                {(orderStatus || []).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
               </Pie>
               <Legend />
               <Tooltip />
@@ -241,18 +190,13 @@ export default function Dashboard() {
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={paymentMethods} dataKey="count" nameKey="_id" outerRadius={70} label>
-<<<<<<< HEAD
                 {paymentMethods.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-=======
-                {(paymentMethods || []).map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
               </Pie>
               <Legend />
               <Tooltip />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
-<<<<<<< HEAD
 
         {/* Refund & Return Summary */}
         <div className="bg-white p-4 rounded-lg shadow">
@@ -280,7 +224,7 @@ export default function Dashboard() {
           </ResponsiveContainer>
 
           <div className="mt-4 text-sm grid grid-cols-2 gap-4">
-            <div className="bg-red-50 p-3 rounded-lg text-center">
+            <div className="bg-redus} dataKeynded-lg text-center">
               <p className="text-gray-600">Approved Refunds</p>
               <p className="font-bold text-red-600">
                 {refundSummary.approved} / {refundSummary.total}
@@ -308,62 +252,6 @@ export default function Dashboard() {
           icon={<UserPlus className="w-4 h-4 text-purple-600" />} 
           items={recentUsers} 
         />
-=======
-      </div>
-
-      {/* Refund & Return Summary */}
-<div className="bg-white p-4 rounded-lg shadow">
-  <h3 className="text-sm font-normal mb-3 text-gray-700 flex items-center gap-2">
-    <PieChartIcon className="w-4 h-4 text-red-600" />
-    Refund & Return Summary
-  </h3>
-  <ResponsiveContainer width="100%" height={220}>
-    <PieChart>
-      <Pie
-        data={[
-          {
-            name: "Refunds",
-            value: data.refundSummary.total,
-          },
-          {
-            name: "Returns",
-            value: data.returnSummary.total,
-          },
-        ]}
-        dataKey="value"
-        outerRadius={70}
-        label
-      >
-        <Cell fill="#f87171" />
-        <Cell fill="#60a5fa" />
-      </Pie>
-      <Legend />
-      <Tooltip />
-    </PieChart>
-  </ResponsiveContainer>
-
-  <div className="mt-4 text-sm grid grid-cols-2 gap-4">
-    <div className="bg-red-50 p-3 rounded-lg text-center">
-      <p className="text-gray-600">Approved Refunds</p>
-      <p className="font-bold text-red-600">
-        {refundSummary.approved} / {refundSummary.total}
-      </p>
-    </div>
-    <div className="bg-blue-50 p-3 rounded-lg text-center">
-      <p className="text-gray-600">Approved Returns</p>
-      <p className="font-bold text-blue-600">
-        {returnSummary.approved} / {returnSummary.total}
-      </p>
-    </div>
-  </div>
-</div>
-
-
-      {/* ✅ Recent Orders and Users */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <RecentList title="Recent Orders" icon={<ListChecks className="w-4 h-4 text-indigo-600" />} items={recentOrders || []} />
-        <RecentList title="Recent Users" icon={<UserPlus className="w-4 h-4 text-purple-600" />} items={recentUsers || []} />
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
       </div>
     </div>
   );
@@ -399,17 +287,10 @@ function RecentList({ title, icon, items }) {
         {icon} {title}
       </h3>
       <ul className="divide-y divide-gray-200 text-sm">
-<<<<<<< HEAD
         {(!items || items.length === 0) && (
           <li className="py-4 text-center text-gray-500">No items to display.</li>
         )}
         {items && items.map((item, i) => (
-=======
-        {(items || []).length === 0 && (
-          <li className="py-4 text-center text-gray-500">No items to display.</li>
-        )}
-        {(items || []).map((item, i) => (
->>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
           <li key={i} className="py-2 flex justify-between">
             <div>
               <p className="text-gray-800">{item.user?.name || item.name}</p>

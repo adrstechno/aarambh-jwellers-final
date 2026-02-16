@@ -269,7 +269,7 @@ export default function Header() {
       {/* Sticky Header */}
       <header className="bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-20 sm:h-20 md:h-24">
             {/* ===== MOBILE LEFT: Menu Only ===== */}
             <div className="flex md:hidden items-center">
               <button
@@ -286,7 +286,7 @@ export default function Header() {
               <img
                 src="/logo-main.png"
                 alt="VEDNINE"
-                className="h-8 sm:h-10 cursor-pointer hover:scale-105 transition-transform duration-300"
+                className="h-16 w-auto sm:h-16 md:h-20 lg:h-24 cursor-pointer hover:scale-105 transition-transform duration-300 object-contain"
                 onClick={goHome}
               />
               {/* Profile Icon - Only on Mobile */}
@@ -380,7 +380,7 @@ export default function Header() {
 
         {/* Mobile Search Bar (below header) */}
         {!isAdmin() && (
-          <div className="md:hidden border-t border-gray-200 bg-white px-4 py-3 sticky top-16 z-40">
+          <div className="md:hidden border-t border-gray-200 bg-white px-4 py-3 sticky top-20 sm:top-20 md:top-24 z-40">
             <form onSubmit={handleSearch} ref={mobileSearchRef} className="relative">
               <input
                 type="text"
