@@ -2,7 +2,10 @@
 /* eslint-disable react/no-unescaped-entities */
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+<<<<<<< HEAD
 import { useApp } from "../../context/AppContext";
+=======
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
 import {
   Plus,
   Edit,
@@ -14,7 +17,11 @@ import {
   Star,
 } from "lucide-react";
 import {
+<<<<<<< HEAD
   getAdminProducts,
+=======
+  getAllProducts,
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
   addProduct,
   updateProduct,
   deleteProduct,
@@ -26,7 +33,10 @@ const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
 
 export default function Products() {
   const navigate = useNavigate();
+<<<<<<< HEAD
   const { user } = useApp();
+=======
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
 
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
@@ -59,11 +69,18 @@ export default function Products() {
 
   // ✅ Fetch categories + products
   const fetchData = async () => {
+<<<<<<< HEAD
     if (!user?.token) return;
     try {
       const [cats, prods] = await Promise.all([getCategories(), getAdminProducts()]);
       setCategories(cats);
       setProducts(prods || []);
+=======
+    try {
+      const [cats, prods] = await Promise.all([getCategories(), getAllProducts()]);
+      setCategories(cats);
+      setProducts(prods);
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
     } catch (err) {
       console.error("Error loading data:", err);
       showToast("error", "Failed to load data.");
@@ -74,7 +91,11 @@ export default function Products() {
 
   useEffect(() => {
     fetchData();
+<<<<<<< HEAD
   }, [user?.token]);
+=======
+  }, []);
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
 
   // ✅ Image upload handler (multi-file)
   const handleImageUpload = (e, setFn, product) => {

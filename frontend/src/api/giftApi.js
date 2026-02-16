@@ -3,16 +3,9 @@ import axios from "axios";
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
 const GIFT_API = `${API_BASE}/gifts`;
 
-const getAuthHeader = () => {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
 // 🟢 Get all gifts
 export const getAllGifts = async () => {
-  const { data } = await axios.get(GIFT_API, {
-    headers: getAuthHeader(),
-  });
+  const { data } = await axios.get(GIFT_API);
   return data;
 };
 
@@ -25,10 +18,7 @@ export const addGift = async (giftData) => {
       formData.append(key, value);
   });
   const { data } = await axios.post(GIFT_API, formData, {
-    headers: { 
-      "Content-Type": "multipart/form-data",
-      ...getAuthHeader(),
-    },
+    headers: { "Content-Type": "multipart/form-data" },
   });
   return data;
 };
@@ -42,26 +32,19 @@ export const updateGift = async (id, giftData) => {
       formData.append(key, value);
   });
   const { data } = await axios.put(`${GIFT_API}/${id}`, formData, {
-    headers: { 
-      "Content-Type": "multipart/form-data",
-      ...getAuthHeader(),
-    },
+    headers: { "Content-Type": "multipart/form-data" },
   });
   return data;
 };
 
 // 🔴 Delete gift
 export const deleteGift = async (id) => {
-  const { data } = await axios.delete(`${GIFT_API}/${id}`, {
-    headers: getAuthHeader(),
-  });
+  const { data } = await axios.delete(`${GIFT_API}/${id}`);
   return data;
 };
 
 // 🔁 Toggle status
 export const toggleGiftStatus = async (id) => {
-  const { data } = await axios.patch(`${GIFT_API}/${id}/toggle`, {}, {
-    headers: getAuthHeader(),
-  });
+  const { data } = await axios.patch(`${GIFT_API}/${id}/toggle`);
   return data;
 };

@@ -20,7 +20,7 @@ const getAuthHeader = () => {
 export const getCategoriesWithCount = async () => {
   try {
     const { data } = await axios.get(CATEGORY_API, {
-      headers: getAuthHeader(),
+      // headers: getAuthHeader(), // enable later for admin routes
     });
 
     // ✅ Normalize API response shape
@@ -61,7 +61,7 @@ export const addCategory = async (categoryData) => {
     const { data } = await axios.post(CATEGORY_API, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
-        ...getAuthHeader(),
+        // ...getAuthHeader(),
       },
     });
 
@@ -101,7 +101,7 @@ export const updateCategory = async (id, categoryData) => {
     const { data } = await axios.put(`${CATEGORY_API}/${id}`, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
-        ...getAuthHeader(),
+        // ...getAuthHeader(),
       },
     });
 
@@ -126,7 +126,7 @@ export const updateCategory = async (id, categoryData) => {
 export const deleteCategory = async (id) => {
   try {
     const { data } = await axios.delete(`${CATEGORY_API}/${id}`, {
-      headers: getAuthHeader(),
+      // headers: getAuthHeader(),
     });
     console.log("🗑️ Category deleted:", data);
     return data;

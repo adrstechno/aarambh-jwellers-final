@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
+<<<<<<< HEAD
 import { useApp } from "../../context/AppContext";
+=======
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
 import {
   User,
   Shield,
@@ -22,7 +25,10 @@ import {
 } from "../../api/userApi";
 
 export default function Users() {
+<<<<<<< HEAD
   const { user } = useApp();
+=======
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
 
 
   const [users, setUsers] = useState([]);
@@ -41,12 +47,20 @@ export default function Users() {
     setTimeout(() => setToast({ type: "", message: "" }), 2500);
   };
 
+<<<<<<< HEAD
   // ✅ Fetch all users with token from context
   useEffect(() => {
     const fetchUsers = async () => {
       if (!user?.token) return;
       try {
         const data = await getAllUsers(user.token);
+=======
+  // ✅ Fetch all users (auto token handled by userApi.js)
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const data = await getAllUsers(); // ⬅️ no token passed now
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
         setUsers(data);
       } catch (err) {
         console.error("Error fetching users:", err);
@@ -56,13 +70,21 @@ export default function Users() {
       }
     };
     fetchUsers();
+<<<<<<< HEAD
   }, [user?.token]);
+=======
+  }, []);
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
 
   // ✅ Fetch user orders
   const fetchUserOrdersHandler = async (userId) => {
     if (userOrders[userId]) return;
     try {
+<<<<<<< HEAD
       const data = await getUserOrders(userId, user?.token);
+=======
+      const data = await getUserOrders(userId); // ⬅️ auto token
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
       setUserOrders((prev) => ({ ...prev, [userId]: data }));
     } catch (err) {
       console.error(`Error fetching orders for user ${userId}:`, err);
@@ -76,7 +98,11 @@ export default function Users() {
       const targetUser = users.find((u) => u._id === id);
       if (!targetUser) return showToast("error", "User not found.");
 
+<<<<<<< HEAD
       const res = await toggleUserRole(id, user?.token);
+=======
+      const res = await toggleUserRole(id); // ⬅️ auto token
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
 
       if (res?.updatedUser) {
         setUsers((prev) =>
@@ -102,7 +128,11 @@ export default function Users() {
  // ✅ Toggle Block / Unblock
 const handleToggleBlock = async (id) => {
   try {
+<<<<<<< HEAD
     const res = await toggleUserStatus(id, user?.token);
+=======
+    const res = await toggleUserStatus(id); // ⬅️ auto token handled in API
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
 
     if (res?.updatedUser) {
       // ✅ Update user list instantly
@@ -310,7 +340,11 @@ const handleToggleBlock = async (id) => {
       : "bg-red-100 text-red-700"
   }`}
 >
+<<<<<<< HEAD
   {user.status || "Unknown"}
+=======
+  {user.status?.charAt(0).toUpperCase() + user.status?.slice(1)}
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
 </span>
                     </td>
                     <td className="py-3 px-6 text-sm text-gray-600">
@@ -356,11 +390,19 @@ const handleToggleBlock = async (id) => {
 >
   <Shield
     className={`w-4 h-4 ${
+<<<<<<< HEAD
       user.role?.toLowerCase() === "admin" ? "text-purple-600" : "text-purple-500"
     }`}
   />
   <span className="text-gray-700">
     {user.role?.toLowerCase() === "admin" ? "Remove Admin" : "Make Admin"}
+=======
+      user.role === "Admin" ? "text-purple-600" : "text-purple-500"
+    }`}
+  />
+  <span className="text-gray-700">
+    {user.role === "Admin" ? "Remove Admin" : "Make Admin"}
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
   </span>
 </button>
 
@@ -369,14 +411,22 @@ const handleToggleBlock = async (id) => {
     <button
       onClick={() => handleToggleBlock(user._id)}
       className={`w-full text-left px-4 py-2 flex items-center gap-2 text-sm transition-colors ${
+<<<<<<< HEAD
         user.status?.toLowerCase() === "active"
+=======
+        user.status === "active"
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
           ? "hover:bg-red-50 text-red-600"
           : "hover:bg-green-50 text-green-600"
       }`}
     >
       <Ban className="w-4 h-4" />
       <span>
+<<<<<<< HEAD
         {user.status?.toLowerCase() === "active" ? "Block User" : "Unblock User"}
+=======
+        {user.status === "active" ? "Block User" : "Unblock User"}
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
       </span>
     </button>
   </div>

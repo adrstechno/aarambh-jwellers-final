@@ -3,11 +3,6 @@ import axios from "axios";
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000/api";
 const BANNER_API = `${API_BASE}/banners`;
 
-const getAuthHeader = () => {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
 export const getBanners = async () => {
   try {
     const { data } = await axios.get(BANNER_API);
@@ -31,10 +26,7 @@ export const addBanner = async (bannerData) => {
     );
 
     const { data } = await axios.post(BANNER_API, formData, {
-      headers: { 
-        "Content-Type": "multipart/form-data",
-        ...getAuthHeader(),
-      },
+      headers: { "Content-Type": "multipart/form-data" },
     });
 
     return data;
@@ -46,9 +38,7 @@ export const addBanner = async (bannerData) => {
 
 export const deleteBanner = async (id) => {
   try {
-    const { data } = await axios.delete(`${BANNER_API}/${id}`, {
-      headers: getAuthHeader(),
-    });
+    const { data } = await axios.delete(`${BANNER_API}/${id}`);
     return data;
   } catch (error) {
     console.error("❌ Error deleting banner:", error.response?.data || error);
@@ -65,10 +55,7 @@ export const updateBanner = async (id, bannerData) => {
     );
 
     const { data } = await axios.put(`${BANNER_API}/${id}`, formData, {
-      headers: { 
-        "Content-Type": "multipart/form-data",
-        ...getAuthHeader(),
-      },
+      headers: { "Content-Type": "multipart/form-data" },
     });
     return data;
   } catch (error) {
@@ -80,13 +67,10 @@ export const updateBanner = async (id, bannerData) => {
 // ✅ Reorder banners
 export const reorderBanners = async (bannersData) => {
   try {
-    const { data } = await axios.put(`${BANNER_API}/reorder`, bannersData, {
-      headers: getAuthHeader(),
-    });
+    const { data } = await axios.put(`${BANNER_API}/reorder`, bannersData);
     return data;
   } catch (error) {
     console.error("❌ Error reordering banners:", error.response?.data || error.message);
     throw error;
   }
 };
-

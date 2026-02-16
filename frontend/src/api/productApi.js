@@ -9,12 +9,6 @@ const BASE_URL = API_BASE.replace("/api", "");
 const CACHE = new Map();
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-// ✅ Get auth header
-const getAuthHeader = () => {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
-
 // ✅ Central error handler
 const handleError = (action, error) => {
   console.error(`❌ Error ${action}:`, error.response?.data || error.message);
@@ -82,41 +76,18 @@ export const getAllProducts = async (page = 1, limit = 20) => {
   }
 };
 
-// ✅ Get all products for admin (no pagination, includes all statuses)
-export const getAdminProducts = async () => {
-  try {
-    const { data } = await axios.get(`${API_BASE}/products/admin/list`, {
-      headers: getAuthHeader(),
-    });
-    const products = Array.isArray(data)
-      ? data.map(normalizeProductImages)
-      : [];
-    return products;
-  } catch (error) {
-    handleError("fetching admin products", error);
-  }
-};
-
 // ✅ Get products by category slug with pagination
 export const getProductsByCategory = async (category, page = 1, limit = 20) => {
   try {
     const url = `${API_BASE}/products/category/${category}?page=${page}&limit=${limit}`;
-    console.log("📡 productApi: Fetching from URL:", url);
-    
     const { data } = await cachedGet(url);
-    console.log("✅ productApi: Raw response:", data);
-    
-    // ✅ Return the normalized products array directly
     const products = Array.isArray(data?.products)
       ? data.products.map(normalizeProductImages)
       : Array.isArray(data)
       ? data.map(normalizeProductImages)
       : [];
-    
-    console.log("✅ productApi: Returning products:", products);
     return products;
   } catch (error) {
-    console.error("❌ productApi: Error:", error);
     handleError("fetching products by category", error);
   }
 };
@@ -161,7 +132,7 @@ export const searchProducts = async (query) => {
 export const addProduct = async (productData) => {
   try {
     const { data } = await axios.post(`${API_BASE}/products`, productData, {
-      headers: getAuthHeader(),
+      // ❌ Don't manually set Content-Type; axios sets it automatically for FormData
       transformRequest: [(data) => data],
     });
     return normalizeProductImages(data.product || data);
@@ -174,7 +145,6 @@ export const addProduct = async (productData) => {
 export const updateProduct = async (id, productData) => {
   try {
     const { data } = await axios.put(`${API_BASE}/products/${id}`, productData, {
-      headers: getAuthHeader(),
       transformRequest: [(data) => data],
     });
     return normalizeProductImages(data.product || data);
@@ -187,9 +157,7 @@ export const updateProduct = async (id, productData) => {
 // ✅ Delete product (Admin)
 export const deleteProduct = async (id) => {
   try {
-    const { data } = await axios.delete(`${API_BASE}/products/${id}`, {
-      headers: getAuthHeader(),
-    });
+    const { data } = await axios.delete(`${API_BASE}/products/${id}`);
     return data;
   } catch (error) {
     handleError("deleting product", error);

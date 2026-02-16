@@ -7,8 +7,13 @@ import "./App.css";
 // 🏠 Home Imports
 import HeroCarousel from "./pages/HeroCarousel.jsx";
 import CategorySection from "./components/home/CategorySection.jsx";
+<<<<<<< HEAD
 import FeaturedProducts from "./components/home/FeaturedProducts.jsx";
 import GiftSection from "./components/home/GiftSection.jsx";
+=======
+import GiftSection from "./components/home/GiftSection.jsx";
+import FeaturedProducts from "./components/home/FeaturedProducts.jsx";
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
 import ReelSection from "./components/home/ReelSection.jsx";
 // import DiscountSection from "./components/home/DiscountSection.jsx";
 import Footer from "./components/common/Footer.jsx";
@@ -39,8 +44,13 @@ function HomePage() {
     <>
       <HeroCarousel />
       <CategorySection />
+<<<<<<< HEAD
       <FeaturedProducts />
       <GiftSection />
+=======
+      <GiftSection />
+      <FeaturedProducts />
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
       {/* <DiscountSection /> */}
       <ReelSection />
       <DeliveryPartners />

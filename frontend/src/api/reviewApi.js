@@ -18,10 +18,7 @@ const handleError = (action, error) => {
 ========================================================== */
 export const getAllReviews = async () => {
   try {
-    const token = localStorage.getItem("token");
-    const { data } = await axios.get(`${REVIEW_API}/all`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    const { data } = await axios.get(`${REVIEW_API}/all`);
     return data;
   } catch (error) {
     handleError("fetching all reviews", error);
@@ -33,10 +30,7 @@ export const getAllReviews = async () => {
 ========================================================== */
 export const getPaginatedReviews = async (page = 1, limit = 10) => {
   try {
-    const token = localStorage.getItem("token");
-    const { data } = await axios.get(`${REVIEW_API}?page=${page}&limit=${limit}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    const { data } = await axios.get(`${REVIEW_API}?page=${page}&limit=${limit}`);
     return data;
   } catch (error) {
     handleError("fetching paginated reviews", error);
@@ -60,10 +54,7 @@ export const getTopRatedProducts = async () => {
 ========================================================== */
 export const updateReviewStatus = async (id, status) => {
   try {
-    const token = localStorage.getItem("token");
-    const { data } = await axios.put(`${REVIEW_API}/${id}/status`, { status }, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    const { data } = await axios.put(`${REVIEW_API}/${id}/status`, { status });
     return data;
   } catch (error) {
     handleError("updating review status", error);
@@ -75,10 +66,7 @@ export const updateReviewStatus = async (id, status) => {
 ========================================================== */
 export const deleteReview = async (id) => {
   try {
-    const token = localStorage.getItem("token");
-    const { data } = await axios.delete(`${REVIEW_API}/${id}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    const { data } = await axios.delete(`${REVIEW_API}/${id}`);
     return data;
   } catch (error) {
     handleError("deleting review", error);

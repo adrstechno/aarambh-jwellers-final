@@ -9,6 +9,10 @@ const FeaturedProducts = memo(function FeaturedProducts() {
   const [activeTab, setActiveTab] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
+<<<<<<< HEAD
+=======
+  const [autoSwitch, setAutoSwitch] = useState(true);
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
   const [categories, setCategories] = useState([]);
 
   const BASE_URL =
@@ -29,13 +33,18 @@ const FeaturedProducts = memo(function FeaturedProducts() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
+<<<<<<< HEAD
         console.log("🔍 FeaturedProducts: Fetching categories...");
         const data = await getActiveCategories();
         console.log("✅ FeaturedProducts: Categories received:", data);
+=======
+        const data = await getActiveCategories();
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
 
         // ✅ Sort by 'order' and take top 3
         const sorted = [...data].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
         const topThree = sorted.slice(0, 3);
+<<<<<<< HEAD
         
         console.log("📋 FeaturedProducts: Top 3 categories:", topThree);
 
@@ -46,6 +55,11 @@ const FeaturedProducts = memo(function FeaturedProducts() {
         } else {
           console.warn("⚠️ FeaturedProducts: No categories found!");
         }
+=======
+
+        setCategories(topThree);
+        if (topThree.length > 0) setActiveTab(topThree[0].slug); // default to first
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
       } catch (err) {
         console.error("❌ Failed to load categories:", err);
       }
@@ -54,7 +68,11 @@ const FeaturedProducts = memo(function FeaturedProducts() {
   }, []);
 
   /* ===========================================================
+<<<<<<< HEAD
      🟡 Fetch products for active category - FIXED
+=======
+     🟡 Fetch products for active category - OPTIMIZED
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
   =========================================================== */
   useEffect(() => {
     if (!activeTab) return;
@@ -62,6 +80,7 @@ const FeaturedProducts = memo(function FeaturedProducts() {
     const fetchProducts = async () => {
       setLoading(true);
       try {
+<<<<<<< HEAD
         console.log("🔍 FeaturedProducts: Fetching products for category:", activeTab);
         console.log("📡 API Endpoint: GET /api/products/category/" + activeTab);
         
@@ -117,6 +136,25 @@ const FeaturedProducts = memo(function FeaturedProducts() {
         console.error("❌ Failed to fetch products:", err);
         console.error("❌ Error details:", err.message);
         console.error("❌ Error stack:", err.stack);
+=======
+        // ✅ Add pagination to API call
+        const data = await getProductsByCategory(activeTab + "?page=1&limit=8");
+        const productList = Array.isArray(data?.products) ? data.products : 
+                          Array.isArray(data) ? data : 
+                          data?.products || [];
+
+        const normalized = productList.slice(0, 8).map((p) => ({
+          ...p,
+          image:
+            Array.isArray(p.images) && p.images.length > 0
+              ? fixImageURL(p.images[0])
+              : fixImageURL(p.image),
+        }));
+
+        setProducts(normalized);
+      } catch (err) {
+        console.error("Failed to fetch products:", err);
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
         setProducts([]);
       } finally {
         setLoading(false);
@@ -127,6 +165,26 @@ const FeaturedProducts = memo(function FeaturedProducts() {
   }, [activeTab, fixImageURL]);
 
   /* ===========================================================
+<<<<<<< HEAD
+=======
+     🟠 Auto-switch between top 3 categories - OPTIMIZED
+  =========================================================== */
+  useEffect(() => {
+    if (!autoSwitch || categories.length === 0) return;
+    
+    const interval = setInterval(() => {
+      setActiveTab((prev) => {
+        const currentIndex = categories.findIndex((c) => c.slug === prev);
+        const nextIndex = (currentIndex + 1) % categories.length;
+        return categories[nextIndex]?.slug;
+      });
+    }, 5000);
+    
+    return () => clearInterval(interval);
+  }, [autoSwitch, categories]);
+
+  /* ===========================================================
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
      🧩 Loading Skeleton - OPTIMIZED
   =========================================================== */
   const LoadingSkeleton = () => (
@@ -149,6 +207,11 @@ const FeaturedProducts = memo(function FeaturedProducts() {
   return (
     <section
       className="py-12 sm:py-16 bg-gradient-to-b from-amber-50 to-white overflow-hidden"
+<<<<<<< HEAD
+=======
+      onMouseEnter={() => setAutoSwitch(false)}
+      onMouseLeave={() => setAutoSwitch(true)}
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
@@ -171,7 +234,14 @@ const FeaturedProducts = memo(function FeaturedProducts() {
               categories.map((cat) => (
                 <button
                   key={cat._id}
+<<<<<<< HEAD
                   onClick={() => setActiveTab(cat.slug)}
+=======
+                  onClick={() => {
+                    setActiveTab(cat.slug);
+                    setAutoSwitch(false);
+                  }}
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
                   className={`
                     relative px-5 sm:px-8 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold uppercase tracking-wider
                     rounded-full transition-all duration-300 whitespace-nowrap
@@ -202,8 +272,12 @@ const FeaturedProducts = memo(function FeaturedProducts() {
           </div>
         ) : (
           <div className="text-center py-16">
+<<<<<<< HEAD
             <p className="text-gray-500 text-lg mb-4">No products found in this category</p>
             <p className="text-gray-400 text-sm">Check back soon for new arrivals!</p>
+=======
+            <p className="text-gray-500 text-lg">No products found in this category</p>
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
           </div>
         )}
       </div>
@@ -211,4 +285,8 @@ const FeaturedProducts = memo(function FeaturedProducts() {
   );
 });
 
+<<<<<<< HEAD
 export default FeaturedProducts;
+=======
+export default FeaturedProducts;
+>>>>>>> 447c47335aca7524de7b775fd4836f33821c6b65
