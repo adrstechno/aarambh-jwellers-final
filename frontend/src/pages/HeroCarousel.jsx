@@ -10,6 +10,16 @@ export default function HeroCarousel() {
   const BASE_URL =
     import.meta.env.VITE_API_BASE?.replace("/api", "") || "http://localhost:5000";
 
+  // Default banner with new image
+  const defaultBanner = {
+    _id: "default-banner",
+    title: "Buy 925 Silver worth ₹2999 and get a free Gold Coin worth ₹999",
+    subtitle: "Limited Time Offer",
+    image: "https://res.cloudinary.com/dp2vawyj8/image/upload/v1771239639/aarambh-jwellers/banners/yuyabdpegozsrw2yqarw.png",
+    link: "/category/silver",
+    active: true,
+  };
+
   /* ===========================================================
     🧩 Helper: Normalize Image URLs (Cloudinary + Local)
   =========================================================== */
@@ -35,15 +45,21 @@ export default function HeroCarousel() {
       try {
         const banners = await getBanners();
 
-        // Normalize image URLs to ensure they load from both Cloudinary and local
-        const normalized = banners.map((b) => ({
-          ...b,
-          image: fixImageURL(b.image),
-        }));
-
-        setSlides(normalized);
+        if (banners && banners.length > 0) {
+          // Normalize image URLs to ensure they load from both Cloudinary and local
+          const normalized = banners.map((b) => ({
+            ...b,
+            image: fixImageURL(b.image),
+          }));
+          setSlides(normalized);
+        } else {
+          // Use default banner if no banners found
+          setSlides([defaultBanner]);
+        }
       } catch (err) {
         console.error("❌ Failed to fetch banners:", err);
+        // Use default banner on error
+        setSlides([defaultBanner]);
       }
     };
     fetchData();
@@ -83,7 +99,7 @@ export default function HeroCarousel() {
           >
             {/* Background Image */}
             <img
-              src={fixImageURL(slide.image)}
+              src={fixImageURL("https://res.cloudinary.com/dp2vawyj8/image/upload/v1771240305/aarambh-jwellers/banners/wijgvldduwqsjzouxzn7.png")}
               alt={slide.title || "Banner"}
               // *** FIX: Revert to object-fit and h-auto ***
               // w-full ensures full width. h-auto and object-fit ensure the entire image is displayed, maintaining aspect ratio.
@@ -91,17 +107,9 @@ export default function HeroCarousel() {
               onError={(e) => (e.target.src = "/placeholder.jpg")}
             />
 
-            {/* Overlay - Removed black shade for clear banner display */}
-            <div className="absolute inset-0 p-4 sm:p-8 flex flex-col justify-between">
-              {/* Action Button - Moved to bottom-right corner */}
-              <div className="flex justify-end mt-auto">
-                <button
-                  onClick={() => navigate(slide.link || "/")}
-                  className="px-4 py-2 sm:px-6 sm:py-3 rounded-lg border border-yellow-300 text-yellow-300 font-semibold hover:bg-yellow-300 hover:text-red-900 transition text-sm sm:text-base"
-                >
-                  View Collection
-                </button>
-              </div>
+            {/* Overlay - Button positioned on right side below text with 30px gap */}
+            <div className="absolute inset-0 flex items-center justify-end px-4 sm:px-8 md:px-12 lg:px-16">
+             
             </div>
           </div>
         ))}

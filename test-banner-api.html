@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banner API Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Banner API Tester</h1>
+        
+        <h2>1. Get All Banners</h2>
+        <button onclick="getBanners()">Fetch Banners</button>
+        
+        <h2>2. Update Banner</h2>
+        <label>Banner ID:</label>
+        <input type="text" id="bannerId" placeholder="Enter banner ID (e.g., 507f1f77bcf86cd799439011)">
+        
+        <label>Title:</label>
+        <input type="text" id="title" placeholder="Banner Title">
+        
+        <label>Subtitle:</label>
+        <input type="text" id="subtitle" placeholder="Banner Subtitle">
+        
+        <label>Link:</label>
+        <input type="text" id="link" placeholder="/category/silver">
+        
+        <label>Active:</label>
+        <select id="active">
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+        </select>
+        
+        <label>Image (optional):</label>
+        <input type="file" id="image" accept="image/*">
+        
+        <label>Admin Token:</label>
+        <input type="text" id="token" placeholder="Paste your admin token here">
+        
+        <br><br>
+        <button onclick="updateBanner()">Update Banner</button>
+        
+        <div id="result" class="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        
+        async function getBanners() {
+            try {
+                const response = await fetch(`${API_BASE}/banners`);
+                const data = await response.json();
+                showResult('Banners fetched successfully:\n\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('Error: ' + error.message);
+            }
+        }
+        
+        async function updateBanner() {
+            const bannerId = document.getElementById('bannerId').value;
+            const token = document.getElementById('token').value;
+            
+            if (!bannerId) {
+                alert('Please enter a banner ID');
+                return;
+            }
+            
+            if (!token) {
+                alert('Please enter your admin token');
+                return;
+            }
+            
+            try {
+                const formData = new FormData();
+                
+                const title = document.getElementById('title').value;
+                const subtitle = document.getElementById('subtitle').value;
+                const link = document.getElementById('link').value;
+                const active = document.getElementById('active').value;
+                const imageFile = document.getElementById('image').files[0];
+                
+                if (title) formData.append('title', title);
+                if (subtitle) formData.append('subtitle', subtitle);
+                if (link) formData.append('link', link);
+                if (active) formData.append('active', active);
+                if (imageFile) formData.append('image', imageFile);
+                
+                const response = await fetch(`${API_BASE}/banners/${bannerId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('Banner updated successfully:\n\n' + JSON.stringify(data, null, 2));
+                } else {
+                    showResult('Error: ' + JSON.stringify(data, null, 2));
+                }
+            } catch (error) {
+                showResult('Error: ' + error.message);
+            }
+        }
+        
+        function showResult(text) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = text;
+            resultDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>
