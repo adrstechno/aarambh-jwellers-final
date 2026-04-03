@@ -14,7 +14,7 @@ import {
   Star,
 } from "lucide-react";
 import {
-  getAllProducts,
+  getAdminProducts,
   addProduct,
   updateProduct,
   deleteProduct,
@@ -34,7 +34,6 @@ export default function Products() {
   const [editProduct, setEditProduct] = useState(null);
   const [deleteProductData, setDeleteProductData] = useState(null);
   const [filter, setFilter] = useState("All");
-  const [imageError, setImageError] = useState("");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState({ type: "", message: "" });
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -57,22 +56,28 @@ export default function Products() {
     setTimeout(() => setToast({ type: "", message: "" }), 2500);
   };
 
-  // ✅ Fetch categories + products
+  // ✅ Fetch categories + products independently so one failure doesn't block the other
   const fetchData = async () => {
     if (!user?.token) {
       setLoading(false);
       return;
     }
+
+    // Load categories independently (public endpoint — no auth needed)
     try {
-      const [cats, prodsResponse] = await Promise.all([
-        getCategories(), 
-        getAllProducts(1, 1000) // Get all products for admin
-      ]);
-      setCategories(cats);
-      setProducts(prodsResponse.products || []);
+      const cats = await getCategories();
+      setCategories(Array.isArray(cats) ? cats : []);
     } catch (err) {
-      console.error("Error loading data:", err);
-      showToast("error", "Failed to load data.");
+      console.error("Error loading categories:", err);
+    }
+
+    // Load products via protected admin endpoint (returns ALL products regardless of status)
+    try {
+      const prodsResponse = await getAdminProducts(user.token);
+      setProducts(prodsResponse?.products || []);
+    } catch (err) {
+      console.error("Error loading products:", err);
+      showToast("error", "Failed to load products.");
     } finally {
       setLoading(false);
     }
@@ -139,7 +144,7 @@ export default function Products() {
 
       newProduct.images.forEach((img) => formData.append("images", img.file));
 
-      await addProduct(formData);
+      await addProduct(formData, user.token);
       showToast("success", "Product added successfully!");
 
       setTimeout(async () => {
@@ -183,7 +188,7 @@ export default function Products() {
         });
       }
 
-      await updateProduct(editProduct._id, formData);
+      await updateProduct(editProduct._id, formData, user.token);
       showToast("success", "Product updated successfully!");
 
       setTimeout(async () => {
@@ -201,7 +206,7 @@ export default function Products() {
   const confirmDelete = async () => {
     if (!deleteProductData) return;
     try {
-      await deleteProduct(deleteProductData._id);
+      await deleteProduct(deleteProductData._id, user.token);
       setProducts((prev) => prev.filter((p) => p._id !== deleteProductData._id));
       showToast("success", "Product deleted successfully!");
     } catch (err) {
@@ -221,7 +226,7 @@ export default function Products() {
       const payload = new FormData();
       payload.append("status", newStatus);
       payload.append("category", product.category?._id || product.category);
-      await updateProduct(id, payload);
+      await updateProduct(id, payload, user.token);
       showToast("success", `Product status changed to ${newStatus.toLowerCase()}`);
       fetchData();
     } catch (err) {

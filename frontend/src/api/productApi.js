@@ -135,11 +135,24 @@ export const searchProducts = async (query) => {
   }
 };
 
-// ✅ Add product (Admin)
-export const addProduct = async (productData) => {
+// ✅ Get all products for admin (uses protected admin endpoint — returns ALL products regardless of status)
+export const getAdminProducts = async (token) => {
+  try {
+    const { data } = await axios.get(`${API_BASE}/products/admin/list`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    const products = Array.isArray(data) ? data.map(normalizeProductImages) : [];
+    return { products };
+  } catch (error) {
+    handleError("fetching admin products", error);
+  }
+};
+
+// ✅ Add product (Admin) — requires auth token
+export const addProduct = async (productData, token) => {
   try {
     const { data } = await axios.post(`${API_BASE}/products`, productData, {
-      // ❌ Don't manually set Content-Type; axios sets it automatically for FormData
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
       transformRequest: [(data) => data],
     });
     clearProductCache();
@@ -149,10 +162,11 @@ export const addProduct = async (productData) => {
   }
 };
 
-// ✅ Update product (Admin)
-export const updateProduct = async (id, productData) => {
+// ✅ Update product (Admin) — requires auth token
+export const updateProduct = async (id, productData, token) => {
   try {
     const { data } = await axios.put(`${API_BASE}/products/${id}`, productData, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
       transformRequest: [(data) => data],
     });
     clearProductCache();
@@ -162,10 +176,12 @@ export const updateProduct = async (id, productData) => {
   }
 };
 
-// ✅ Delete product (Admin)
-export const deleteProduct = async (id) => {
+// ✅ Delete product (Admin) — requires auth token
+export const deleteProduct = async (id, token) => {
   try {
-    const { data } = await axios.delete(`${API_BASE}/products/${id}`);
+    const { data } = await axios.delete(`${API_BASE}/products/${id}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     clearProductCache();
     return data;
   } catch (error) {
