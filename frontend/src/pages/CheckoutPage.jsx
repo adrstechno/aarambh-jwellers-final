@@ -53,10 +53,11 @@ export default function CheckoutPage() {
         customerEmail: user.email,
         customerPhone: user.phone || "",
         shippingAddress: address,
-        total: Math.round(getTotalPrice() * 1.18),
+        total: Math.round(getTotalPrice() * 1.03),
         paymentMethod: "COD",
         products: cart.map((item) => ({
           product: item.product?._id || item._id,
+          name: item.product?.name || item.name || "",
           quantity: item.quantity,
           price: item.price,
         })),
@@ -96,9 +97,9 @@ export default function CheckoutPage() {
       </div>
     );
 
-  // ✅ Calculate totals
+  // ✅ Calculate totals (3% GST for jewellery)
   const subtotal = getTotalPrice();
-  const tax = subtotal * 0.18;
+  const tax = subtotal * 0.03;
   const total = Math.round(subtotal + tax);
 
   return (
@@ -182,7 +183,7 @@ export default function CheckoutPage() {
               <span>₹{subtotal.toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-sm">
-              <span>Tax (3%):</span>
+              <span>GST (3%):</span>
               <span>₹{tax.toFixed(2)}</span>
             </div>
             <div className="flex justify-between font-semibold text-lg border-t pt-2">

@@ -76,15 +76,15 @@ export const getUserOrders = async (req, res) => {
       return res.status(400).json({ message: "User ID missing" });
 
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
 
     const orders = await Order.find({ user: userId })
       .populate({
         path: "products.product",
-        select: "name image price category",
+        select: "name image images price category description",
       })
-      .select("_id products total status address createdAt")
+      .select("_id products total status address createdAt paymentMethod refundStatus")
       .lean() // ⚡ Performance optimization
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -114,15 +114,16 @@ export const getUserOrders = async (req, res) => {
 export const getAllOrders = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
 
     const orders = await Order.find()
       .populate({
         path: "products.product",
-        select: "name image price category",
+        select: "name image images price category description",
       })
-      .select("_id user products total status address createdAt")
+      .populate("user", "name email phone")
+      .select("_id user products total status address createdAt paymentMethod transactionId refundStatus statusHistory")
       .lean() // ⚡ Performance optimization
       .sort({ createdAt: -1 })
       .skip(skip)

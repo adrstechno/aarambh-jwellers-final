@@ -59,7 +59,10 @@ export default function Products() {
 
   // ✅ Fetch categories + products
   const fetchData = async () => {
-    if (!user?.token) return;
+    if (!user?.token) {
+      setLoading(false);
+      return;
+    }
     try {
       const [cats, prodsResponse] = await Promise.all([
         getCategories(), 

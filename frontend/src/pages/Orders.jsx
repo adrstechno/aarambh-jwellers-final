@@ -51,7 +51,7 @@ export default function Orders() {
           getUserOrders(user?.token, user?._id),
           getUserReturns(user?.token, user?._id),
         ]);
-        setOrders(Array.isArray(ordersData) ? ordersData : ordersData?.data || []);
+        setOrders(Array.isArray(ordersData) ? ordersData : ordersData?.orders || []);
         setReturns(Array.isArray(returnsData) ? returnsData : []);
       } catch (err) {
         console.error("❌ Failed to load orders:", err);

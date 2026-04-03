@@ -30,12 +30,13 @@ export default function Orders() {
   const itemsPerPage = 10;
 
   // ✅ Fetch all orders
- useEffect(() => {
+  useEffect(() => {
     const fetchOrders = async () => {
       try {
         const data = await getAllOrders(user?.token);
-        // your backend returns array directly
-        setOrders(Array.isArray(data) ? data : []);
+        // backend returns { orders: [...], pagination: {...} }
+        const list = Array.isArray(data) ? data : data?.orders || [];
+        setOrders(list);
       } catch (err) {
         console.error("❌ Error fetching orders:", err);
         setOrders([]);
@@ -57,12 +58,10 @@ export default function Orders() {
   const handleStatusChange = async (id, newStatus) => {
     try {
       const res = await updateOrderStatus(id, newStatus, user?.token);
-
-      if (res.data?.order) {
+      // API returns { message, order } directly
+      if (res?.order) {
         setOrders((prev) =>
-          prev.map((order) =>
-            order._id === id ? res.data.order : order
-          )
+          prev.map((order) => (order._id === id ? res.order : order))
         );
       } else {
         setOrders((prev) =>
@@ -71,7 +70,6 @@ export default function Orders() {
           )
         );
       }
-
       showToast("success", `Order status updated to ${newStatus}`);
     } catch (err) {
       console.error("❌ Failed to update order status:", err.response?.data || err.message);
@@ -419,13 +417,35 @@ export default function Orders() {
               )}
 
               <h3 className="font-semibold mt-4">Products:</h3>
-              <ul className="list-disc ml-6 space-y-1">
-                {viewOrder.products.map((p) => (
-                  <li key={p._id}>
-                    {p.name} × {p.quantity} — ₹{p.price}
-                  </li>
-                ))}
-              </ul>
+              <div className="space-y-3 mt-2">
+                {viewOrder.products.map((p) => {
+                  const productImg =
+                    p.product?.images?.[0] ||
+                    p.product?.image ||
+                    "/placeholder.jpg";
+                  const productName = p.product?.name || p.name || "Unknown Product";
+                  return (
+                    <div key={p._id} className="flex items-center gap-3 border rounded-lg p-2 bg-gray-50">
+                      <img
+                        src={productImg}
+                        alt={productName}
+                        className="w-14 h-14 object-cover rounded border"
+                        onError={(e) => (e.target.src = "/placeholder.jpg")}
+                      />
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-800">{productName}</p>
+                        {p.product?.description && (
+                          <p className="text-xs text-gray-500 line-clamp-1">{p.product.description}</p>
+                        )}
+                        <p className="text-sm text-gray-600">
+                          Qty: {p.quantity} &nbsp;|&nbsp; ₹{p.price} each
+                        </p>
+                      </div>
+                      <p className="font-semibold text-gray-700">₹{p.price * p.quantity}</p>
+                    </div>
+                  );
+                })}
+              </div>
 
               <p className="mt-4 text-lg font-semibold">
                 Total: ₹{viewOrder.total}

@@ -25,10 +25,17 @@ const cachedGet = async (url) => {
     }
     CACHE.delete(url);
   }
-  
+
   const { data } = await axios.get(url);
   CACHE.set(url, { data, timestamp: now });
   return data;
+};
+
+// ✅ Clear all product-related cache entries (call after mutations)
+export const clearProductCache = () => {
+  for (const key of CACHE.keys()) {
+    if (key.includes("/products")) CACHE.delete(key);
+  }
 };
 
 /* =======================================================
@@ -64,7 +71,7 @@ const normalizeProductImages = (product) => {
 // ✅ Get all public (active) products with pagination
 export const getAllProducts = async (page = 1, limit = 20) => {
   try {
-    const { data } = await cachedGet(
+    const data = await cachedGet(
       `${API_BASE}/products?page=${page}&limit=${limit}`
     );
     const products = Array.isArray(data?.products)
@@ -80,7 +87,7 @@ export const getAllProducts = async (page = 1, limit = 20) => {
 export const getProductsByCategory = async (category, page = 1, limit = 20) => {
   try {
     const url = `${API_BASE}/products/category/${category}?page=${page}&limit=${limit}`;
-    const { data } = await cachedGet(url);
+    const data = await cachedGet(url);
     const products = Array.isArray(data?.products)
       ? data.products.map(normalizeProductImages)
       : Array.isArray(data)
@@ -135,6 +142,7 @@ export const addProduct = async (productData) => {
       // ❌ Don't manually set Content-Type; axios sets it automatically for FormData
       transformRequest: [(data) => data],
     });
+    clearProductCache();
     return normalizeProductImages(data.product || data);
   } catch (error) {
     handleError("adding product", error);
@@ -147,17 +155,18 @@ export const updateProduct = async (id, productData) => {
     const { data } = await axios.put(`${API_BASE}/products/${id}`, productData, {
       transformRequest: [(data) => data],
     });
+    clearProductCache();
     return normalizeProductImages(data.product || data);
   } catch (error) {
     handleError("updating product", error);
   }
 };
 
-
 // ✅ Delete product (Admin)
 export const deleteProduct = async (id) => {
   try {
     const { data } = await axios.delete(`${API_BASE}/products/${id}`);
+    clearProductCache();
     return data;
   } catch (error) {
     handleError("deleting product", error);
