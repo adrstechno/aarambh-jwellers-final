@@ -56,22 +56,25 @@ export default function Products() {
     setTimeout(() => setToast({ type: "", message: "" }), 2500);
   };
 
-  // ✅ Fetch categories + products independently so one failure doesn't block the other
+  // ✅ Load categories on mount — public endpoint, NO token required
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const cats = await getCategories();
+        setCategories(Array.isArray(cats) ? cats : []);
+      } catch (err) {
+        console.error("Error loading categories:", err);
+      }
+    };
+    loadCategories();
+  }, []); // runs once on mount, independent of auth
+
+  // ✅ Load products — protected admin endpoint, waits for token
   const fetchData = async () => {
     if (!user?.token) {
       setLoading(false);
       return;
     }
-
-    // Load categories independently (public endpoint — no auth needed)
-    try {
-      const cats = await getCategories();
-      setCategories(Array.isArray(cats) ? cats : []);
-    } catch (err) {
-      console.error("Error loading categories:", err);
-    }
-
-    // Load products via protected admin endpoint (returns ALL products regardless of status)
     try {
       const prodsResponse = await getAdminProducts(user.token);
       setProducts(prodsResponse?.products || []);
